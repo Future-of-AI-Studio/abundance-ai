@@ -1,0 +1,56 @@
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui';
+import { NarratedLoader } from '@/components/media/NarratedLoader';
+import { useApp } from '@/store';
+
+// [07] Building Your Program — the hero loading moment while Gemini structures the
+// content. Auto-advances to [08] on success; calm full-screen retry on failure.
+const STEPS = [
+  'Reading your notes…',
+  'Finding the throughline…',
+  'Shaping your modules…',
+  'Writing the outcomes…',
+  'Almost there…',
+];
+
+export function BuildingPage() {
+  const navigate = useNavigate();
+  const { backend, journey, refreshProgram, refreshJourney } = useApp();
+  const [failed, setFailed] = useState(false);
+  const started = useRef(false);
+
+  const run = async () => {
+    if (!backend) return;
+    setFailed(false);
+    try {
+      await backend.api.programBuild({ path: journey?.path ?? undefined });
+      await Promise.all([refreshProgram(), backend.api.journeyUpdate({ current_step: 'program', complete_step: 'program' })]);
+      await refreshJourney();
+      navigate('/app/program', { replace: true });
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend]);
+
+  if (failed) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-8 text-center">
+        <h1 className="text-h1 font-bold text-ink">We hit a snag building your program.</h1>
+        <p className="mt-3 max-w-sm text-body text-ink-secondary">Your content is safe. Let's try that again.</p>
+        <div className="mt-6 w-full max-w-xs">
+          <Button size="lg" onClick={() => { void run(); }}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return <NarratedLoader steps={STEPS} subline="Hang tight — this is the good part." />;
+}

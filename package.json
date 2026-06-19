@@ -1,0 +1,26 @@
+{
+  "name": "abundance-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AbundanceAI — humanity-first MVP that turns expertise into a sellable online program. Build with Gemini XPRIZE.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build:shared": "npm run build --workspace @abundance/shared",
+    "dev:web": "npm run dev --workspace @abundance/web",
+    "build:web": "npm run build --workspace @abundance/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:seed": "supabase db reset",
+    "functions:serve": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env",
+    "functions:deploy": "supabase functions deploy"
+  },
+  "license": "UNLICENSED"
+}

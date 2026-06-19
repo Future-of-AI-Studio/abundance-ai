@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "zod": "npm:zod@3.23.8",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.45.0",
+    "stripe": "npm:stripe@16.12.0",
+    "google-auth-library": "npm:google-auth-library@9.14.1"
+  },
+  "lint": { "rules": { "tags": ["recommended"] } }
+}

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+packages/shared/dist/
+
+# Env & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+supabase/.env
+**/service-account*.json
+**/*-sa-key.json
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / coverage
+coverage/
+
+# Vite / web
+apps/web/.vite/
+apps/web/stats.html

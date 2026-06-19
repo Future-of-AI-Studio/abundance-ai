@@ -1,0 +1,249 @@
+import { z } from 'zod';
+import {
+  programSchema,
+  moduleSchema,
+  marketingPostSchema,
+  sessionSchema,
+  stripeChecklistSchema,
+  mindsetCheckinSchema,
+  circleMemberSchema,
+  expertTalkSchema,
+  testimonialSchema,
+  journeyStepSchema,
+} from './entities.js';
+import {
+  channelSchema,
+  matchStatusSchema,
+  wallKeySchema,
+  contentKindSchema,
+  pathSchema,
+} from './enums.js';
+
+/**
+ * API request/response contracts for every Supabase Edge Function.
+ * Every function input-validates with these; the frontend renders typed errors.
+ */
+
+// ── Shared error envelope ─────────────────────────────────────────────────────
+export const apiErrorSchema = z.object({
+  error: z.object({
+    code: z.string(), // machine code, e.g. 'invalid_input', 'payment_required'
+    message: z.string(), // warm, user-facing copy
+    field: z.string().optional(), // for inline field errors
+  }),
+});
+export type ApiError = z.infer<typeof apiErrorSchema>;
+
+// ── checkout-session ──────────────────────────────────────────────────────────
+export const checkoutSessionRequestSchema = z.object({
+  email: z.string().email(),
+  is_related_party: z.boolean().optional().default(false),
+});
+export type CheckoutSessionRequest = z.infer<typeof checkoutSessionRequestSchema>;
+
+export const checkoutSessionResponseSchema = z.object({
+  client_secret: z.string(),
+  order_id: z.string().uuid(),
+  payment_intent_id: z.string(),
+  amount_cents: z.number().int(),
+  publishable_key: z.string(),
+});
+export type CheckoutSessionResponse = z.infer<typeof checkoutSessionResponseSchema>;
+
+// ── post-payment token verification (gates /welcome + account creation) ───────
+export const verifyPaymentRequestSchema = z.object({
+  payment_intent_id: z.string(),
+});
+export type VerifyPaymentRequest = z.infer<typeof verifyPaymentRequestSchema>;
+
+export const verifyPaymentResponseSchema = z.object({
+  paid: z.boolean(),
+  email: z.string().email().nullable(),
+  order_id: z.string().uuid().nullable(),
+});
+export type VerifyPaymentResponse = z.infer<typeof verifyPaymentResponseSchema>;
+
+// ── content: signed upload URL ────────────────────────────────────────────────
+export const contentUploadRequestSchema = z.object({
+  kind: contentKindSchema,
+  filename: z.string().min(1),
+  content_type: z.string(),
+  size_bytes: z.number().int().positive().max(50 * 1024 * 1024, 'File must be 50 MB or under.'),
+  duration_sec: z.number().int().nonnegative().nullable().optional(),
+});
+export type ContentUploadRequest = z.infer<typeof contentUploadRequestSchema>;
+
+export const contentUploadResponseSchema = z.object({
+  content_source_id: z.string().uuid(),
+  storage_path: z.string(),
+  signed_url: z.string().url(),
+  token: z.string(),
+});
+export type ContentUploadResponse = z.infer<typeof contentUploadResponseSchema>;
+
+// ── program-build ─────────────────────────────────────────────────────────────
+export const programBuildRequestSchema = z.object({
+  path: pathSchema.optional(),
+});
+export type ProgramBuildRequest = z.infer<typeof programBuildRequestSchema>;
+
+export const programBuildResponseSchema = z.object({
+  program: programSchema,
+  modules: z.array(moduleSchema),
+});
+export type ProgramBuildResponse = z.infer<typeof programBuildResponseSchema>;
+
+// Strict shape Gemini must return for program structuring (validated server-side).
+export const aiModuleSchema = z.object({
+  title: z.string().min(1),
+  outcome: z.string().min(1),
+  session_flow: z.string().min(1),
+});
+export const aiProgramSchema = z.object({
+  title: z.string().min(1),
+  modules: z.array(aiModuleSchema).min(3).max(6),
+});
+export type AiProgram = z.infer<typeof aiProgramSchema>;
+
+// ── program-update ────────────────────────────────────────────────────────────
+export const moduleUpsertSchema = z.object({
+  id: z.string().uuid().optional(), // omitted = new module
+  idx: z.number().int().nonnegative(),
+  title: z.string().min(1, 'Give this module a title.'),
+  outcome: z.string(),
+  session_flow: z.string(),
+});
+export const programUpdateRequestSchema = z.object({
+  program_id: z.string().uuid(),
+  title: z.string().min(1, 'Your program needs a title.').optional(),
+  modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').optional(),
+  remove_module_ids: z.array(z.string().uuid()).optional(),
+});
+export type ProgramUpdateRequest = z.infer<typeof programUpdateRequestSchema>;
+
+export const programUpdateResponseSchema = programBuildResponseSchema;
+export type ProgramUpdateResponse = z.infer<typeof programUpdateResponseSchema>;
+
+// ── marketing-generate ────────────────────────────────────────────────────────
+export const marketingGenerateRequestSchema = z.object({
+  include_email: z.boolean().optional().default(false),
+});
+export type MarketingGenerateRequest = z.infer<typeof marketingGenerateRequestSchema>;
+
+export const marketingGenerateResponseSchema = z.object({
+  posts: z.array(marketingPostSchema),
+});
+export type MarketingGenerateResponse = z.infer<typeof marketingGenerateResponseSchema>;
+
+export const aiPostSchema = z.object({
+  channel: channelSchema,
+  caption: z.string().min(1),
+  hashtags: z.array(z.string()),
+});
+export const aiMarketingSchema = z.object({
+  posts: z.array(aiPostSchema).min(1),
+});
+export type AiMarketing = z.infer<typeof aiMarketingSchema>;
+
+// ── marketing-update ──────────────────────────────────────────────────────────
+export const marketingUpdateRequestSchema = z.object({
+  id: z.string().uuid(),
+  caption: z.string().min(1, "A post can't be empty.").optional(),
+  hashtags: z.array(z.string()).optional(),
+  posted: z.boolean().optional(),
+});
+export type MarketingUpdateRequest = z.infer<typeof marketingUpdateRequestSchema>;
+
+export const marketingUpdateResponseSchema = z.object({ post: marketingPostSchema });
+export type MarketingUpdateResponse = z.infer<typeof marketingUpdateResponseSchema>;
+
+// ── sessions-set-link ─────────────────────────────────────────────────────────
+export const sessionsSetLinkRequestSchema = z.object({
+  meet_link: z
+    .string()
+    .url('Paste the full https://meet.google.com/… URL.')
+    .refine((u) => /^https:\/\/meet\.google\.com\//.test(u), {
+      message: "That doesn't look like a Meet link — paste the full https://meet.google.com/… URL.",
+    }),
+});
+export type SessionsSetLinkRequest = z.infer<typeof sessionsSetLinkRequestSchema>;
+
+export const sessionsSetLinkResponseSchema = z.object({ session: sessionSchema });
+export type SessionsSetLinkResponse = z.infer<typeof sessionsSetLinkResponseSchema>;
+
+// ── stripe-connect ────────────────────────────────────────────────────────────
+export const stripeConnectRequestSchema = z.object({
+  return_url: z.string().url().optional(),
+  reconcile: z.boolean().optional(), // true on return to refresh status
+});
+export type StripeConnectRequest = z.infer<typeof stripeConnectRequestSchema>;
+
+export const stripeConnectResponseSchema = z.object({
+  onboarding_url: z.string().url().nullable(),
+  connected: z.boolean(),
+  checklist: stripeChecklistSchema,
+});
+export type StripeConnectResponse = z.infer<typeof stripeConnectResponseSchema>;
+
+// ── mindset-checkin ───────────────────────────────────────────────────────────
+export const mindsetCheckinRequestSchema = z.object({
+  wall_key: wallKeySchema,
+  user_note: z.string().max(1000).optional(),
+});
+export type MindsetCheckinRequest = z.infer<typeof mindsetCheckinRequestSchema>;
+
+// Discriminated union: a normal reflection OR a warm "limit reached" payload (200, never a hard error).
+export const mindsetCheckinResponseSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('ok'),
+    checkin: mindsetCheckinSchema,
+    cache_hit: z.boolean(),
+    remaining: z.number().int().nonnegative(),
+  }),
+  z.object({
+    status: z.literal('limit'),
+    message: z.string(),
+    remaining: z.literal(0),
+  }),
+]);
+export type MindsetCheckinResponse = z.infer<typeof mindsetCheckinResponseSchema>;
+
+// ── circle-get ────────────────────────────────────────────────────────────────
+export const circleGetResponseSchema = z.object({
+  match_status: matchStatusSchema,
+  members: z.array(circleMemberSchema),
+  whatsapp_url: z.string().url().nullable(),
+  meet_url: z.string().url().nullable(),
+  next_talk: expertTalkSchema.nullable(),
+});
+export type CircleGetResponse = z.infer<typeof circleGetResponseSchema>;
+
+// ── testimonial-create ────────────────────────────────────────────────────────
+export const testimonialCreateRequestSchema = z.object({
+  text: z.string().min(1, 'Share a few words first.'),
+  permission_granted: z.boolean().default(false),
+});
+export type TestimonialCreateRequest = z.infer<typeof testimonialCreateRequestSchema>;
+
+export const testimonialCreateResponseSchema = z.object({ testimonial: testimonialSchema });
+export type TestimonialCreateResponse = z.infer<typeof testimonialCreateResponseSchema>;
+
+// ── refund-request ────────────────────────────────────────────────────────────
+export const refundRequestRequestSchema = z.object({}).optional();
+export type RefundRequestRequest = z.infer<typeof refundRequestRequestSchema>;
+
+export const refundRequestResponseSchema = z.object({
+  within_window: z.boolean(),
+  status: z.string(),
+  message: z.string(),
+  days_remaining: z.number().int().nullable(),
+});
+export type RefundRequestResponse = z.infer<typeof refundRequestResponseSchema>;
+
+// ── journey-update (persist step progress) ────────────────────────────────────
+export const journeyUpdateRequestSchema = z.object({
+  path: pathSchema.nullable().optional(),
+  current_step: journeyStepSchema.nullable().optional(),
+  complete_step: journeyStepSchema.optional(), // mark one step complete
+});
+export type JourneyUpdateRequest = z.infer<typeof journeyUpdateRequestSchema>;

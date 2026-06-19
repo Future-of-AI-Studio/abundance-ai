@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS custom properties mirror the Tailwind theme tokens (§2) — available for the
+   rare case a raw var is needed (e.g. inline canvas), but components use classes. */
+:root {
+  --color-primary: #b5532a;
+  --color-primary-hover: #e08a3c;
+  --color-accent: #3f8e6e;
+  --color-bg: #fbf6ef;
+  --color-surface: #f3e9dc;
+  --color-surface-plain: #ffffff;
+  --color-text: #3a2e26;
+  --color-text-secondary: #8a7b6d;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Warm terracotta focus ring everywhere (accessibility). */
+  *:focus-visible {
+    @apply outline-none shadow-focus rounded-sm;
+  }
+  /* Respect reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Skeleton shimmer overlay. */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+  /* Safe-area padding for the bottom tab bar on notched phones. */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
+  }
+  /* Warm dotted backdrop — landing hero & dark pillar band. */
+  .dots-warm {
+    background-image: radial-gradient(rgba(181, 83, 42, 0.1) 1.6px, transparent 1.6px);
+    background-size: 30px 30px;
+  }
+  .dots-cream {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.4px, transparent 1.4px);
+    background-size: 30px 30px;
+  }
+  /* Gentle rise-in for landing sections. */
+  .rise-in {
+    animation: rise-in 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
