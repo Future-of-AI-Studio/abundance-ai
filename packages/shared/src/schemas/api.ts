@@ -9,6 +9,7 @@ import {
   mindsetMessageSchema,
   circleMemberSchema,
   expertTalkSchema,
+  circleMeetupSchema,
   testimonialSchema,
   journeyStepSchema,
 } from './entities.js';
@@ -279,11 +280,16 @@ export const aiReflectSchema = z.object({
 export type AiReflect = z.infer<typeof aiReflectSchema>;
 
 // ── circle-get ────────────────────────────────────────────────────────────────
+// `members` are the people on the page: once `match_status` is 'matched' they are
+// the user's circle; while 'pending' they are *recommended* people (low-commitment,
+// "here's who you might connect with") so the page is never empty. `meetups` are
+// scheduled, drop-in open rooms shown to everyone.
 export const circleGetResponseSchema = z.object({
   match_status: matchStatusSchema,
   members: z.array(circleMemberSchema),
   whatsapp_url: z.string().url().nullable(),
   meet_url: z.string().url().nullable(),
+  meetups: z.array(circleMeetupSchema),
   next_talk: expertTalkSchema.nullable(),
 });
 export type CircleGetResponse = z.infer<typeof circleGetResponseSchema>;

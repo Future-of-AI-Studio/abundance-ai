@@ -45,7 +45,16 @@ Deno.serve(async (req) => {
       next_talk = past ?? null;
     }
 
-    return json({ match_status, members, whatsapp_url, meet_url, next_talk });
+    // Upcoming drop-in meetups (open rooms, no commitment). Shown to everyone.
+    const { data: meetupRows } = await db
+      .from('circle_meetups')
+      .select('id, title, starts_at, host_name, join_url')
+      .gte('starts_at', nowIso)
+      .order('starts_at', { ascending: true })
+      .limit(3);
+    const meetups = meetupRows ?? [];
+
+    return json({ match_status, members, whatsapp_url, meet_url, meetups, next_talk });
   } catch (err) {
     return handleThrown(err);
   }

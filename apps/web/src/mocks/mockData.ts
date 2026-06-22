@@ -90,6 +90,22 @@ export const MOCK = {
       ],
       whatsapp_url: wa,
       meet_url: meet,
+      meetups: [
+        {
+          id: 'm1',
+          title: 'Peer Support Circle — drop in & share where you are',
+          starts_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+          host_name: 'Laquelle',
+          join_url: 'https://meet.google.com/circle-meetup-001',
+        },
+        {
+          id: 'm2',
+          title: 'Show & Tell — bring one thing you made this week',
+          starts_at: new Date(Date.now() + 6 * 86400000).toISOString(),
+          host_name: 'Laquelle',
+          join_url: 'https://meet.google.com/circle-meetup-002',
+        },
+      ],
       next_talk: {
         id: 't1',
         title: 'Finding Your Voice: teaching when you feel unready',

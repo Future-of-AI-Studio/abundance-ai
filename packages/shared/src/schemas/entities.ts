@@ -218,6 +218,19 @@ export const expertTalkSchema = z.object({
 });
 export type ExpertTalk = z.infer<typeof expertTalkSchema>;
 
+// ── circle_meetups ────────────────────────────────────────────────────────────
+// Scheduled, drop-in "open rooms" anyone can join — no commitment, no assigned
+// team. These answer the "what / when / who hosts" of a meetup that a bare Meet
+// link can't. Community-wide and readable by all authenticated users.
+export const circleMeetupSchema = z.object({
+  id: uuid,
+  title: z.string(),
+  starts_at: timestamp,
+  host_name: z.string(),
+  join_url: z.string().url().nullable(),
+});
+export type CircleMeetup = z.infer<typeof circleMeetupSchema>;
+
 // ── testimonials ──────────────────────────────────────────────────────────────
 export const testimonialSchema = z.object({
   id: uuid,
