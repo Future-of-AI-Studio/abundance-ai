@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Module } from '@abundance/shared';
 import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
-import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight } from '@/components/ui/icons';
+import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, SparkleIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -150,7 +150,7 @@ export function ProgramPage() {
         <PlusIcon width={18} height={18} /> Add module
       </button>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-2">
         <Button
           size="lg"
           iconRight={<ArrowRight width={20} height={20} />}
@@ -160,6 +160,16 @@ export function ProgramPage() {
           }}
         >
           Looks great — continue
+        </Button>
+        {/* Editing modules above is inline; to change the underlying content and
+            regenerate, head back to the content step (it rebuilds from sources). */}
+        <Button
+          size="lg"
+          variant="ghost"
+          iconLeft={<SparkleIcon width={18} height={18} />}
+          onClick={() => navigate('/app/onboarding/content')}
+        >
+          Edit my content & rebuild
         </Button>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MarketingPost, Channel } from '@abundance/shared';
-import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState } from '@/components/ui';
-import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight } from '@/components/ui/icons';
+import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
+import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
+import { buildShareText, canNativeShare, nativeShare, intentUrl, type SharePlatform } from '@/lib/share';
 
 // [09] Marketing Kit — AI-written posts to copy, edit, publish. Skeletons while
 // generating. Email segment enabled only if the user has a list.
@@ -116,10 +117,12 @@ function PostCard({ post }: { post: MarketingPost }) {
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState(post.caption);
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const shareText = buildShareText(caption, post.hashtags);
 
   const copy = async () => {
-    const text = `${caption}${post.hashtags.length ? '\n\n' + post.hashtags.join(' ') : ''}`;
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(shareText);
     setCopied(true);
     toast.success('Copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
@@ -131,8 +134,41 @@ function PostCard({ post }: { post: MarketingPost }) {
     if (backend) { await backend.api.marketingUpdate({ id: post.id, caption }); await refreshMarketing(); }
   };
 
+  // Reflect that the user took the post out to a platform. We can't know they
+  // hit "publish", but opening the composer is the strongest signal we get.
+  const markShared = async () => {
+    if (backend && !post.posted) { await backend.api.marketingUpdate({ id: post.id, posted: true }); await refreshMarketing(); }
+  };
+
   const togglePosted = async () => {
     if (backend) { await backend.api.marketingUpdate({ id: post.id, posted: !post.posted }); await refreshMarketing(); }
+  };
+
+  // Mobile: hand to the OS share sheet (covers IG/FB/X). Desktop: open the menu.
+  const share = async () => {
+    if (canNativeShare(shareText)) {
+      if (await nativeShare(shareText)) await markShared();
+    } else {
+      setShareOpen(true);
+    }
+  };
+
+  const shareTo = async (platform: SharePlatform) => {
+    setShareOpen(false);
+    const url = intentUrl(platform, shareText, window.location.origin);
+    if (url) {
+      // FB can't prefill the caption — copy it so the user can paste.
+      if (platform === 'facebook') {
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Caption copied — paste it into your Facebook post');
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      // Instagram has no web composer — copy and let the user paste in the app.
+      await navigator.clipboard.writeText(shareText);
+      toast.success('Caption copied — open Instagram and paste');
+    }
+    await markShared();
   };
 
   return (
@@ -159,10 +195,30 @@ function PostCard({ post }: { post: MarketingPost }) {
         <Button size="sm" variant="secondary" fullWidth={false} iconLeft={copied ? <CheckIcon width={15} height={15} /> : <CopyIcon width={15} height={15} />} onClick={copy}>
           {copied ? 'Copied' : 'Copy'}
         </Button>
+        <Button size="sm" variant="secondary" fullWidth={false} iconLeft={<ShareIcon width={15} height={15} />} onClick={share}>
+          Share
+        </Button>
         <button onClick={togglePosted} className="ml-auto">
           {post.posted ? <Badge variant="done">Posted</Badge> : <span className="text-body-sm font-medium text-ink-secondary hover:text-ink">Mark posted</span>}
         </button>
       </div>
+
+      <Sheet open={shareOpen} onClose={() => setShareOpen(false)} title="Share this post">
+        <div className="space-y-2">
+          <Button variant="secondary" iconLeft={<XIcon width={18} height={18} />} onClick={() => shareTo('x')}>
+            Share to X
+          </Button>
+          <Button variant="secondary" iconLeft={<FacebookIcon width={18} height={18} />} onClick={() => shareTo('facebook')}>
+            Share to Facebook
+          </Button>
+          <Button variant="secondary" iconLeft={<InstagramIcon width={18} height={18} />} onClick={() => shareTo('instagram')}>
+            Share to Instagram
+          </Button>
+          <p className="pt-1 text-center text-body-sm text-ink-secondary">
+            Facebook & Instagram don't accept pre-filled captions, so we copy yours to paste.
+          </p>
+        </div>
+      </Sheet>
     </Card>
   );
 }

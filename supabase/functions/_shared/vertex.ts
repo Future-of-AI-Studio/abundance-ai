@@ -20,9 +20,18 @@ export interface VertexResult {
   mocked: boolean;
 }
 
+/** One turn of a multi-turn conversation. 'model' is Gemini's role for replies. */
+export interface VertexMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
 export interface VertexCallArgs {
   systemPrompt: string;
-  userPrompt: string;
+  /** Single-turn prompt. Ignored when `messages` is provided. */
+  userPrompt?: string;
+  /** Multi-turn history (oldest → newest). When set, overrides `userPrompt`. */
+  messages?: VertexMessage[];
   temperature?: number;
   /** When true, force JSON output (responseMimeType application/json). */
   json?: boolean;
@@ -63,9 +72,13 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
     `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT}` +
     `/locations/${LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
 
+  const contents = args.messages
+    ? args.messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+    : [{ role: 'user', parts: [{ text: args.userPrompt ?? '' }] }];
+
   const body = {
     systemInstruction: { parts: [{ text: args.systemPrompt }] },
-    contents: [{ role: 'user', parts: [{ text: args.userPrompt }] }],
+    contents,
     generationConfig: {
       temperature: args.temperature ?? 0.7,
       maxOutputTokens: 2048,

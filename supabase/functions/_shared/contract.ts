@@ -12,6 +12,7 @@ import { z } from 'zod';
 export const pathSchema = z.enum(['A', 'B']);
 export const categorySchema = z.enum(['healer', 'hobbyist', 'professional', 'other']);
 export const channelSchema = z.enum(['social', 'email']);
+export const meetingPlatformSchema = z.enum(['google_meet', 'zoom', 'teams', 'other']);
 export const contentKindSchema = z.enum(['file', 'voice']);
 export const journeyStepSchema = z.enum([
   'path', 'content', 'building', 'program', 'marketing', 'sessions', 'payments',
@@ -87,14 +88,31 @@ export const marketingUpdateRequestSchema = z.object({
 });
 
 // ── sessions ──────────────────────────────────────────────────────────────────
-export const sessionsSetLinkRequestSchema = z.object({
-  meet_link: z
-    .string()
-    .url('Paste the full https://meet.google.com/… URL.')
-    .refine((u) => /^https:\/\/meet\.google\.com\//.test(u), {
-      message: "That doesn't look like a Meet link — paste the full https://meet.google.com/… URL.",
-    }),
-});
+const MEETING_LINK_PATTERNS: Record<string, RegExp | null> = {
+  google_meet: /^https:\/\/meet\.google\.com\//i,
+  zoom: /^https:\/\/([a-z0-9-]+\.)?zoom\.us\//i,
+  teams: /^https:\/\/teams\.(microsoft|live)\.com\//i,
+  other: null,
+};
+const MEETING_PLATFORM_LABEL: Record<string, string> = {
+  google_meet: 'Google Meet', zoom: 'Zoom', teams: 'Microsoft Teams', other: 'meeting',
+};
+export const sessionsSetLinkRequestSchema = z
+  .object({
+    platform: meetingPlatformSchema.default('google_meet'),
+    meet_link: z.string().url('Paste a full https://… link.'),
+  })
+  .superRefine((data, ctx) => {
+    const pattern = MEETING_LINK_PATTERNS[data.platform];
+    const ok = pattern === null ? /^https:\/\//i.test(data.meet_link) : pattern.test(data.meet_link);
+    if (!ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['meet_link'],
+        message: `That doesn't look like a ${MEETING_PLATFORM_LABEL[data.platform]} link.`,
+      });
+    }
+  });
 
 // ── stripe connect ────────────────────────────────────────────────────────────
 export const stripeConnectRequestSchema = z.object({
@@ -106,6 +124,19 @@ export const stripeConnectRequestSchema = z.object({
 export const mindsetCheckinRequestSchema = z.object({
   wall_key: wallKeySchema,
   user_note: z.string().max(1000).optional(),
+});
+export const mindsetChatRequestSchema = z.object({
+  conversation_id: z.string().uuid().optional(),
+  message: z.string().min(1).max(2000),
+});
+export const mindsetReflectRequestSchema = z.object({
+  conversation_id: z.string().uuid(),
+});
+// Strict shape Gemini must return when distilling a conversation into a reflection.
+export const aiReflectSchema = z.object({
+  wall_key: wallKeySchema,
+  prompt: z.string().min(1),
+  reflection: z.string().min(1),
 });
 
 // ── testimonial ───────────────────────────────────────────────────────────────

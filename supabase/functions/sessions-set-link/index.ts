@@ -1,4 +1,5 @@
-// sessions-set-link — validate + save a Google Meet link. Surfaces on Home + Circle.
+// sessions-set-link — validate + save a meeting link (Meet/Zoom/Teams/other).
+// Surfaces on Home + Circle.
 import { handleOptions } from '../_shared/cors.ts';
 import { json, handleThrown } from '../_shared/response.ts';
 import { parseBody, sessionsSetLinkRequestSchema } from '../_shared/contract.ts';
@@ -9,11 +10,11 @@ Deno.serve(async (req) => {
   try {
     const user = await requireUser(req);
     const db = userClient(req);
-    const { meet_link } = await parseBody(req, sessionsSetLinkRequestSchema);
+    const { meet_link, platform } = await parseBody(req, sessionsSetLinkRequestSchema);
 
     const { data: session } = await db
       .from('sessions')
-      .upsert({ user_id: user.id, meet_link })
+      .upsert({ user_id: user.id, meet_link, platform })
       .select('*')
       .single();
 

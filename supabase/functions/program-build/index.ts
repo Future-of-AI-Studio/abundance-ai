@@ -26,7 +26,11 @@ Deno.serve(async (req) => {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
     }
 
-    // Create/replace the program in a 'building' state.
+    // Replace any prior program — rebuilds regenerate from scratch, so we drop the
+    // old program (modules cascade) rather than leaving orphans behind the latest.
+    await db.from('programs').delete().eq('user_id', user.id);
+
+    // Create the program in a 'building' state.
     const { data: program, error: progErr } = await db
       .from('programs')
       .insert({ user_id: user.id, title: 'Your program', status: 'building' })

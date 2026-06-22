@@ -64,7 +64,7 @@ export function HomePage() {
       case 'content': return 'Your material';
       case 'program': return moduleCount > 0 ? `${moduleCount} modules ready` : 'Your curriculum';
       case 'marketing': return postCount > 0 ? `${postCount} posts drafted` : 'Your launch posts';
-      case 'sessions': return session?.meet_link ? 'Meet link ready' : 'Your live room';
+      case 'sessions': return session?.meet_link ? 'Session link ready' : 'Your live room';
       case 'payments': return 'Get set up to get paid';
       default: return '';
     }
@@ -82,7 +82,7 @@ export function HomePage() {
   const stats = [
     { Icon: BookIcon, value: String(moduleCount), label: 'modules built', tone: 'primary' as const, to: '/app/program', has: moduleCount > 0 },
     { Icon: MegaphoneIcon, value: String(postCount), label: 'posts drafted', tone: 'primary' as const, to: '/app/onboarding/marketing', has: postCount > 0 },
-    { Icon: VideoIcon, value: session?.meet_link ? 'Ready' : 'Set up', label: 'Meet link', tone: 'accent' as const, to: '/app/onboarding/sessions', has: !!session?.meet_link },
+    { Icon: VideoIcon, value: session?.meet_link ? 'Ready' : 'Set up', label: 'Session link', tone: 'accent' as const, to: '/app/onboarding/sessions', has: !!session?.meet_link },
     { Icon: UsersIcon, value: matched ? 'Matched' : 'Matching', label: 'Your circle', tone: 'accent' as const, to: '/app/circle', has: true },
   ];
 

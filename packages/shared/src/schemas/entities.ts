@@ -6,6 +6,7 @@ import {
   memberLevelSchema,
   fearPatternSchema,
   channelSchema,
+  meetingPlatformSchema,
   matchStatusSchema,
   orderStatusSchema,
   contentKindSchema,
@@ -117,6 +118,9 @@ export type MarketingPost = z.infer<typeof marketingPostSchema>;
 // ── sessions ──────────────────────────────────────────────────────────────────
 export const sessionSchema = z.object({
   user_id: uuid,
+  // `meet_link` holds the URL for whichever `platform` is chosen (kept this
+  // column name for back-compat; it is no longer Google-Meet-specific).
+  platform: meetingPlatformSchema.default('google_meet'),
   meet_link: z.string().url().nullable(),
   updated_at: timestamp,
 });
@@ -160,6 +164,28 @@ export const mindsetQuotaSchema = z.object({
   cap: z.number().int().positive().default(3),
 });
 export type MindsetQuota = z.infer<typeof mindsetQuotaSchema>;
+
+// ── mindset_conversations ─────────────────────────────────────────────────────
+// A persisted free-form chat thread. wall_key is set when a reflection is
+// derived on wrap-up (null while the conversation is still open).
+export const mindsetConversationSchema = z.object({
+  id: uuid,
+  title: z.string().nullable(),
+  wall_key: wallKeySchema.nullable(),
+  last_message_at: timestamp,
+  created_at: timestamp,
+});
+export type MindsetConversation = z.infer<typeof mindsetConversationSchema>;
+
+// ── mindset_messages ──────────────────────────────────────────────────────────
+export const mindsetMessageSchema = z.object({
+  id: uuid,
+  conversation_id: uuid,
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+  created_at: timestamp,
+});
+export type MindsetMessage = z.infer<typeof mindsetMessageSchema>;
 
 // ── circles ───────────────────────────────────────────────────────────────────
 export const circleSchema = z.object({

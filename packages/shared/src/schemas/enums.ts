@@ -39,6 +39,11 @@ export type FearPattern = z.infer<typeof fearPatternSchema>;
 export const channelSchema = z.enum(['social', 'email']);
 export type Channel = z.infer<typeof channelSchema>;
 
+// sessions.platform — the video-conferencing tool the live group meets on.
+// 'other' accepts any https link (Webex, Whereby, a personal room, etc.).
+export const meetingPlatformSchema = z.enum(['google_meet', 'zoom', 'teams', 'other']);
+export type MeetingPlatform = z.infer<typeof meetingPlatformSchema>;
+
 // circles.match_status
 export const matchStatusSchema = z.enum(['pending', 'matched']);
 export type MatchStatus = z.infer<typeof matchStatusSchema>;
@@ -56,7 +61,7 @@ export const refundStatusSchema = z.enum(['requested', 'approved', 'denied', 'ou
 export type RefundStatus = z.infer<typeof refundStatusSchema>;
 
 // AI features logged to ai_usage_logs.feature
-export const aiFeatureSchema = z.enum(['program-build', 'marketing-generate', 'mindset-checkin']);
+export const aiFeatureSchema = z.enum(['program-build', 'marketing-generate', 'mindset-checkin', 'mindset-chat']);
 export type AiFeature = z.infer<typeof aiFeatureSchema>;
 
 /**

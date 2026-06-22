@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WALL_KEYS, type WallKey, type MindsetCheckin } from '@abundance/shared';
-import { Button, Card, Textarea, Eyebrow } from '@/components/ui';
+import {
+  WALL_KEYS,
+  type WallKey,
+  type MindsetCheckin,
+  type MindsetConversation,
+  type MindsetMessage,
+} from '@abundance/shared';
+import { Button, Card, Textarea, TextInput, Eyebrow } from '@/components/ui';
 import { HeartIcon, ArrowRight } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { cn } from '@/lib/cn';
@@ -36,6 +42,15 @@ const FEATURED: Record<WallKey, { quote: string; teaser: string }> = {
 // Mirrors the backend's 3/week mindset cap.
 const WEEKLY_CAP = 3;
 
+// Tappable conversation openers — common things people arrive with. Seeded from
+// the FEATURED walls so the chat starts somewhere true.
+const SUGGESTED_QUESTIONS = [
+  'Who am I to teach this?',
+  'It feels wrong to charge — is that normal?',
+  "I'm scared no one will show up.",
+  'The tech is overwhelming me.',
+];
+
 // "today" / "yesterday" / weekday / "Jun 3" — relative label for reflections.
 function relativeDay(iso: string): string {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -54,6 +69,8 @@ function isThisWeek(iso: string): boolean {
   return new Date(iso).getTime() >= monday.getTime();
 }
 
+type Mode = 'dashboard' | 'chat';
+
 export function MindsetPage() {
   const navigate = useNavigate();
   const { backend } = useApp();
@@ -65,11 +82,29 @@ export function MindsetPage() {
   const [picking, setPicking] = useState(false);
   const [history, setHistory] = useState<MindsetCheckin[]>([]);
 
+  // Chat: a free-form, multi-turn conversation that can be saved as a reflection.
+  const [mode, setMode] = useState<Mode>('dashboard');
+  const [conversations, setConversations] = useState<MindsetConversation[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MindsetMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dailyLimit, setDailyLimit] = useState<string | null>(null); // chat capped for today
+  const [saveNotice, setSaveNotice] = useState<string | null>(null); // weekly cap on saving
+  const threadEndRef = useRef<HTMLDivElement>(null);
+
   const loadHistory = () => {
     backend?.reads.getCheckins().then(setHistory).catch(() => {});
   };
+  const loadConversations = () => {
+    backend?.reads.getConversations().then(setConversations).catch(() => {});
+  };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadHistory(); }, [backend]);
+  useEffect(() => { loadHistory(); loadConversations(); }, [backend]);
+
+  // Keep the latest message in view as the thread grows.
+  useEffect(() => { threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);
 
   const weekCount = history.filter((c) => isThisWeek(c.created_at)).length;
   const doneWalls = new Set(history.map((c) => c.wall_key));
@@ -95,6 +130,155 @@ export function MindsetPage() {
   };
 
   const reset = () => { setCheckin(null); setLimit(null); setNote(''); setShowTestimonial(false); setPicking(false); loadHistory(); };
+
+  // ── Chat handlers ───────────────────────────────────────────────────────────
+  const sendChat = async (text: string) => {
+    const content = text.trim();
+    if (!backend || !content || sending) return;
+    setChatInput('');
+    // Optimistically show the user's message while the reply lands.
+    const optimistic: MindsetMessage = {
+      id: `tmp-${Date.now()}`, conversation_id: conversationId ?? 'pending',
+      role: 'user', content, created_at: new Date().toISOString(),
+    };
+    setMessages((m) => [...m, optimistic]);
+    setSending(true);
+    try {
+      const res = await backend.api.mindsetChat({ conversation_id: conversationId ?? undefined, message: content });
+      if (res.status === 'limit') setDailyLimit(res.message);
+      else {
+        setConversationId(res.conversation_id);
+        setMessages((m) => [...m, res.message]);
+        loadConversations();
+      }
+    } catch {
+      toast.error("Let's try that again in a moment.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const openNewChat = (seed?: string) => {
+    setMode('chat');
+    setConversationId(null);
+    setMessages([]);
+    setDailyLimit(null);
+    setSaveNotice(null);
+    setChatInput('');
+    if (seed) void sendChat(seed);
+  };
+
+  const resumeChat = async (conv: MindsetConversation) => {
+    if (!backend) return;
+    setMode('chat');
+    setConversationId(conv.id);
+    setDailyLimit(null);
+    setSaveNotice(null);
+    setChatInput('');
+    try {
+      setMessages(await backend.reads.getMessages(conv.id));
+    } catch {
+      setMessages([]);
+    }
+  };
+
+  const closeChat = () => { setMode('dashboard'); loadHistory(); loadConversations(); };
+
+  const saveReflection = async () => {
+    if (!backend || !conversationId || saving) return;
+    setSaving(true);
+    setSaveNotice(null);
+    try {
+      const res = await backend.api.mindsetReflect({ conversation_id: conversationId });
+      if (res.status === 'limit') setSaveNotice(res.message);
+      else {
+        toast.success('Saved to your reflections. 🌱');
+        loadHistory();
+        loadConversations();
+        setMode('dashboard');
+      }
+    } catch {
+      toast.error("Let's try that again in a moment.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const canSave = !!conversationId && messages.some((m) => m.role === 'user');
+
+  // ── Chat view ─────────────────────────────────────────────────────────────
+  if (mode === 'chat') {
+    return (
+      <div className="-mx-5 -mt-4 flex min-h-[calc(100dvh-7rem)] flex-col bg-gradient-to-b from-surface to-bg px-5 pt-6">
+        <div className="mx-auto flex w-full max-w-calm flex-1 flex-col">
+          <div className="mb-3 flex items-center justify-between">
+            <button onClick={closeChat} className="text-body-sm text-ink-secondary hover:text-ink">← Back</button>
+            {canSave && (
+              <Button size="sm" variant="accent-secondary" fullWidth={false} loading={saving} onClick={saveReflection}>
+                Save as reflection
+              </Button>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+            {messages.length === 0 && !sending && (
+              <Card variant="plain" className="text-center text-body-sm text-ink-secondary">
+                Say what&apos;s on your mind. I&apos;m here.
+              </Card>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+                <div className={cn(
+                  'max-w-[82%] whitespace-pre-wrap rounded-lg px-4 py-2.5 text-body',
+                  m.role === 'user' ? 'bg-primary text-white' : 'border border-line bg-surface-plain text-ink',
+                )}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-lg border border-line bg-surface-plain px-4 py-1">
+                  <TypingIndicator />
+                </div>
+              </div>
+            )}
+            <div ref={threadEndRef} />
+          </div>
+
+          {saveNotice && (
+            <Card variant="plain" className="mb-3 border-accent/20 bg-success-bg/40 text-center">
+              <p className="text-body-sm text-ink">{saveNotice}</p>
+              <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
+            </Card>
+          )}
+
+          {dailyLimit ? (
+            <Card variant="plain" className="mb-3 text-center">
+              <p className="text-body-sm text-ink">{dailyLimit}</p>
+              <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
+            </Card>
+          ) : (
+            <form
+              className="mt-auto flex items-end gap-2 pb-2"
+              onSubmit={(e) => { e.preventDefault(); void sendChat(chatInput); }}
+            >
+              <TextInput
+                className="flex-1"
+                placeholder="Type a message…"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                disabled={sending}
+              />
+              <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim() || sending} iconRight={<ArrowRight width={18} height={18} />}>
+                Send
+              </Button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="-mx-5 -mt-4 min-h-[calc(100dvh-7rem)] bg-gradient-to-b from-surface to-bg px-5 pt-6">
@@ -168,6 +352,38 @@ export function MindsetPage() {
               </span>
             </Card>
 
+            {/* Talk it through — open a free-form conversation with the coach */}
+            <Card className="mt-4">
+              <Eyebrow className="text-accent">Talk it through</Eyebrow>
+              <h2 className="mt-2 font-serif text-h2 text-ink">What&apos;s on your mind?</h2>
+              <p className="mt-1 text-body-sm text-ink-secondary">Tell me what&apos;s going on — or start with one of these.</p>
+              <form
+                className="mt-3 flex items-end gap-2"
+                onSubmit={(e) => { e.preventDefault(); if (chatInput.trim()) openNewChat(chatInput.trim()); }}
+              >
+                <TextInput
+                  className="flex-1"
+                  placeholder="Type a message…"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                />
+                <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim()} iconRight={<ArrowRight width={18} height={18} />}>
+                  Send
+                </Button>
+              </form>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => openNewChat(q)}
+                    className="rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-body-sm text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </Card>
+
             {/* Recommended "right now" reflection */}
             <Card className="mt-4 border-accent/20 bg-success-bg/50">
               <Eyebrow className="text-accent">Right now</Eyebrow>
@@ -193,6 +409,25 @@ export function MindsetPage() {
                         Reflected {relativeDay(c.created_at)}{c.user_note ? ` · ${c.user_note}` : ''}
                       </p>
                     </Card>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Resume a past conversation */}
+            {conversations.length > 0 && (
+              <section className="mt-7">
+                <Eyebrow className="mb-3">Your conversations</Eyebrow>
+                <div className="space-y-3">
+                  {conversations.slice(0, 4).map((c) => (
+                    <button key={c.id} onClick={() => void resumeChat(c)} className="block w-full text-left">
+                      <Card variant="plain" className="transition-colors hover:border-accent/40">
+                        <p className="truncate text-body font-semibold text-ink">{c.title ?? 'A conversation'}</p>
+                        <p className="mt-0.5 truncate text-caption text-ink-secondary">
+                          {c.wall_key ? 'Reflection saved · ' : ''}Last message {relativeDay(c.last_message_at)}
+                        </p>
+                      </Card>
+                    </button>
                   ))}
                 </div>
               </section>

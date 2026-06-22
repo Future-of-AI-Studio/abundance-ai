@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { callVertex, VERTEX_MODEL } from './vertex.ts';
+import { callVertex, VERTEX_MODEL, type VertexMessage } from './vertex.ts';
 import { ApiHttpError } from './response.ts';
 
 /**
@@ -12,7 +12,7 @@ import { ApiHttpError } from './response.ts';
  *  (d) validates output against the shared zod schema and returns it.
  */
 
-export type AiFeature = 'program-build' | 'marketing-generate' | 'mindset-checkin';
+export type AiFeature = 'program-build' | 'marketing-generate' | 'mindset-checkin' | 'mindset-chat';
 
 export interface CallGeminiArgs<T> {
   admin: SupabaseClient;
@@ -102,6 +102,44 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
   }
 
   return { data: parsed.data, cacheHit: false };
+}
+
+export interface CallGeminiTextArgs {
+  admin: SupabaseClient;
+  userId: string | null;
+  feature: AiFeature;
+  systemPrompt: string;
+  /** Multi-turn history, oldest → newest. */
+  messages: VertexMessage[];
+  temperature?: number;
+  /** Deterministic reply used by the local mock when GCP creds are absent. */
+  mockText?: string;
+}
+
+/**
+ * Free-text sibling of callGemini for conversational replies: no JSON mode, no
+ * schema, no caching (each turn is unique). Still writes ai_usage_logs so every
+ * AI call remains logged (submission evidence).
+ */
+export async function callGeminiText(args: CallGeminiTextArgs): Promise<{ text: string }> {
+  const started = Date.now();
+  const result = await callVertex({
+    systemPrompt: args.systemPrompt,
+    messages: args.messages,
+    temperature: args.temperature,
+    mockText: args.mockText,
+  });
+
+  await logUsage(args.admin, {
+    userId: args.userId,
+    feature: args.feature,
+    promptTokens: result.promptTokens,
+    completionTokens: result.completionTokens,
+    latencyMs: Date.now() - started,
+    cacheHit: false,
+  });
+
+  return { text: result.text.trim() };
 }
 
 async function logUsage(

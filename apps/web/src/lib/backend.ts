@@ -11,6 +11,9 @@ import type {
   Session,
   StripeConnect,
   MindsetCheckin,
+  MindsetConversation,
+  MindsetMessage,
+  ContentSource,
 } from '@abundance/shared';
 
 export interface AuthUser {
@@ -48,12 +51,20 @@ export interface BackendReads {
   getLatestCheckin(): Promise<MindsetCheckin | null>;
   /** Recent mindset reflections, newest first — powers the Mindset dashboard. */
   getCheckins(): Promise<MindsetCheckin[]>;
+  /** Recent mindset chat threads, newest activity first — powers "resume a chat". */
+  getConversations(): Promise<MindsetConversation[]>;
+  /** All messages in a conversation, oldest first. */
+  getMessages(conversationId: string): Promise<MindsetMessage[]>;
+  /** The user's saved content sources (uploads + recordings), newest first — Step 2's draft. */
+  getContentSources(): Promise<ContentSource[]>;
   updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category'>>): Promise<Profile>;
 }
 
 /** Content upload (signed URL issued by the Edge Function, bytes PUT by the client). */
 export interface BackendStorage {
   upload(file: File, kind: 'file' | 'voice', durationSec?: number): Promise<{ id: string; filename: string }>;
+  /** Remove a saved source — deletes the stored object and its content_sources row. */
+  remove(id: string): Promise<void>;
 }
 
 export interface Backend {

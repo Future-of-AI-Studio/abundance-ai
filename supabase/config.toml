@@ -68,6 +68,12 @@ verify_jwt = true
 [functions.mindset-checkin]
 verify_jwt = true
 
+[functions.mindset-chat]
+verify_jwt = true
+
+[functions.mindset-reflect]
+verify_jwt = true
+
 [functions.circle-get]
 verify_jwt = true
 

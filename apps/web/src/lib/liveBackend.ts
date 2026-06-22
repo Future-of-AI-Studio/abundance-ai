@@ -106,6 +106,29 @@ export function createLiveBackend(): Backend {
           .limit(20);
         return data ?? [];
       },
+      async getConversations() {
+        const { data } = await supabase
+          .from(TABLES.mindset_conversations)
+          .select('*')
+          .order('last_message_at', { ascending: false })
+          .limit(20);
+        return data ?? [];
+      },
+      async getMessages(conversationId) {
+        const { data } = await supabase
+          .from(TABLES.mindset_messages)
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
+        return data ?? [];
+      },
+      async getContentSources() {
+        const { data } = await supabase
+          .from(TABLES.content_sources)
+          .select('*')
+          .order('created_at', { ascending: false });
+        return data ?? [];
+      },
       async updateProfile(patch) {
         const { data: userRes } = await supabase.auth.getUser();
         const { data, error } = await supabase
@@ -135,6 +158,20 @@ export function createLiveBackend(): Backend {
         });
         if (!put.ok) throw new Error('Upload failed.');
         return { id: res.content_source_id, filename: file.name };
+      },
+      async remove(id) {
+        // Look up the stored object first, delete the bytes, then the row.
+        // RLS scopes both to the owner (policies: content_sources_all, content_owner_delete).
+        const { data: row } = await supabase
+          .from(TABLES.content_sources)
+          .select('storage_path')
+          .eq('id', id)
+          .maybeSingle();
+        if (row?.storage_path) {
+          await supabase.storage.from('content').remove([row.storage_path]);
+        }
+        const { error } = await supabase.from(TABLES.content_sources).delete().eq('id', id);
+        if (error) throw error;
       },
     },
   };

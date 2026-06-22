@@ -11,6 +11,7 @@ import type {
   Session,
   StripeConnect,
   MindsetCheckin,
+  ContentSource,
 } from '@abundance/shared';
 
 interface AppState {
@@ -26,6 +27,7 @@ interface AppState {
   session: Session | null;
   payments: StripeConnect | null;
   latestCheckin: MindsetCheckin | null;
+  contentSources: ContentSource[]; // Step 2 draft — auto-saved uploads/recordings
 
   init: () => Promise<void>;
   hydrate: () => Promise<void>;
@@ -35,6 +37,7 @@ interface AppState {
   refreshSession: () => Promise<void>;
   refreshPayments: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshContent: () => Promise<void>;
   setUser: (u: AuthUser | null) => void;
 }
 
@@ -49,6 +52,7 @@ export const useApp = create<AppState>((set, get) => ({
   session: null,
   payments: null,
   latestCheckin: null,
+  contentSources: [],
 
   async init() {
     const backend = await getBackend();
@@ -58,7 +62,7 @@ export const useApp = create<AppState>((set, get) => ({
     backend.auth.onChange((u) => {
       set({ user: u });
       if (u) void get().hydrate();
-      else set({ profile: null, journey: null, program: { program: null, modules: [] }, posts: [], session: null, payments: null, latestCheckin: null });
+      else set({ profile: null, journey: null, program: { program: null, modules: [] }, posts: [], session: null, payments: null, latestCheckin: null, contentSources: [] });
     });
     if (user) await get().hydrate();
     set({ ready: true });
@@ -67,7 +71,7 @@ export const useApp = create<AppState>((set, get) => ({
   async hydrate() {
     const b = get().backend;
     if (!b) return;
-    const [profile, journey, program, posts, session, payments, latestCheckin] = await Promise.all([
+    const [profile, journey, program, posts, session, payments, latestCheckin, contentSources] = await Promise.all([
       b.reads.getProfile(),
       b.reads.getJourney(),
       b.reads.getProgram(),
@@ -75,8 +79,9 @@ export const useApp = create<AppState>((set, get) => ({
       b.reads.getSession(),
       b.reads.getStripeConnect(),
       b.reads.getLatestCheckin(),
+      b.reads.getContentSources(),
     ]);
-    set({ profile, journey, program, posts, session, payments, latestCheckin });
+    set({ profile, journey, program, posts, session, payments, latestCheckin, contentSources });
   },
 
   async refreshJourney() { const b = get().backend; if (b) set({ journey: await b.reads.getJourney() }); },
@@ -85,6 +90,7 @@ export const useApp = create<AppState>((set, get) => ({
   async refreshSession() { const b = get().backend; if (b) set({ session: await b.reads.getSession() }); },
   async refreshPayments() { const b = get().backend; if (b) set({ payments: await b.reads.getStripeConnect() }); },
   async refreshProfile() { const b = get().backend; if (b) set({ profile: await b.reads.getProfile() }); },
+  async refreshContent() { const b = get().backend; if (b) set({ contentSources: await b.reads.getContentSources() }); },
   setUser(user) { set({ user }); },
 }));
 

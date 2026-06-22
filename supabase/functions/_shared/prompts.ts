@@ -83,3 +83,37 @@ export function mindsetPrompt(wallKey: string, category: string, note?: string) 
   });
   return { system, user, mockText };
 }
+
+// ── mindset-chat (open, multi-turn conversation) ──────────────────────────────
+// The conversational counterpart to mindsetPrompt: this IS open chat. Free prose
+// (no JSON), warm and curious, gentle follow-ups.
+export function mindsetChatSystemPrompt(category: string): string {
+  return [
+    `You are a steady, warm mindset coach talking with an everyday expert (a ${category}) turning their knowledge into a sellable program.`,
+    'This is an open, back-and-forth conversation — like they texted a trusted mentor. Reply in plain prose, no JSON, no lists.',
+    'Keep replies short (2-4 sentences). Listen first; ask one gentle, specific follow-up when it helps. Reflect what you hear before advising.',
+    'Stay on courage, confidence, and the inner blocks of building their program. If they drift far off-topic, kindly steer back. Never diagnose, never give medical or crisis advice — if they sound in real distress, gently encourage them to reach out to someone they trust or a professional.',
+    VOICE,
+  ].join('\n');
+}
+
+// Distill a finished conversation into a saved reflection. Strict JSON; wall_key
+// is constrained to the six known walls so it slots into the existing dashboard.
+export function mindsetReflectPrompt(transcript: string, category: string) {
+  const wallList = Object.keys(WALL_TEXT).join(', ');
+  const system = [
+    'You distill a coaching conversation into one saved reflection for the expert to keep.',
+    'Return STRICT JSON only matching exactly: {"wall_key": string, "prompt": string, "reflection": string}',
+    `"wall_key" MUST be exactly one of: ${wallList} — pick the one the conversation most reflects.`,
+    '"prompt" names that wall back to them in one gentle line. "reflection" is 3-5 short sentences of grounded encouragement that speaks to what they actually shared. No platitudes.',
+    VOICE,
+  ].join('\n');
+  const user = `The expert is a ${category}. Here is the conversation (newest last):\n"""\n${transcript.slice(0, 8000)}\n"""\n\nDistill the reflection now.`;
+  const mockText = JSON.stringify({
+    wall_key: 'who-am-i-to-teach',
+    prompt: 'You wondered who you are to teach this.',
+    reflection:
+      'You showed up and named the doubt out loud — that already takes courage. You know more than the person one step behind you, and that is exactly who you are here to help. You do not need to have it all figured out to begin. Take the next small step. You\'ve earned this.',
+  });
+  return { system, user, mockText };
+}

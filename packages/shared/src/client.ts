@@ -20,6 +20,10 @@ import type {
   StripeConnectResponse,
   MindsetCheckinRequest,
   MindsetCheckinResponse,
+  MindsetChatRequest,
+  MindsetChatResponse,
+  MindsetReflectRequest,
+  MindsetReflectResponse,
   CircleGetResponse,
   TestimonialCreateRequest,
   TestimonialCreateResponse,
@@ -56,6 +60,8 @@ export interface AbundanceClient {
   sessionsSetLink(req: SessionsSetLinkRequest): Promise<SessionsSetLinkResponse>;
   stripeConnect(req: StripeConnectRequest): Promise<StripeConnectResponse>;
   mindsetCheckin(req: MindsetCheckinRequest): Promise<MindsetCheckinResponse>;
+  mindsetChat(req: MindsetChatRequest): Promise<MindsetChatResponse>;
+  mindsetReflect(req: MindsetReflectRequest): Promise<MindsetReflectResponse>;
   circleGet(): Promise<CircleGetResponse>;
   testimonialCreate(req: TestimonialCreateRequest): Promise<TestimonialCreateResponse>;
   refundRequest(): Promise<RefundRequestResponse>;
@@ -109,6 +115,8 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     sessionsSetLink: (req) => call('sessions-set-link', req, 'PUT'),
     stripeConnect: (req) => call('stripe-connect', req),
     mindsetCheckin: (req) => call('mindset-checkin', req),
+    mindsetChat: (req) => call('mindset-chat', req),
+    mindsetReflect: (req) => call('mindset-reflect', req),
     circleGet: () => call('circle-get', {}, 'GET'),
     testimonialCreate: (req) => call('testimonial-create', req),
     refundRequest: () => call('refund-request', {}),

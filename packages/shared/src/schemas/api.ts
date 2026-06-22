@@ -6,6 +6,7 @@ import {
   sessionSchema,
   stripeChecklistSchema,
   mindsetCheckinSchema,
+  mindsetMessageSchema,
   circleMemberSchema,
   expertTalkSchema,
   testimonialSchema,
@@ -17,6 +18,8 @@ import {
   wallKeySchema,
   contentKindSchema,
   pathSchema,
+  meetingPlatformSchema,
+  type MeetingPlatform,
 } from './enums.js';
 
 /**
@@ -158,14 +161,40 @@ export const marketingUpdateResponseSchema = z.object({ post: marketingPostSchem
 export type MarketingUpdateResponse = z.infer<typeof marketingUpdateResponseSchema>;
 
 // ── sessions-set-link ─────────────────────────────────────────────────────────
-export const sessionsSetLinkRequestSchema = z.object({
-  meet_link: z
-    .string()
-    .url('Paste the full https://meet.google.com/… URL.')
-    .refine((u) => /^https:\/\/meet\.google\.com\//.test(u), {
-      message: "That doesn't look like a Meet link — paste the full https://meet.google.com/… URL.",
-    }),
-});
+// Per-platform link validation. `other` accepts any https URL; the rest must
+// point at the platform's own domain so a mistyped link is caught early.
+export const MEETING_LINK_PATTERNS: Record<MeetingPlatform, RegExp | null> = {
+  google_meet: /^https:\/\/meet\.google\.com\//i,
+  zoom: /^https:\/\/([a-z0-9-]+\.)?zoom\.us\//i,
+  teams: /^https:\/\/teams\.(microsoft|live)\.com\//i,
+  other: null,
+};
+export const MEETING_PLATFORM_LABEL: Record<MeetingPlatform, string> = {
+  google_meet: 'Google Meet',
+  zoom: 'Zoom',
+  teams: 'Microsoft Teams',
+  other: 'meeting',
+};
+/** Shared check used by both the client and the Edge Function contract. */
+export function isValidMeetingLink(platform: MeetingPlatform, url: string): boolean {
+  const pattern = MEETING_LINK_PATTERNS[platform];
+  return pattern === null ? /^https:\/\//i.test(url) : pattern.test(url);
+}
+
+export const sessionsSetLinkRequestSchema = z
+  .object({
+    platform: meetingPlatformSchema.default('google_meet'),
+    meet_link: z.string().url('Paste a full https://… link.'),
+  })
+  .superRefine((data, ctx) => {
+    if (!isValidMeetingLink(data.platform, data.meet_link)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['meet_link'],
+        message: `That doesn't look like a ${MEETING_PLATFORM_LABEL[data.platform]} link.`,
+      });
+    }
+  });
 export type SessionsSetLinkRequest = z.infer<typeof sessionsSetLinkRequestSchema>;
 
 export const sessionsSetLinkResponseSchema = z.object({ session: sessionSchema });
@@ -207,6 +236,47 @@ export const mindsetCheckinResponseSchema = z.discriminatedUnion('status', [
   }),
 ]);
 export type MindsetCheckinResponse = z.infer<typeof mindsetCheckinResponseSchema>;
+
+// ── mindset-chat (free-form, multi-turn conversation) ─────────────────────────
+export const mindsetChatRequestSchema = z.object({
+  conversation_id: z.string().uuid().optional(), // omitted = start a new thread
+  message: z.string().min(1).max(2000),
+});
+export type MindsetChatRequest = z.infer<typeof mindsetChatRequestSchema>;
+
+// 'ok' = the assistant replied; 'limit' = daily message cap reached (200, warm copy).
+export const mindsetChatResponseSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('ok'),
+    conversation_id: z.string().uuid(),
+    message: mindsetMessageSchema,
+    daily_remaining: z.number().int().nonnegative(),
+  }),
+  z.object({
+    status: z.literal('limit'),
+    message: z.string(),
+  }),
+]);
+export type MindsetChatResponse = z.infer<typeof mindsetChatResponseSchema>;
+
+// ── mindset-reflect (wrap-up: distill a conversation into a saved reflection) ──
+export const mindsetReflectRequestSchema = z.object({
+  conversation_id: z.string().uuid(),
+});
+export type MindsetReflectRequest = z.infer<typeof mindsetReflectRequestSchema>;
+
+// Reuses the check-in response shape: 'ok' returns the saved reflection (and
+// counts toward the 3/week cap); 'limit' returns the warm weekly-cap message.
+export const mindsetReflectResponseSchema = mindsetCheckinResponseSchema;
+export type MindsetReflectResponse = z.infer<typeof mindsetReflectResponseSchema>;
+
+// Strict shape Gemini must return when distilling a conversation (validated server-side).
+export const aiReflectSchema = z.object({
+  wall_key: wallKeySchema,
+  prompt: z.string().min(1),
+  reflection: z.string().min(1),
+});
+export type AiReflect = z.infer<typeof aiReflectSchema>;
 
 // ── circle-get ────────────────────────────────────────────────────────────────
 export const circleGetResponseSchema = z.object({

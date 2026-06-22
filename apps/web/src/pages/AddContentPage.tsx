@@ -1,30 +1,53 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES } from '@abundance/shared';
-import { Button, Card } from '@/components/ui';
+import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, isStepComplete } from '@abundance/shared';
+import type { ContentSource } from '@abundance/shared';
+import { Button, Card, Sheet, Skeleton } from '@/components/ui';
 import { PageHeader } from '@/components/PageHeader';
-import { UploadIcon, MicIcon, TrashIcon } from '@/components/ui/icons';
+import { UploadIcon, MicIcon, TrashIcon, SparkleIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
+import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
-
-interface Item { id: string; name: string; meta: string }
 
 // [06] Add Your Content — upload files or record speech to feed the AI. ≥1 source
 // to enable Build. 50 MB + type allowlist enforced inline.
+//
+// Inputs auto-save: every upload/recording is a content_sources row the instant
+// it lands, so a user can leave and return weeks later and pick up their draft.
+// "Build my program" is the finalize action. Once a program exists, this page
+// becomes an EDIT surface — re-building warns first, then replaces (the chosen
+// product behaviour), since program-build regenerates modules from scratch.
+
+// How a saved source reads in the list.
+function sourceMeta(s: ContentSource): { name: string; meta: string } {
+  if (s.kind === 'voice') return { name: 'Voice note', meta: s.duration_sec ? `${s.duration_sec}s` : 'Recording' };
+  return { name: s.filename, meta: `Saved ${new Date(s.created_at).toLocaleDateString()}` };
+}
+
 export function AddContentPage() {
   const navigate = useNavigate();
-  const { backend, refreshJourney } = useApp();
+  const { backend, journey, contentSources, refreshContent, refreshJourney } = useApp();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [confirmRebuild, setConfirmRebuild] = useState(false);
+  const [building, setBuilding] = useState(false);
 
-  // Recording state
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const timerRef = useRef<number | null>(null);
+  // Once a program has been built, this visit is an edit — re-running build
+  // regenerates (and replaces) the existing program.
+  const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
+
+  // Hydrate the saved draft on entry.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      await refreshContent();
+      if (active) setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [refreshContent]);
 
   const addFiles = async (files: FileList | null) => {
     if (!files || !backend) return;
@@ -40,8 +63,8 @@ export function AddContentPage() {
       }
       setBusy(true);
       try {
-        const res = await backend.storage.upload(file, 'file');
-        setItems((prev) => [...prev, { id: res.id, name: res.filename, meta: `${Math.round(file.size / 1024)} KB` }]);
+        await backend.storage.upload(file, 'file');
+        await refreshContent();
       } catch {
         setError('Upload failed — give it another try.');
       } finally {
@@ -49,6 +72,13 @@ export function AddContentPage() {
       }
     }
   };
+
+  // Recording state
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const timerRef = useRef<number | null>(null);
 
   const startRecording = async () => {
     try {
@@ -63,8 +93,8 @@ export function AddContentPage() {
         if (backend) {
           setBusy(true);
           try {
-            const res = await backend.storage.upload(file, 'voice', seconds);
-            setItems((prev) => [...prev, { id: res.id, name: 'Voice note', meta: `${seconds}s` }]);
+            await backend.storage.upload(file, 'voice', seconds);
+            await refreshContent();
           } finally {
             setBusy(false);
           }
@@ -86,16 +116,54 @@ export function AddContentPage() {
     if (timerRef.current) window.clearInterval(timerRef.current);
   };
 
+  const remove = async (id: string) => {
+    if (!backend) return;
+    setRemovingId(id);
+    try {
+      await backend.storage.remove(id);
+      await refreshContent();
+    } catch {
+      toast.error("Couldn't remove that — tap to retry");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  // Finalize: mark content done (first build) and run the build.
   const build = async () => {
-    if (!backend || items.length === 0) return;
+    if (!backend || contentSources.length === 0) return;
+    setBuilding(true);
     await backend.api.journeyUpdate({ current_step: 'building', complete_step: 'content' });
+    await refreshJourney();
+    navigate('/app/onboarding/building');
+  };
+
+  // Rebuild after an edit: confirm first (it replaces the current program).
+  const rebuild = async () => {
+    if (!backend || contentSources.length === 0) return;
+    setConfirmRebuild(false);
+    setBuilding(true);
+    await backend.api.journeyUpdate({ current_step: 'building' });
     await refreshJourney();
     navigate('/app/onboarding/building');
   };
 
   return (
     <div>
-      <PageHeader back backTo="/app/onboarding/path" eyebrow="Step 2" title="Give me the raw material — messy is fine." />
+      <PageHeader
+        back
+        backTo={editing ? '/app/program' : '/app/onboarding/path'}
+        eyebrow={editing ? 'Edit your content' : 'Step 2'}
+        title={editing ? 'Update your material, then rebuild.' : 'Give me the raw material — messy is fine.'}
+      />
+
+      {editing && (
+        <Card variant="plain" className="mb-4 border-l-2 border-l-primary bg-primary/5">
+          <p className="text-body-sm text-ink">
+            Rebuilding regenerates your program from these sources. Any edits you made to module titles or outcomes will be replaced.
+          </p>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Upload */}
@@ -117,7 +185,7 @@ export function AddContentPage() {
             recording ? 'border-primary bg-primary/5' : 'border-dashed border-line-strong bg-surface-plain hover:border-primary/50',
           )}
         >
-          <MicIcon width={28} height={28} className={recording ? 'text-primary' : 'text-primary'} />
+          <MicIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">{recording ? 'Stop recording' : 'Just talk — I\'ll listen'}</span>
           {recording ? (
             <span className="flex items-center gap-2 font-mono text-data text-primary">
@@ -132,21 +200,43 @@ export function AddContentPage() {
 
       {error && <p className="mt-4 text-caption text-error">{error}</p>}
 
-      {/* Added items */}
-      {items.length > 0 ? (
+      {/* Saved sources (auto-saved draft) */}
+      {loading ? (
         <Card className="mt-6 divide-y divide-line p-0">
-          {items.map((it) => (
-            <div key={it.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-body-sm font-medium text-ink">{it.name}</p>
-                <p className="text-caption text-ink-secondary">{it.meta}</p>
-              </div>
-              <button onClick={() => setItems((p) => p.filter((x) => x.id !== it.id))} aria-label="Remove" className="text-ink-secondary hover:text-error">
-                <TrashIcon width={18} height={18} />
-              </button>
-            </div>
+          {[0, 1].map((i) => (
+            <div key={i} className="px-5 py-3"><Skeleton variant="line" className="w-1/2" /></div>
           ))}
         </Card>
+      ) : contentSources.length > 0 ? (
+        <>
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-caption text-ink-secondary">
+              {editing ? 'Your sources' : 'Draft saved — pick up any time.'}
+            </p>
+            <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
+          </div>
+          <Card className="mt-2 divide-y divide-line p-0">
+            {contentSources.map((s) => {
+              const { name, meta } = sourceMeta(s);
+              return (
+                <div key={s.id} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-body-sm font-medium text-ink">{name}</p>
+                    <p className="text-caption text-ink-secondary">{meta}</p>
+                  </div>
+                  <button
+                    onClick={() => remove(s.id)}
+                    disabled={removingId === s.id}
+                    aria-label="Remove"
+                    className="text-ink-secondary hover:text-error disabled:opacity-40"
+                  >
+                    <TrashIcon width={18} height={18} />
+                  </button>
+                </div>
+              );
+            })}
+          </Card>
+        </>
       ) : (
         <p className="mt-6 text-center text-body-sm text-ink-secondary">
           Nothing to prepare — add one thing and we'll take it from there.
@@ -154,8 +244,33 @@ export function AddContentPage() {
       )}
 
       <div className="mt-6">
-        <Button size="lg" disabled={items.length === 0} loading={busy} onClick={build}>Build my program</Button>
+        <Button
+          size="lg"
+          disabled={contentSources.length === 0}
+          loading={busy || building}
+          iconLeft={editing ? <SparkleIcon width={18} height={18} /> : undefined}
+          onClick={editing ? () => setConfirmRebuild(true) : build}
+        >
+          {editing ? 'Rebuild my program' : 'Build my program'}
+        </Button>
       </div>
+
+      <Sheet
+        open={confirmRebuild}
+        onClose={() => setConfirmRebuild(false)}
+        title="Rebuild your program?"
+        footer={
+          <>
+            <Button size="lg" loading={building} onClick={rebuild}>Yes, rebuild it</Button>
+            <Button size="lg" variant="ghost" onClick={() => setConfirmRebuild(false)}>Keep what I have</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          We'll regenerate your program from your current sources. Your existing modules — including any edits you made to
+          titles or outcomes — will be replaced.
+        </p>
+      </Sheet>
     </div>
   );
 }

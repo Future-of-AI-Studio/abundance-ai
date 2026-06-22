@@ -37,6 +37,8 @@ export const TABLES = {
   stripe_connect: 'stripe_connect',
   mindset_checkins: 'mindset_checkins',
   mindset_quota: 'mindset_quota',
+  mindset_conversations: 'mindset_conversations',
+  mindset_messages: 'mindset_messages',
   circles: 'circles',
   circle_members: 'circle_members',
   expert_talks: 'expert_talks',

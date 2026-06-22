@@ -8,17 +8,10 @@ import { parseBody, mindsetCheckinRequestSchema } from '../_shared/contract.ts';
 import { requireUser, userClient, adminClient } from '../_shared/supabase.ts';
 import { callGemini } from '../_shared/gemini.ts';
 import { mindsetPrompt } from '../_shared/prompts.ts';
+import { loadQuota, incrementQuota, WEEKLY_LIMIT_MESSAGE } from '../_shared/mindsetQuota.ts';
 import { z } from 'zod';
 
 const reflectionSchema = z.object({ prompt: z.string().min(1), reflection: z.string().min(1) });
-
-// Monday (UTC) of the current ISO week, as YYYY-MM-DD.
-function weekStart(): string {
-  const now = new Date();
-  const day = (now.getUTCDay() + 6) % 7; // 0 = Monday
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - day));
-  return monday.toISOString().slice(0, 10);
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -28,23 +21,10 @@ Deno.serve(async (req) => {
     const admin = adminClient();
     const { wall_key, user_note } = await parseBody(req, mindsetCheckinRequestSchema);
 
-    const week = weekStart();
-    const { data: quota } = await db
-      .from('mindset_quota')
-      .upsert({ user_id: user.id, week_start: week }, { onConflict: 'user_id,week_start', ignoreDuplicates: true })
-      .select('*').maybeSingle();
-
-    const { data: current } = await db
-      .from('mindset_quota').select('count, cap').eq('user_id', user.id).eq('week_start', week).maybeSingle();
-    const count = current?.count ?? quota?.count ?? 0;
-    const cap = current?.cap ?? quota?.cap ?? 3;
+    const { week, count, cap } = await loadQuota(db, user.id);
 
     if (count >= cap) {
-      return json({
-        status: 'limit',
-        message: "You've used your 3 check-ins this week. Your circle is here in the meantime →",
-        remaining: 0,
-      });
+      return json({ status: 'limit', message: WEEKLY_LIMIT_MESSAGE, remaining: 0 });
     }
 
     // Category-aware prompt; cache key keeps cost low for common walls.
@@ -70,8 +50,7 @@ Deno.serve(async (req) => {
       })
       .select('*').single();
 
-    await db.from('mindset_quota')
-      .update({ count: count + 1 }).eq('user_id', user.id).eq('week_start', week);
+    await incrementQuota(db, user.id, week, count);
 
     return json({ status: 'ok', checkin, cache_hit: cacheHit, remaining: Math.max(0, cap - (count + 1)) });
   } catch (err) {

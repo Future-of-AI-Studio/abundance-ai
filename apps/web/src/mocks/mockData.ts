@@ -49,6 +49,35 @@ export const MOCK = {
     };
   },
 
+  // Deterministic, warm chat reply for the in-memory backend. Varies a little by
+  // turn so a conversation doesn't feel like a stuck record.
+  chatReply(userMessage: string, turnIndex: number): string {
+    const replies = [
+      "Thank you for trusting me with that. What feels heaviest about it right now?",
+      "That makes complete sense — a lot of people feel exactly this at your stage. What would 'a good day' with this look like instead?",
+      "You're being honest, and that's the brave part. What's one small thing you could try this week?",
+      "I hear you. None of this means you're not ready — it means you care. What first drew you to this work?",
+      "That's worth sitting with. Remember: you only need to be a step ahead of the person you're helping. Who is that person for you?",
+    ];
+    const base = replies[turnIndex % replies.length] ?? "I'm right here with you.";
+    const snippet = userMessage.trim().slice(0, 60);
+    return turnIndex === 0 && snippet
+      ? `"${snippet}${userMessage.length > 60 ? '…' : ''}" — I'm really glad you said that out loud. ${base}`
+      : base;
+  },
+
+  // Classify a transcript into one of the six walls (keyword heuristic) for the
+  // mock reflect step.
+  classifyWall(transcript: string): string {
+    const t = transcript.toLowerCase();
+    if (/charg|money|price|pay|worth|expensive/.test(t)) return 'charging-money';
+    if (/seen|visible|post|put myself|judge|audience/.test(t)) return 'fear-of-being-seen';
+    if (/tech|setup|tool|software|website|overwhelm/.test(t)) return 'tech-overwhelm';
+    if (/consist|keep it up|habit|routine|burn out|tired/.test(t)) return 'staying-consistent';
+    if (/ahead|behind|everyone|compare|comparison/.test(t)) return 'comparing-myself';
+    return 'who-am-i-to-teach';
+  },
+
   circle(): CircleGetResponse {
     const wa = 'https://chat.whatsapp.com/DemoCircleInvite';
     const meet = 'https://meet.google.com/circle-demo-xyz';

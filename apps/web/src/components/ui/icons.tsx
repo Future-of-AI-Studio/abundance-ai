@@ -33,11 +33,25 @@ export const PencilIcon = (p: I) => (<svg {...base(p)}><path d="M4 20h4L18.5 9.5
 export const CardIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></svg>);
 export const HelpIcon = (p: I) => (<svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3" /><path d="M12 17h.01" /></svg>);
 export const MegaphoneIcon = (p: I) => (<svg {...base(p)}><path d="M3 11v2a1 1 0 0 0 1 1h2l9 5V5L6 10H4a1 1 0 0 0-1 1Z" /><path d="M18 8a4 4 0 0 1 0 8" /></svg>);
+export const ShareIcon = (p: I) => (<svg {...base(p)}><circle cx="6" cy="12" r="2.5" /><circle cx="17" cy="6" r="2.5" /><circle cx="17" cy="18" r="2.5" /><path d="M8.2 10.8l6.6-3.6M8.2 13.2l6.6 3.6" /></svg>);
+export const InstagramIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17" cy="7" r="1" /></svg>);
 export const BookIcon = (p: I) => (<svg {...base(p)}><path d="M4 5a2 2 0 0 1 2-2h6v17H6a2 2 0 0 0-2 2V5Z" /><path d="M20 5a2 2 0 0 0-2-2h-6v17h6a2 2 0 0 1 2 2V5Z" /></svg>);
 export const LockIcon = (p: I) => (<svg {...base(p)}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>);
 export const UsersIcon = (p: I) => (<svg {...base(p)}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16 6.2a3.2 3.2 0 0 1 0 6M17.5 19a5.5 5.5 0 0 0-3-4.9" /></svg>);
 export const EyeIcon = (p: I) => (<svg {...base(p)}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>);
 export const EyeOffIcon = (p: I) => (<svg {...base(p)}><path d="M3 3l18 18" /><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" /><path d="M9.4 5.2A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a18.4 18.4 0 0 1-3.2 4M6.2 6.2A18.2 18.2 0 0 0 2 12s3.5 7 10 7a10.6 10.6 0 0 0 4-.8" /></svg>);
+
+// Brand glyphs for social sharing — filled marks (not stroked), use currentColor.
+export const XIcon = (p: I) => (
+  <svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+  </svg>
+);
+export const FacebookIcon = (p: I) => (
+  <svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
 
 // Brand-coloured Google mark (fixed fills, not currentColor) for the OAuth button.
 export const GoogleIcon = (p: I) => (

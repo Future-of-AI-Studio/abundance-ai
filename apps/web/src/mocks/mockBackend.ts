@@ -13,6 +13,9 @@ import type {
   Session,
   StripeConnect,
   MindsetCheckin,
+  MindsetConversation,
+  MindsetMessage,
+  ContentSource,
   AbundanceClient,
   Category,
 } from '@abundance/shared';
@@ -34,7 +37,15 @@ interface MockState {
   stripe: StripeConnect | null;
   checkins: MindsetCheckin[];
   quota: { week_start: string; count: number; cap: number };
-  contentCount: number;
+  conversations: MindsetConversation[];
+  messages: MindsetMessage[];
+  contentSources: ContentSource[];
+}
+
+const CHAT_DAILY_CAP = 20;
+function startOfTodayMs(): number {
+  const n = new Date();
+  return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
 }
 
 function weekStart(): string {
@@ -55,14 +66,17 @@ function fresh(): MockState {
     stripe: null,
     checkins: [],
     quota: { week_start: weekStart(), count: 0, cap: 3 },
-    contentCount: 0,
+    conversations: [],
+    messages: [],
+    contentSources: [],
   };
 }
 
 function load(): MockState {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as MockState;
+    // Merge over defaults so state saved before new fields existed stays valid.
+    if (raw) return { ...fresh(), ...(JSON.parse(raw) as Partial<MockState>) };
   } catch {
     /* ignore */
   }
@@ -80,7 +94,7 @@ export function createMockBackend(): Backend {
     state.user = { id, email };
     state.profile = { id, first_name: firstName, email, avatar_url: null, category, created_at: nowIso() };
     state.journey = { user_id: id, path: null, current_step: null, completed_steps: [], updated_at: nowIso() };
-    state.session = { user_id: id, meet_link: null, updated_at: nowIso() };
+    state.session = { user_id: id, platform: 'google_meet', meet_link: null, updated_at: nowIso() };
     state.stripe = { user_id: id, connected: false, account_id: null, checklist: { bank: false, id: false, email: true }, updated_at: nowIso() };
     save();
     emit();
@@ -157,7 +171,7 @@ export function createMockBackend(): Backend {
     },
     async sessionsSetLink(req) {
       await delay(250);
-      state.session = { user_id: state.user!.id, meet_link: req.meet_link, updated_at: nowIso() };
+      state.session = { user_id: state.user!.id, platform: req.platform ?? 'google_meet', meet_link: req.meet_link, updated_at: nowIso() };
       save();
       return { session: state.session };
     },
@@ -186,6 +200,57 @@ export function createMockBackend(): Backend {
       state.quota.count += 1;
       save();
       return { status: 'ok', checkin, cache_hit: cacheHit, remaining: Math.max(0, state.quota.cap - state.quota.count) };
+    },
+    async mindsetChat(req) {
+      await delay(700);
+      const usedToday = state.messages.filter(
+        (m) => m.role === 'user' && new Date(m.created_at).getTime() >= startOfTodayMs(),
+      ).length;
+      if (usedToday >= CHAT_DAILY_CAP) {
+        return { status: 'limit', message: "Let's pick this up tomorrow — you've done a lot of reflecting today. Your circle is here in the meantime →" };
+      }
+
+      let convId = req.conversation_id;
+      if (!convId) {
+        convId = uid();
+        state.conversations.unshift({
+          id: convId, title: req.message.slice(0, 80), wall_key: null,
+          last_message_at: nowIso(), created_at: nowIso(),
+        });
+      }
+      const turnIndex = state.messages.filter((m) => m.conversation_id === convId && m.role === 'user').length;
+      state.messages.push({ id: uid(), conversation_id: convId, role: 'user', content: req.message, created_at: nowIso() });
+
+      const reply = MOCK.chatReply(req.message, turnIndex);
+      const assistantMsg: MindsetMessage = { id: uid(), conversation_id: convId, role: 'assistant', content: reply, created_at: nowIso() };
+      state.messages.push(assistantMsg);
+
+      const conv = state.conversations.find((c) => c.id === convId);
+      if (conv) conv.last_message_at = nowIso();
+      save();
+      return { status: 'ok', conversation_id: convId, message: assistantMsg, daily_remaining: Math.max(0, CHAT_DAILY_CAP - (usedToday + 1)) };
+    },
+    async mindsetReflect(req) {
+      await delay(1200);
+      const conv = state.conversations.find((c) => c.id === req.conversation_id);
+      if (!conv) throw new AbundanceApiError('not_found', "We couldn't find that conversation.");
+      if (state.quota.week_start !== weekStart()) state.quota = { week_start: weekStart(), count: 0, cap: 3 };
+      if (state.quota.count >= state.quota.cap) {
+        return { status: 'limit', message: "You've used your 3 check-ins this week. Your circle is here in the meantime →", remaining: 0 };
+      }
+      const msgs = state.messages.filter((m) => m.conversation_id === req.conversation_id);
+      const transcript = msgs.map((m) => m.content).join('\n');
+      const wallKey = MOCK.classifyWall(transcript) as MindsetCheckin['wall_key'];
+      const r = MOCK.reflection(wallKey, state.profile?.category ?? 'other');
+      const checkin: MindsetCheckin = {
+        id: uid(), user_id: state.user!.id, wall_key: wallKey, prompt: r.prompt, reflection: r.reflection,
+        user_note: null, cache_hit: false, created_at: nowIso(),
+      };
+      state.checkins.unshift(checkin);
+      conv.wall_key = wallKey;
+      state.quota.count += 1;
+      save();
+      return { status: 'ok', checkin, cache_hit: false, remaining: Math.max(0, state.quota.cap - state.quota.count) };
     },
     async circleGet() {
       await delay(400);
@@ -252,6 +317,14 @@ export function createMockBackend(): Backend {
       async getStripeConnect() { return state.stripe; },
       async getLatestCheckin() { return state.checkins[0] ?? null; },
       async getCheckins() { return state.checkins; },
+      async getConversations() { return state.conversations; },
+      async getMessages(conversationId) {
+        return state.messages.filter((m) => m.conversation_id === conversationId);
+      },
+      async getContentSources() {
+        // Newest first, mirroring the live query.
+        return [...state.contentSources].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      },
       async updateProfile(patch) {
         if (state.profile) state.profile = { ...state.profile, ...patch };
         save();
@@ -259,11 +332,25 @@ export function createMockBackend(): Backend {
       },
     },
     storage: {
-      async upload(file, _kind) {
+      async upload(file, kind, durationSec) {
         await delay(500);
-        state.contentCount += 1;
+        const id = uid();
+        state.contentSources.unshift({
+          id,
+          user_id: state.user?.id ?? 'mock-user',
+          kind,
+          storage_path: `mock/${id}-${file.name}`,
+          filename: file.name,
+          duration_sec: durationSec ?? null,
+          created_at: nowIso(),
+        });
         save();
-        return { id: uid(), filename: file.name };
+        return { id, filename: file.name };
+      },
+      async remove(id) {
+        await delay(150);
+        state.contentSources = state.contentSources.filter((s) => s.id !== id);
+        save();
       },
     },
   };
