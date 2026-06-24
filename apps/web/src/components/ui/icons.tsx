@@ -26,6 +26,9 @@ export const PlusIcon = (p: I) => (<svg {...base(p)}><path d="M12 5v14M5 12h14" 
 export const DragIcon = (p: I) => (<svg {...base(p)}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>);
 export const ShieldIcon = (p: I) => (<svg {...base(p)}><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" /><path d="M9 12l2 2 4-4" /></svg>);
 export const SparkleIcon = (p: I) => (<svg {...base(p)}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" /></svg>);
+export const TargetIcon = (p: I) => (<svg {...base(p)}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></svg>);
+export const WandSparklesIcon = (p: I) => (<svg {...base(p)}><path d="M5 19 14.5 9.5" /><path d="M14.5 9.5 17 7" /><path d="M9 3.5l.6 1.7L11.3 5.8 9.6 6.4 9 8.1 8.4 6.4 6.7 5.8 8.4 5.2 9 3.5Z" /><path d="M18.5 11l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5.5-1.4Z" /></svg>);
+export const HeartHandshakeIcon = (p: I) => (<svg {...base(p)}><path d="M12 20s-7-4.35-9.5-8.5C1 8.5 2.5 5.5 6 5.5c2 0 3 1.2 4 2.5 1-1.3 2-2.5 4-2.5 3.5 0 5 3 3.5 6C19 15.65 12 20 12 20Z" /><path d="m12.5 8.5-2.2 2.2a1.1 1.1 0 0 0 0 1.6l.2.2a1.1 1.1 0 0 0 1.6 0L13.5 11" /></svg>);
 export const CalendarIcon = (p: I) => (<svg {...base(p)}><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></svg>);
 export const VideoIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></svg>);
 export const ChatIcon = (p: I) => (<svg {...base(p)}><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-5.1A7.5 7.5 0 1 1 21 11.5Z" /></svg>);

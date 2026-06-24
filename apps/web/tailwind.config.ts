@@ -19,11 +19,30 @@ const config: Config = {
         error: { DEFAULT: '#C0392B', bg: '#FBE9E7', border: '#F3C9C4' },
         success: { DEFAULT: '#086A55', bg: '#E6F6F1', border: '#C0E9DC' },
         line: { DEFAULT: '#EDE3D6', strong: '#D8C9B8' },
+        // Landing-only palette (lp-*). Additive + namespaced so the marketing
+        // front door can carry a brighter brand expression without touching the
+        // app's semantic tokens. Mirrors AbundanceAI Landing design vars.
+        lp: {
+          canvas: '#FFFFFF',
+          mist: '#FAFBFD',
+          ink: '#1B2333',
+          'ink-2': '#5A6478',
+          'ink-3': '#9099A8',
+          hair: '#EEF1F6',
+          orange: '#F4892C',
+          gold: '#F8C53A',
+          teal: '#16A79C',
+          green: '#5FC56A',
+          blue: '#3E7BD6',
+          'warm-soft': '#FDEBD6',
+          'cool-soft': '#DDF3EC',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         serif: ['Newsreader', 'Georgia', 'serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       fontSize: {
         display: ['40px', { lineHeight: '1.0', letterSpacing: '-0.02em', fontWeight: '700' }],

@@ -80,4 +80,93 @@
       transform: none;
     }
   }
+
+  /* ===== Landing (lp-*) decoration kit — scoped to the marketing page ===== */
+  /* Gradient text fills. */
+  .lp-grad-text {
+    background: linear-gradient(100deg, #f4892c, #f8c53a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lp-grad-text-cool {
+    background: linear-gradient(100deg, #16a79c, #5fc56a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Warm gradient pill button. */
+  .lp-btn-grad {
+    background: linear-gradient(100deg, #f4892c, #f8c53a);
+    box-shadow: 0 12px 28px rgba(244, 137, 44, 0.32);
+    transition: filter 160ms ease, transform 160ms ease;
+  }
+  .lp-btn-grad:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+  }
+  /* Generic absolutely-positioned decoration helper. */
+  .lp-deco {
+    position: absolute;
+    pointer-events: none;
+  }
+  /* Soft feathered brushstroke washes. */
+  .lp-brush {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.55;
+  }
+  .lp-brush-warm {
+    background: radial-gradient(60% 100% at 50% 50%, rgba(248, 197, 58, 0.55) 0%, rgba(244, 137, 44, 0.22) 38%, rgba(244, 137, 44, 0) 72%);
+  }
+  .lp-brush-cool {
+    background: radial-gradient(60% 100% at 50% 50%, rgba(95, 197, 106, 0.42) 0%, rgba(22, 167, 156, 0.18) 40%, rgba(22, 167, 156, 0) 72%);
+  }
+  .lp-brush-blue {
+    background: radial-gradient(60% 100% at 50% 50%, rgba(105, 160, 232, 0.4) 0%, rgba(62, 123, 214, 0.16) 42%, rgba(62, 123, 214, 0) 74%);
+  }
+  /* Large amorphous blobs. */
+  .lp-blob {
+    position: absolute;
+    pointer-events: none;
+    filter: blur(90px);
+    opacity: 0.5;
+  }
+  .lp-blob-warm {
+    background: linear-gradient(135deg, rgba(244, 137, 44, 0.55), rgba(248, 197, 58, 0.3) 60%, rgba(248, 197, 58, 0));
+    border-radius: 62% 38% 55% 45% / 50% 56% 44% 50%;
+  }
+  .lp-blob-cool {
+    background: linear-gradient(135deg, rgba(22, 167, 156, 0.4), rgba(95, 197, 106, 0.22) 60%, rgba(95, 197, 106, 0));
+    border-radius: 42% 58% 46% 54% / 56% 44% 56% 44%;
+  }
+  /* Gentle float + twinkle. */
+  .lp-float {
+    animation: lp-drift 9s ease-in-out infinite;
+  }
+  .lp-star {
+    animation: lp-twinkle 4s ease-in-out infinite;
+  }
+  @keyframes lp-drift {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+  @keyframes lp-twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.1);
+    }
+  }
 }
