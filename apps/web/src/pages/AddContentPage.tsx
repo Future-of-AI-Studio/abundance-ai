@@ -78,9 +78,13 @@ function SourcePlayer({ load }: { load: () => Promise<string> }) {
   );
 }
 
+// Module-count choices offered in the UI. `null` = let the AI decide (3–6); the
+// numbers pin the count exactly. Kept to 3–6, the range the program design supports.
+const MODULE_COUNT_OPTIONS = [null, 3, 4, 5, 6] as const;
+
 export function AddContentPage() {
   const navigate = useNavigate();
-  const { backend, journey, contentSources, refreshContent, refreshJourney } = useApp();
+  const { backend, journey, contentSources, program, refreshContent, refreshJourney } = useApp();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -89,10 +93,24 @@ export function AddContentPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmRebuild, setConfirmRebuild] = useState(false);
   const [building, setBuilding] = useState(false);
+  // How many modules to generate. null = Auto (AI picks 3–6); a number pins it.
+  const [moduleCount, setModuleCount] = useState<number | null>(null);
 
   // Once a program has been built, this visit is an edit — re-running build
   // regenerates (and replaces) the existing program.
   const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
+
+  // On an edit, preselect the current program's module count so the choice reflects
+  // what they already have. Applied once, so a manual change afterwards sticks.
+  const didInitCount = useRef(false);
+  useEffect(() => {
+    if (didInitCount.current) return;
+    const n = program.modules.length;
+    if (editing && n >= 3 && n <= 6) {
+      setModuleCount(n);
+      didInitCount.current = true;
+    }
+  }, [editing, program.modules.length]);
 
   // Hydrate the saved draft on entry.
   useEffect(() => {
@@ -267,13 +285,14 @@ export function AddContentPage() {
     }
   };
 
-  // Finalize: mark content done (first build) and run the build.
+  // Finalize: mark content done (first build) and run the build. The chosen module
+  // count rides along in navigation state — BuildingPage passes it to program-build.
   const build = async () => {
     if (!backend || contentSources.length === 0) return;
     setBuilding(true);
     await backend.api.journeyUpdate({ current_step: 'building', complete_step: 'content' });
     await refreshJourney();
-    navigate('/app/onboarding/building');
+    navigate('/app/onboarding/building', { state: { moduleCount } });
   };
 
   // Rebuild after an edit: confirm first (it replaces the current program).
@@ -283,7 +302,7 @@ export function AddContentPage() {
     setBuilding(true);
     await backend.api.journeyUpdate({ current_step: 'building' });
     await refreshJourney();
-    navigate('/app/onboarding/building');
+    navigate('/app/onboarding/building', { state: { moduleCount } });
   };
 
   return (
@@ -430,6 +449,33 @@ export function AddContentPage() {
           Nothing to prepare — add one thing and we'll take it from there.
         </p>
       )}
+
+      {/* How many modules — Auto lets the AI pick 3–6; a number pins it exactly. */}
+      <div className="mt-6">
+        <p className="text-body-sm font-semibold text-ink">How many modules?</p>
+        <p className="text-caption text-ink-secondary">Pick a number, or let me choose the best fit for your material.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MODULE_COUNT_OPTIONS.map((n) => {
+            const active = moduleCount === n;
+            return (
+              <button
+                key={n ?? 'auto'}
+                type="button"
+                onClick={() => setModuleCount(n)}
+                aria-pressed={active}
+                className={cn(
+                  'min-w-[3rem] rounded-pill border px-4 py-2 text-body-sm font-medium transition-colors',
+                  active
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-line-strong bg-surface-plain text-ink-secondary hover:border-primary/50',
+                )}
+              >
+                {n === null ? 'Auto' : n}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mt-6">
         <Button

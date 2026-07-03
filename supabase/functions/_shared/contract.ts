@@ -46,7 +46,12 @@ export const contentUploadRequestSchema = z.object({
 });
 
 // ── program ───────────────────────────────────────────────────────────────────
-export const programBuildRequestSchema = z.object({ path: pathSchema.optional() });
+// `module_count` is optional: when the expert picks a number in the UI it's honored
+// exactly (constrained to the 3–6 the program design supports); omitted = AI decides.
+export const programBuildRequestSchema = z.object({
+  path: pathSchema.optional(),
+  module_count: z.number().int().min(3).max(6).optional(),
+});
 
 export const aiModuleSchema = z.object({
   title: z.string().min(1),

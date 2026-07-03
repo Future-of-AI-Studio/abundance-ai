@@ -1,6 +1,8 @@
-// program-build — turn the user's raw content_sources into 3-6 structured modules
-// via Gemini (Vertex). Sets programs.status building → ready / failed so the
-// frontend's narrated loader + retry work. Output is validated by the shared schema.
+// program-build — turn the user's raw content_sources into structured modules via
+// Gemini (Vertex). The expert can pick an exact module count in the UI (3-6); when
+// set it becomes a hard rule in the prompt plus a verify/repair pass, otherwise the
+// AI picks 3-6. Sets programs.status building → ready / failed so the frontend's
+// narrated loader + retry work. Output is validated by the shared schema.
 import { handleOptions } from '../_shared/cors.ts';
 import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, programBuildRequestSchema, aiProgramSchema } from '../_shared/contract.ts';
@@ -43,7 +45,7 @@ Deno.serve(async (req) => {
   try {
     const user = await requireUser(req);
     const db = userClient(req);
-    const { path } = await parseBody(req, programBuildRequestSchema);
+    const { path, module_count: moduleCount } = await parseBody(req, programBuildRequestSchema);
 
     const { data: sources } = await db
       .from('content_sources')
@@ -100,14 +102,30 @@ Deno.serve(async (req) => {
       raw = 'The expert provided material about their area of expertise; infer a sensible foundational program.';
     }
 
-    const { system, user: userPrompt, mockText } = programBuildPrompt(raw, path, mediaParts.length);
-    const { data: ai } = await callGemini({
-      admin, userId: user.id, feature: 'program-build',
-      systemPrompt: system, userPrompt, schema: aiProgramSchema,
-      // Rich per-module detail across up to 6 modules needs more room than the
-      // default 8192 (which also has to cover 2.5 "thinking" tokens).
-      temperature: 0.6, maxOutputTokens: 24576, mockText, mediaParts,
-    });
+    // Build the program. When the expert picked a count it becomes a hard rule in the
+    // prompt; the lower temperature keeps the AI on the requested structure. The 3–6
+    // schema validates either way (a picked count is always in range).
+    const runBuild = async (repairNote = '') => {
+      const { system, user: userPrompt, mockText } =
+        programBuildPrompt(raw, path, mediaParts.length, moduleCount);
+      const { data } = await callGemini({
+        admin, userId: user.id, feature: 'program-build',
+        systemPrompt: system + repairNote, userPrompt, schema: aiProgramSchema,
+        // Rich per-module detail across the modules needs more room than the default
+        // 8192 (which also has to cover 2.5 "thinking" tokens).
+        temperature: 0.35, maxOutputTokens: 24576, mockText, mediaParts,
+      });
+      return data;
+    };
+
+    let ai = await runBuild();
+    // Verify + repair the exact count: one targeted retry that names the miss. Very
+    // rarely needed at this temperature, but it makes adherence a guarantee, not a hope.
+    if (moduleCount && ai.modules.length !== moduleCount) {
+      ai = await runBuild(
+        `\n\nCORRECTION: You returned ${ai.modules.length} module(s), but the expert requires EXACTLY ${moduleCount}. Restructure the SAME program into exactly ${moduleCount} module(s) now — merge or split content as needed, but the final count MUST be ${moduleCount}.`,
+      );
+    }
 
     // Persist title + modules, flip status to ready.
     await db.from('programs').update({ title: ai.title, status: 'ready' }).eq('id', program.id);

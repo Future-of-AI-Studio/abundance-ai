@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import { NarratedLoader } from '@/components/media/NarratedLoader';
 import { useApp } from '@/store';
@@ -16,15 +16,22 @@ const STEPS = [
 
 export function BuildingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { backend, journey, refreshProgram, refreshJourney } = useApp();
   const [failed, setFailed] = useState(false);
   const started = useRef(false);
+  // The module count chosen on the content step (null/absent = let the AI decide).
+  // Lost on a hard refresh, which harmlessly falls back to Auto.
+  const moduleCount = (location.state as { moduleCount?: number | null } | null)?.moduleCount ?? null;
 
   const run = async () => {
     if (!backend) return;
     setFailed(false);
     try {
-      await backend.api.programBuild({ path: journey?.path ?? undefined });
+      await backend.api.programBuild({
+        path: journey?.path ?? undefined,
+        ...(moduleCount ? { module_count: moduleCount } : {}),
+      });
       await Promise.all([refreshProgram(), backend.api.journeyUpdate({ current_step: 'program', complete_step: 'program' })]);
       await refreshJourney();
       navigate('/app/program', { replace: true });

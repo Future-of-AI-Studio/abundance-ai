@@ -6,18 +6,31 @@ const VOICE =
   'Write in PLAIN TEXT ONLY — no markdown, no asterisks, no bullet characters, no bold/italic markers, no headings.';
 
 // ── program-build ─────────────────────────────────────────────────────────────
-export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined, mediaCount = 0) {
+export function programBuildPrompt(
+  content: string,
+  path: 'A' | 'B' | undefined,
+  mediaCount = 0,
+  moduleCount?: number,
+) {
   const format =
     path === 'B'
       ? 'self-paced, pre-recorded modules'
       : 'live group coaching sessions';
+  // When the expert picked a specific number in the UI, that overrides the default
+  // and becomes a hard, non-negotiable rule. When they left it on Auto, the count is
+  // NOT pre-chosen — let the material decide how many modules the transformation
+  // genuinely needs, within a 3–6 bound. Never pad to hit a number or trim below what
+  // the content calls for.
+  const moduleRule = moduleCount
+    ? `Rules: Produce EXACTLY ${moduleCount} module(s) — never more, never fewer. The expert explicitly requested this. The ${moduleCount} modules together form one coherent transformation, each building on the last.`
+    : 'Rules: Use as many modules as the material genuinely needs to form one coherent transformation — never a fixed or arbitrary number. Let the content decide the count, with a minimum of 3 and a maximum of 6. Do not pad with filler modules to reach a number, and do not compress distinct stages to shrink it. Each module builds on the last.';
   const system = [
     'You are a curriculum architect for everyday experts turning their knowledge into a sellable, premium program.',
     `Design a ${format} program from the raw, messy material the expert provides.`,
     'The material may include attached audio recordings and documents — listen to and read them as the PRIMARY source. Ground the program in what the expert actually says and shares — their stories, examples, terms and methods; do not invent a generic curriculum.',
     'Return STRICT JSON only, no prose, matching exactly:',
     '{"title": string, "modules": [{"title": string, "outcome": string, "detail": string, "session_flow": string, "notes": string}]}',
-    'Rules: 3 to 6 modules that together form one coherent transformation, each building on the last.',
+    moduleRule,
     '"outcome" is one sentence on what the learner can DO after that module.',
     '"detail" is the heart of the module — 2 to 4 short paragraphs (150-250 words total, separated by blank lines) that fully teach what the module is: what it covers, the specific concepts, steps or framework taught (drawn from the expert\'s own material), why this module matters at this point in the journey, and one concrete exercise or practice the learner completes. Be specific and substantive — a paying client should read it and feel the depth. Never a one-line summary, never vague filler.',
     '"session_flow" is 3-5 short sentences walking through how that session/module actually runs from beginning to end: how it opens, what gets taught, what gets practiced, and how it closes.',
@@ -27,10 +40,12 @@ export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined,
   const attachNote = mediaCount
     ? `\n\n${mediaCount} recording(s)/document(s) are attached below — analyze them as the main input.`
     : '';
-  const user = `Raw expertise material:\n"""\n${content.slice(0, 12000)}\n"""${attachNote}\n\nStructure it into a premium, fully-explained program now.`;
-  const mockText = JSON.stringify({
-    title: 'Your Signature Program',
-    modules: [
+  // Repeat the count as the final instruction — models weight the last line heavily.
+  const countReminder = moduleCount
+    ? ` Return EXACTLY ${moduleCount} module(s) — this is a hard requirement, not a target.`
+    : '';
+  const user = `Raw expertise material:\n"""\n${content.slice(0, 12000)}\n"""${attachNote}\n\nStructure it into a premium, fully-explained program now.${countReminder}`;
+  const baseModules = [
       {
         title: 'Find Your Footing',
         outcome: 'You can name the exact transformation you offer.',
@@ -55,8 +70,13 @@ export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined,
         session_flow: 'Open with a wins-and-walls review of the whole journey. Teach the review rhythm and why wins come first. Coach one real sticking point live, hands off. Close with each person writing their sustainability plan and their next commitment, said out loud.',
         notes: 'Keep the live coaching demo short and genuinely hands-off — the temptation is to solve it yourself, and the room learns more from watching you hold back.',
       },
-    ],
-  });
+  ];
+  // Keep the local mock consistent with the requested count (repeat the samples
+  // when more are asked for than we have canned) so the no-creds path also obeys it.
+  const modules = moduleCount
+    ? Array.from({ length: moduleCount }, (_, i) => baseModules[i % baseModules.length])
+    : baseModules;
+  const mockText = JSON.stringify({ title: 'Your Signature Program', modules });
   return { system, user, mockText };
 }
 

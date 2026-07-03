@@ -17,6 +17,11 @@ supabase/functions/.env
 supabase/.env
 **/service-account*.json
 **/*-sa-key.json
+# Private keys / certs (Stripe, Supabase, GCP)
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Supabase local
 supabase/.branches/
