@@ -44,6 +44,8 @@ export interface VertexCallArgs {
   temperature?: number;
   /** When true, force JSON output (responseMimeType application/json). */
   json?: boolean;
+  /** Output cap override for long-form responses (default 8192). */
+  maxOutputTokens?: number;
   /** Deterministic stub used when credentials are absent (local dev only). */
   mockText?: string;
 }
@@ -98,7 +100,7 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
       temperature: args.temperature ?? 0.7,
       // Room for the JSON output plus any 2.5 "thinking" tokens so structured
       // responses aren't truncated mid-object (marketing can be a batch of posts).
-      maxOutputTokens: 8192,
+      maxOutputTokens: args.maxOutputTokens ?? 8192,
       ...(args.json ? { responseMimeType: 'application/json' } : {}),
     },
   };

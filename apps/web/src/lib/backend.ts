@@ -3,6 +3,7 @@
 // for the in-memory mock with zero page changes.
 import type {
   AbundanceClient,
+  Category,
   Profile,
   JourneyState,
   Program,
@@ -14,6 +15,7 @@ import type {
   MindsetConversation,
   MindsetMessage,
   ContentSource,
+  Enrollment,
 } from '@abundance/shared';
 
 export interface AuthUser {
@@ -34,6 +36,7 @@ export interface BackendAuth {
     email: string;
     password: string;
     firstName: string;
+    category: Category;
   }): Promise<{ user: AuthUser | null; needsConfirmation: boolean }>;
   signInWithPassword(args: { email: string; password: string }): Promise<AuthUser>;
   signInWithMagicLink(email: string): Promise<void>;
@@ -57,6 +60,8 @@ export interface BackendReads {
   getMessages(conversationId: string): Promise<MindsetMessage[]>;
   /** The user's saved content sources (uploads + recordings), newest first — Step 2's draft. */
   getContentSources(): Promise<ContentSource[]>;
+  /** Buyers who enrolled through the creator's program landing page, newest first. */
+  getEnrollments(): Promise<Enrollment[]>;
   updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category'>>): Promise<Profile>;
 }
 

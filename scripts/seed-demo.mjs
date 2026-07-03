@@ -84,13 +84,44 @@ async function main() {
   // A built, ready program with modules.
   await admin.from('programs').delete().eq('user_id', judgeId);
   const { data: program } = await admin.from('programs').insert({
-    user_id: judgeId, title: 'The Confident Consultant: from expert to in-demand', status: 'ready',
+    user_id: judgeId, title: 'The Confident Consultant: from expert to in-demand', status: 'ready', price_cents: 14900,
   }).select('id').single();
   await admin.from('modules').insert([
-    { program_id: program.id, idx: 0, title: 'Own Your Expertise', outcome: 'You can state, in one sentence, the transformation you create.', session_flow: 'Share your origin story. Map the client journey start to finish. Name their first win together.' },
-    { program_id: program.id, idx: 1, title: 'Package the Method', outcome: 'You can walk any client through your signature method.', session_flow: 'Teach the framework. Run it live on a real case. Assign a small, doable action.' },
-    { program_id: program.id, idx: 2, title: 'Show Up & Be Seen', outcome: 'You can talk about your work without shrinking.', session_flow: 'Practice your message out loud. Handle the awkward questions. Post once, together.' },
-    { program_id: program.id, idx: 3, title: 'Keep Them Moving', outcome: 'You can sustain client momentum without burning out.', session_flow: 'Review wins and walls. Coach one sticking point. Set the next commitment.' },
+    {
+      program_id: program.id, idx: 0, title: 'Own Your Expertise',
+      outcome: 'You can state, in one sentence, the transformation you create.',
+      detail: 'This opening module turns years of experience into one clear promise. You tell your origin story — the real one — and pull out the moments where you actually changed something for a client.\n\nFrom there you map the full client journey: where people start, what they struggle with in their own words, and where they end up. You finish with a one-sentence transformation statement, tested on one real person. That sentence becomes the spine of everything that follows.',
+      session_flow: 'Share your origin story. Map the client journey start to finish. Name their first win together.',
+      notes: 'Keep two or three client stories ready — a concrete example thaws the room.',
+    },
+    {
+      program_id: program.id, idx: 1, title: 'Package the Method',
+      outcome: 'You can walk any client through your signature method.',
+      detail: 'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through — including the small judgment calls you make without thinking — then group the steps into three to five named stages.\n\nThe module ends with a live walkthrough: one real case taken through the full method, narrated stage by stage. You leave with your method written down, named, and tested end to end.',
+      session_flow: 'Teach the framework. Run it live on a real case. Assign a small, doable action.',
+      notes: 'Experts skip steps that feel obvious to them. Ask "what do you check before you do that?" until the invisible steps surface.',
+    },
+    {
+      program_id: program.id, idx: 2, title: 'Show Up & Be Seen',
+      outcome: 'You can talk about your work without shrinking.',
+      detail: 'Being good in private is not enough — this module gets you comfortable being visible. You turn your transformation statement into a short, natural way of talking about your work that does not feel like a pitch.\n\nYou practice out loud, rehearse the awkward questions like "what do you charge?", and close with one real act of visibility — done together, so the first time is never alone.',
+      session_flow: 'Practice your message out loud. Handle the awkward questions. Post once, together.',
+      notes: 'The first public post is the biggest wall — make it small, make it live in the room, and celebrate it out loud.',
+    },
+    {
+      program_id: program.id, idx: 3, title: 'Keep Them Moving',
+      outcome: 'You can sustain client momentum without burning out.',
+      detail: 'The final module is about momentum — your clients\' and your own. You learn a simple review rhythm (wins first, then walls) and practice coaching through a sticking point without taking it over.\n\nYou close by writing your own sustainability plan — how many clients you take, when you review, what you say no to — so the program you built this month is one you still enjoy running next year.',
+      session_flow: 'Review wins and walls. Coach one sticking point. Set the next commitment.',
+      notes: 'Keep the live coaching demo genuinely hands-off — the room learns more from watching you hold back.',
+    },
+  ]);
+
+  // A couple of buyers who enrolled through the public landing page.
+  await admin.from('enrollments').delete().eq('creator_id', judgeId);
+  await admin.from('enrollments').insert([
+    { program_id: program.id, creator_id: judgeId, name: 'Conrad Blake', email: 'conrad@sample.com', contact: '+1 555 0142', amount_cents: 14900, status: 'enrolled' },
+    { program_id: program.id, creator_id: judgeId, name: 'Priya Nair', email: 'priya@sample.com', contact: '+1 555 0198', amount_cents: 14900, status: 'enrolled' },
   ]);
 
   // Marketing posts.

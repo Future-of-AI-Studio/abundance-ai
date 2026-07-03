@@ -51,7 +51,9 @@ export const programBuildRequestSchema = z.object({ path: pathSchema.optional() 
 export const aiModuleSchema = z.object({
   title: z.string().min(1),
   outcome: z.string().min(1),
+  detail: z.string().min(1),
   session_flow: z.string().min(1),
+  notes: z.string().default(''),
 });
 export const aiProgramSchema = z.object({
   title: z.string().min(1),
@@ -63,13 +65,32 @@ export const moduleUpsertSchema = z.object({
   idx: z.number().int().nonnegative(),
   title: z.string().min(1, 'Give this module a title.'),
   outcome: z.string(),
+  detail: z.string().default(''),
   session_flow: z.string(),
+  notes: z.string().default(''),
 });
 export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
   title: z.string().min(1, 'Your program needs a title.').optional(),
+  price_cents: z.number().int().nonnegative().optional(),
   modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').optional(),
   remove_module_ids: z.array(z.string().uuid()).optional(),
+});
+
+// ── program-public + enroll (buyer-facing, public) ────────────────────────────
+export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });
+export const enrollSessionRequestSchema = z.object({
+  program_id: z.string().uuid(),
+  name: z.string().min(1),
+  email: z.string().email(),
+  contact: z.string().min(1),
+});
+export const enrollRequestSchema = z.object({
+  program_id: z.string().uuid(),
+  name: z.string().min(1, 'Your name, please.'),
+  email: z.string().email('Enter a valid email.'),
+  contact: z.string().min(1, 'A contact number lets your host reach you.'),
+  payment_intent_id: z.string().optional(),
 });
 
 // ── marketing ─────────────────────────────────────────────────────────────────

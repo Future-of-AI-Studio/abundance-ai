@@ -7,11 +7,13 @@ import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, contentUploadRequestSchema } from '../_shared/contract.ts';
 import { requireUser, adminClient } from '../_shared/supabase.ts';
 
-// Documents the model can analyze inline (PDF + images), plus the audio formats
-// the in-app recorder produces (WAV normalized client-side; others as fallback).
+// Documents the model can analyze inline (PDF + images + plain text — typed or
+// pasted notes are stored as .txt), plus the audio formats the in-app recorder
+// produces (WAV normalized client-side; others as fallback).
 // Word docs and video are intentionally excluded — Gemini can't read them.
 const ACCEPTED = new Set([
   'application/pdf',
+  'text/plain',
   'image/png', 'image/jpeg', 'image/webp',
   'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/webm',
 ]);
@@ -25,7 +27,7 @@ Deno.serve(async (req) => {
     if (!ACCEPTED.has(body.content_type)) {
       return errorResponse(
         'bad_type',
-        "That file type isn't supported. Try a document, audio, or video file — or just record instead.",
+        "That file type isn't supported. Upload a PDF, image, or plain text file — or type or record it instead.",
         400,
         'file',
       );

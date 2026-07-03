@@ -1,13 +1,14 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { Avatar } from './Avatar';
-import { HomeIcon, ProgramIcon, HeartIcon, CircleTabIcon } from './icons';
+import { HomeIcon, ProgramIcon, UsersIcon, HeartIcon, CircleTabIcon } from './icons';
 
-// Desktop-only left rail (lg+). Mirrors the four BottomTabBar destinations and
-// pins Account at the foot. Hidden on mobile, where BottomTabBar takes over.
+// Desktop-only left rail (lg+). Mirrors the BottomTabBar destinations and pins
+// Account at the foot. Hidden on mobile, where BottomTabBar takes over.
 const TABS = [
   { to: '/app', label: 'Home', Icon: HomeIcon, end: true },
   { to: '/app/program', label: 'Program', Icon: ProgramIcon, end: false },
+  { to: '/app/students', label: 'Students', Icon: UsersIcon, end: false },
   { to: '/app/mindset', label: 'Mindset', Icon: HeartIcon, end: false },
   { to: '/app/circle', label: 'Circle', Icon: CircleTabIcon, end: false },
 ];

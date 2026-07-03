@@ -17,6 +17,9 @@ const PLATFORM_ICON = { facebook: FacebookIcon, instagram: InstagramIcon, x: XIc
 // Selectable targets = the four networks plus Email, shown as one row of chips.
 type Target = Platform | 'email';
 const ALL_TARGETS: Target[] = [...ALL_PLATFORMS, 'email'];
+// Default selection / first auto-generation targets: Facebook, Instagram + Email.
+const DEFAULT_TARGETS: Target[] = ['facebook', 'instagram', 'email'];
+const DEFAULT_PLATFORMS: Platform[] = ['facebook', 'instagram'];
 const TARGET_ICON = { ...PLATFORM_ICON, email: MailIcon } as const;
 const TARGET_LABEL = { facebook: 'Facebook', instagram: 'Instagram', x: 'X', linkedin: 'LinkedIn', email: 'Email' } as const;
 const PHASE_ORDER: MarketingPhase[] = ['launch', 'ongoing', 'evergreen'];
@@ -27,7 +30,7 @@ const PHASE_SEGMENTS = PHASE_ORDER.map((v) => ({ value: v, label: PHASE_LABELS[v
 export function MarketingKitPage() {
   const navigate = useNavigate();
   const { backend, program, posts, refreshMarketing, refreshJourney } = useApp();
-  const [selected, setSelected] = useState<Set<Target>>(new Set(ALL_PLATFORMS));
+  const [selected, setSelected] = useState<Set<Target>>(new Set(DEFAULT_TARGETS));
   const [phase, setPhase] = useState<MarketingPhase>('launch');
   const [generating, setGenerating] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -68,7 +71,7 @@ export function MarketingKitPage() {
     setFailed(false);
     (async () => {
       try {
-        await backend.api.marketingGenerate({ platforms: ALL_PLATFORMS, include_email: false, phase: 'launch' });
+        await backend.api.marketingGenerate({ platforms: DEFAULT_PLATFORMS, include_email: true, phase: 'launch' });
         await refreshMarketing();
         setPhase('launch');
         setTab('facebook');

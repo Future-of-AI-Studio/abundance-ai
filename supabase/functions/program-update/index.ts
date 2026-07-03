@@ -18,8 +18,11 @@ Deno.serve(async (req) => {
       .from('programs').select('id, user_id').eq('id', body.program_id).maybeSingle();
     if (!program) return errorResponse('not_found', "We couldn't find that program.", 404);
 
-    if (body.title !== undefined) {
-      await db.from('programs').update({ title: body.title }).eq('id', body.program_id);
+    if (body.title !== undefined || body.price_cents !== undefined) {
+      const patch: Record<string, unknown> = {};
+      if (body.title !== undefined) patch.title = body.title;
+      if (body.price_cents !== undefined) patch.price_cents = body.price_cents;
+      await db.from('programs').update(patch).eq('id', body.program_id);
     }
 
     if (body.remove_module_ids?.length) {
@@ -30,11 +33,11 @@ Deno.serve(async (req) => {
       for (const m of body.modules) {
         if (m.id) {
           await db.from('modules')
-            .update({ idx: m.idx, title: m.title, outcome: m.outcome, session_flow: m.session_flow })
+            .update({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes })
             .eq('id', m.id).eq('program_id', body.program_id);
         } else {
           await db.from('modules')
-            .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, session_flow: m.session_flow });
+            .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes });
         }
       }
     }

@@ -16,6 +16,7 @@ import type {
   MindsetConversation,
   MindsetMessage,
   ContentSource,
+  Enrollment,
   AbundanceClient,
   Category,
 } from '@abundance/shared';
@@ -40,6 +41,7 @@ interface MockState {
   conversations: MindsetConversation[];
   messages: MindsetMessage[];
   contentSources: ContentSource[];
+  enrollments: Enrollment[];
 }
 
 const CHAT_DAILY_CAP = 20;
@@ -69,6 +71,7 @@ function fresh(): MockState {
     conversations: [],
     messages: [],
     contentSources: [],
+    enrollments: [],
   };
 }
 
@@ -126,7 +129,7 @@ export function createMockBackend(): Backend {
       const programId = uid();
       const built = MOCK.buildProgram(req.path);
       state.program = {
-        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', created_at: nowIso() },
+        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 14900, created_at: nowIso() },
         modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, ...m })),
       };
       save();
@@ -136,6 +139,7 @@ export function createMockBackend(): Backend {
       await delay(250);
       const p = state.program;
       if (p.program && req.title !== undefined) p.program.title = req.title;
+      if (p.program && req.price_cents !== undefined) p.program.price_cents = req.price_cents;
       if (req.remove_module_ids?.length) {
         p.modules = p.modules.filter((m) => !req.remove_module_ids!.includes(m.id));
       }
@@ -146,12 +150,64 @@ export function createMockBackend(): Backend {
           idx: m.idx ?? i,
           title: m.title,
           outcome: m.outcome,
+          detail: m.detail ?? '',
           session_flow: m.session_flow,
+          notes: m.notes ?? '',
         }));
       }
       p.modules.sort((a, b) => a.idx - b.idx);
       save();
       return { program: p.program!, modules: p.modules };
+    },
+    async programPublic(req) {
+      await delay(300);
+      const p = state.program.program;
+      // Demo runs in one browser, so the "buyer" reads the creator's local program.
+      if (!p || p.id !== req.program_id || p.status !== 'ready') {
+        throw new AbundanceApiError('not_found', "This program isn't available.");
+      }
+      return {
+        program: { id: p.id, title: p.title, price_cents: p.price_cents },
+        modules: state.program.modules
+          .slice()
+          .sort((a, b) => a.idx - b.idx)
+          .map((m) => ({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail })),
+        creator: {
+          first_name: state.profile?.first_name ?? 'Your host',
+          category: state.profile?.category ?? 'other',
+          avatar_url: state.profile?.avatar_url ?? null,
+          email: state.profile?.email ?? 'hello@abundance.ai',
+        },
+      };
+    },
+    async enrollSession(req) {
+      await delay(300);
+      const p = state.program.program;
+      if (!p || p.id !== req.program_id) {
+        throw new AbundanceApiError('not_found', "This program isn't available.");
+      }
+      // No real Stripe in the mock — the landing page shows the demo pay form.
+      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: p.price_cents, publishable_key: '', stripe: false };
+    },
+    async enroll(req) {
+      await delay(600);
+      const p = state.program.program;
+      if (!p || p.id !== req.program_id) {
+        throw new AbundanceApiError('not_found', "This program isn't available.");
+      }
+      state.enrollments.unshift({
+        id: uid(), program_id: p.id, creator_id: p.user_id,
+        name: req.name, email: req.email, contact: req.contact,
+        amount_cents: p.price_cents, status: 'enrolled',
+        stripe_payment_intent: req.payment_intent_id ?? null, created_at: nowIso(),
+      });
+      save();
+      return {
+        ok: true,
+        program_title: p.title,
+        creator_first_name: state.profile?.first_name ?? 'your host',
+        amount_cents: p.price_cents,
+      };
     },
     async marketingGenerate(req) {
       await delay(1800);
@@ -296,9 +352,9 @@ export function createMockBackend(): Backend {
         listeners.add(cb);
         return () => listeners.delete(cb);
       },
-      async signUpWithPassword({ email, firstName }) {
+      async signUpWithPassword({ email, firstName, category }) {
         await delay(400);
-        bootstrapUser(email, firstName || 'Friend');
+        bootstrapUser(email, firstName || 'Friend', category);
         return { user: state.user, needsConfirmation: false };
       },
       async signInWithPassword({ email }) {
@@ -332,6 +388,9 @@ export function createMockBackend(): Backend {
       async getContentSources() {
         // Newest first, mirroring the live query.
         return [...state.contentSources].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      },
+      async getEnrollments() {
+        return [...state.enrollments].sort((a, b) => b.created_at.localeCompare(a.created_at));
       },
       async updateProfile(patch) {
         if (state.profile) state.profile = { ...state.profile, ...patch };

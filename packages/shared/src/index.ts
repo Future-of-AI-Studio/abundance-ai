@@ -4,3 +4,4 @@ export * from './schemas/index.js';
 export * from './journey.js';
 export * from './client.js';
 export * from './supabase.js';
+export * from './matching.js';

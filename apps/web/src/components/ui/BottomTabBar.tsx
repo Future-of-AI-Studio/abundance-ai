@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { HomeIcon, ProgramIcon, HeartIcon, CircleTabIcon } from './icons';
+import { HomeIcon, ProgramIcon, UsersIcon, HeartIcon, CircleTabIcon } from './icons';
 
 // Persistent bottom tab bar on app screens. Active = growth green, inactive =
 // warm slate (§1.2 / §6). Account is NOT here — it lives behind the avatar.
 const TABS = [
   { to: '/app', label: 'Home', Icon: HomeIcon, end: true },
   { to: '/app/program', label: 'Program', Icon: ProgramIcon, end: false },
+  { to: '/app/students', label: 'Students', Icon: UsersIcon, end: false },
   { to: '/app/mindset', label: 'Mindset', Icon: HeartIcon, end: false },
   { to: '/app/circle', label: 'Circle', Icon: CircleTabIcon, end: false },
 ];

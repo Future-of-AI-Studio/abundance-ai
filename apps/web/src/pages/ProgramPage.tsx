@@ -9,7 +9,7 @@ import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
-type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'session_flow'>;
+type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 'session_flow' | 'notes'>;
 
 // [08] Your Program ✦ — the first WOW and the permanent Program tab. Inline-edit
 // title + modules, reorder, add/remove. Empty (no program) → warm CTA → Path.
@@ -23,7 +23,7 @@ export function ProgramPage() {
 
   useEffect(() => {
     setTitle(program.program?.title ?? '');
-    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, session_flow: m.session_flow })));
+    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '' })));
   }, [program]);
 
   if (!ready) return <div className="space-y-4"><Skeleton variant="line" className="w-1/2" />{[0, 1, 2].map((i) => <Skeleton key={i} variant="module-card" />)}</div>;
@@ -56,7 +56,7 @@ export function ProgramPage() {
     try {
       await backend.api.programUpdate({
         program_id: programId,
-        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, session_flow: m.session_flow })),
+        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes })),
       });
       await refreshProgram();
     } catch { toast.error("Couldn't save that edit — tap to retry"); }
@@ -95,7 +95,7 @@ export function ProgramPage() {
   };
 
   const add = () => {
-    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', outcome: '', session_flow: '' };
+    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', outcome: '', detail: '', session_flow: '', notes: '' };
     void persist([...modules, newModule]);
   };
 
@@ -197,6 +197,8 @@ function ModuleCard({
   onDragEnd: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  // Detail is long-form; keep cards scannable by collapsing it behind a toggle.
+  const [expanded, setExpanded] = useState(false);
   // Only drag from the handle, and never while editing (so inputs stay usable).
   const [dragEnabled, setDragEnabled] = useState(false);
 
@@ -241,9 +243,23 @@ function ModuleCard({
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
               <textarea
+                value={m.detail}
+                onChange={(e) => onChange({ detail: e.target.value })}
+                placeholder="The full module — what it covers, what's taught, and the exercise they complete"
+                rows={6}
+                className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
+              />
+              <textarea
                 value={m.session_flow}
                 onChange={(e) => onChange({ session_flow: e.target.value })}
                 placeholder="How the session runs"
+                rows={2}
+                className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
+              />
+              <textarea
+                value={m.notes}
+                onChange={(e) => onChange({ notes: e.target.value })}
+                placeholder="Notes for you — prep, sticking points, delivery tips (optional)"
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
@@ -252,11 +268,42 @@ function ModuleCard({
               </Button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} className="w-full text-left">
-              <h3 className="text-h3 font-semibold text-ink">{m.title}</h3>
-              {m.outcome && <p className="mt-1 text-body-sm text-ink-secondary">{m.outcome}</p>}
-              {m.session_flow && <p className="mt-1 text-caption text-ink-secondary">{m.session_flow}</p>}
-            </button>
+            <div>
+              <button onClick={() => setEditing(true)} className="w-full text-left">
+                <h3 className="text-h3 font-semibold text-ink">{m.title}</h3>
+                {m.outcome && <p className="mt-1 text-body-sm text-ink-secondary">{m.outcome}</p>}
+              </button>
+              {expanded && (
+                <div className="mt-3 space-y-3">
+                  {m.detail && (
+                    <div>
+                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">What this module covers</p>
+                      <p className="mt-1 whitespace-pre-line text-body-sm text-ink">{m.detail}</p>
+                    </div>
+                  )}
+                  {m.session_flow && (
+                    <div>
+                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">How it runs</p>
+                      <p className="mt-1 whitespace-pre-line text-body-sm text-ink">{m.session_flow}</p>
+                    </div>
+                  )}
+                  {m.notes && (
+                    <div className="rounded-md bg-primary/5 px-3 py-2">
+                      <p className="text-caption font-semibold uppercase tracking-wide text-primary">Notes for you</p>
+                      <p className="mt-1 whitespace-pre-line text-caption text-ink-secondary">{m.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {(m.detail || m.session_flow || m.notes) && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="mt-2 text-caption font-medium text-primary hover:underline"
+                >
+                  {expanded ? 'Hide details' : 'Show full module'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 

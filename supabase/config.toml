@@ -53,6 +53,15 @@ verify_jwt = true
 [functions.program-update]
 verify_jwt = true
 
+[functions.program-public]
+verify_jwt = false
+
+[functions.enroll-session]
+verify_jwt = false
+
+[functions.enroll]
+verify_jwt = false
+
 [functions.marketing-generate]
 verify_jwt = true
 

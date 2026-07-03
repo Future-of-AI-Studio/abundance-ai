@@ -5,7 +5,7 @@ import type { ContentSource } from '@abundance/shared';
 import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/PageHeader';
 import { JourneyStepper } from '@/components/JourneyStepper';
-import { UploadIcon, MicIcon, TrashIcon, SparkleIcon, PlayIcon } from '@/components/ui/icons';
+import { UploadIcon, MicIcon, PencilIcon, TrashIcon, SparkleIcon, PlayIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
@@ -20,9 +20,16 @@ import { blobToWav } from '@/lib/audio';
 // becomes an EDIT surface — re-building warns first, then replaces (the chosen
 // product behaviour), since program-build regenerates modules from scratch.
 
+// Typed/pasted notes are stored as .txt file sources (see saveNote) — this is how
+// we tell them apart from real uploads so they can be re-opened and edited.
+function isTextNote(s: ContentSource): boolean {
+  return s.kind === 'file' && /\.txt$/i.test(s.filename);
+}
+
 // How a saved source reads in the list.
 function sourceMeta(s: ContentSource): { name: string; meta: string } {
   if (s.kind === 'voice') return { name: 'Voice note', meta: s.duration_sec ? `${s.duration_sec}s` : 'Recording' };
+  if (isTextNote(s)) return { name: s.filename.replace(/\.txt$/i, ''), meta: `Written note · Saved ${new Date(s.created_at).toLocaleDateString()}` };
   return { name: s.filename, meta: `Saved ${new Date(s.created_at).toLocaleDateString()}` };
 }
 
@@ -94,7 +101,7 @@ export function AddContentPage() {
         continue;
       }
       if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
-        setError('Only PDF or image files can be uploaded. To share spoken material, use “Just talk” to record instead.');
+        setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
         continue;
       }
       setBusy(true);
@@ -108,6 +115,74 @@ export function AddContentPage() {
         setBusy(false);
         setSavingLabel(null);
       }
+    }
+  };
+
+  // Written note state — typed/pasted text is stored as a small .txt source so
+  // it flows through the exact same pipeline as uploads (program-build extracts
+  // .txt content into the prompt). Fills the gap left by dropping .docx, which
+  // Gemini can't read through the API. `editingNoteId` set = we're editing an
+  // existing note rather than adding a new one.
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [openingNoteId, setOpeningNoteId] = useState<string | null>(null);
+
+  const openNewNote = () => {
+    setEditingNoteId(null);
+    setNoteText('');
+    setWriteOpen(true);
+  };
+
+  const closeWrite = () => {
+    setWriteOpen(false);
+    setEditingNoteId(null);
+    setNoteText('');
+  };
+
+  // Re-open a saved note: fetch its text back from storage into the editor.
+  const editNote = async (s: ContentSource) => {
+    if (!backend) return;
+    setOpeningNoteId(s.id);
+    setError(null);
+    try {
+      const url = await backend.storage.signedUrl(s.storage_path);
+      const text = await (await fetch(url)).text();
+      setNoteText(text);
+      setEditingNoteId(s.id);
+      setWriteOpen(true);
+    } catch {
+      setError("Couldn't open that note — give it another try.");
+    } finally {
+      setOpeningNoteId(null);
+    }
+  };
+
+  const saveNote = async () => {
+    const text = noteText.trim();
+    if (!text || !backend) return;
+    const replacingId = editingNoteId;
+    setWriteOpen(false);
+    setError(null);
+    setBusy(true);
+    setSavingLabel(replacingId ? 'Saving your changes…' : 'Saving your note…');
+    try {
+      // First words become the filename so the source list stays meaningful.
+      const name = text.replace(/\s+/g, ' ').slice(0, 48).trim() || 'Written note';
+      const file = new File([text], `${name}.txt`, { type: 'text/plain' });
+      // Store the new version first, then drop the old one — so an edit can never
+      // lose the note if the upload fails partway.
+      await backend.storage.upload(file, 'file');
+      if (replacingId) await backend.storage.remove(replacingId);
+      await refreshContent();
+      setNoteText('');
+      setEditingNoteId(null);
+    } catch {
+      setError("Couldn't save that note — give it another try.");
+      setWriteOpen(true);
+    } finally {
+      setBusy(false);
+      setSavingLabel(null);
     }
   };
 
@@ -218,7 +293,7 @@ export function AddContentPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         {/* Upload */}
         <button
           onClick={() => fileInput.current?.click()}
@@ -226,8 +301,18 @@ export function AddContentPage() {
         >
           <UploadIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">Upload a file</span>
-          <span className="text-caption text-ink-secondary">PDF or image · max 50 MB</span>
+          <span className="text-caption text-ink-secondary">PDF, image or .txt · max 50 MB</span>
           <input ref={fileInput} type="file" accept={ACCEPTED_UPLOAD_ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
+        </button>
+
+        {/* Write / paste */}
+        <button
+          onClick={openNewNote}
+          className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line-strong bg-surface-plain p-8 text-center transition-colors hover:border-primary/50"
+        >
+          <PencilIcon width={28} height={28} className="text-primary" />
+          <span className="text-body font-medium text-ink">Write or paste it</span>
+          <span className="text-caption text-ink-secondary">Type your knowledge directly</span>
         </button>
 
         {/* Record */}
@@ -287,6 +372,17 @@ export function AddContentPage() {
                     {s.kind === 'voice' && backend && (
                       <SourcePlayer load={() => backend.storage.signedUrl(s.storage_path)} />
                     )}
+                    {isTextNote(s) && backend && (
+                      <button
+                        type="button"
+                        onClick={() => editNote(s)}
+                        disabled={openingNoteId === s.id}
+                        className="mt-1 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline disabled:opacity-50"
+                      >
+                        {openingNoteId === s.id ? <Spinner size={12} /> : <PencilIcon width={14} height={14} />}
+                        {openingNoteId === s.id ? 'Loading…' : 'Edit'}
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => remove(s.id)}
@@ -318,6 +414,31 @@ export function AddContentPage() {
           {editing ? 'Rebuild my program' : 'Build my program'}
         </Button>
       </div>
+
+      <Sheet
+        open={writeOpen}
+        onClose={closeWrite}
+        title={editingNoteId ? 'Edit your note' : 'Write it out'}
+        footer={
+          <>
+            <Button size="lg" disabled={!noteText.trim()} onClick={saveNote}>{editingNoteId ? 'Save changes' : 'Save note'}</Button>
+            <Button size="lg" variant="ghost" onClick={closeWrite}>Cancel</Button>
+          </>
+        }
+      >
+        <p className="text-body-sm text-ink-secondary">
+          Notes, an outline, a story you always tell clients — paste or type anything. Messy is fine; I'll find the structure.
+        </p>
+        <textarea
+          autoFocus
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          maxLength={20000}
+          rows={10}
+          placeholder="Start typing, or paste from anywhere…"
+          className="mt-3 w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
+        />
+      </Sheet>
 
       <Sheet
         open={confirmRebuild}

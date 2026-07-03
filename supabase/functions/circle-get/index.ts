@@ -1,9 +1,23 @@
-// circle-get — return match status, members (peer chips), external WhatsApp/Meet
-// links, and the next expert talk. Members are structured (category/level/
-// fear_pattern) per A3 — never prose.
+// circle-get — return the user's circle (or an automatically recommended one),
+// the drop-in meetups, and the next expert talk.
+//
+// Matching is AUTOMATIC and RULE-BASED (spec A3): if the user isn't already in a
+// persisted circle, we run the swappable MatchingService over the pool of
+// unmatched creators and return the circle it proposes for them as a *pending*
+// recommendation (same category, 3–5 people). The rule engine lives behind an
+// interface (see _shared/matching.ts) so a Phase 2/3 ML matcher swaps in without
+// touching this handler, the data model, or the UI.
 import { handleOptions } from '../_shared/cors.ts';
 import { json, handleThrown } from '../_shared/response.ts';
-import { requireUser, userClient } from '../_shared/supabase.ts';
+import { requireUser, userClient, adminClient } from '../_shared/supabase.ts';
+import { circleFor, type Creator } from '../_shared/matching.ts';
+
+interface RosterMember {
+  user_id: string;
+  name: string;
+  category: string;
+  is_you?: boolean;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -11,16 +25,20 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     const db = userClient(req);
 
-    // The circle the user belongs to (RLS allows reading their own circle + peers).
+    // The circle the user already belongs to (RLS allows reading own circle + peers).
     const { data: myMembership } = await db
-      .from('circle_members').select('circle_id, whatsapp_url, meet_url').eq('user_id', user.id).maybeSingle();
+      .from('circle_members')
+      .select('circle_id, whatsapp_url, meet_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
     let match_status: 'pending' | 'matched' = 'pending';
-    let members: unknown[] = [];
+    let members: RosterMember[] = [];
     let whatsapp_url: string | null = null;
     let meet_url: string | null = null;
 
     if (myMembership?.circle_id) {
+      // Persisted circle (operator-confirmed or previously formed) → return it.
       const { data: circle } = await db
         .from('circles').select('match_status').eq('id', myMembership.circle_id).maybeSingle();
       match_status = (circle?.match_status as 'pending' | 'matched') ?? 'pending';
@@ -29,9 +47,50 @@ Deno.serve(async (req) => {
 
       const { data: peers } = await db
         .from('circle_members')
-        .select('circle_id, user_id, name, category, level, fear_pattern, whatsapp_url, meet_url')
+        .select('user_id, name, category')
         .eq('circle_id', myMembership.circle_id);
-      members = peers ?? [];
+      members = (peers ?? []).map((p) => ({
+        user_id: p.user_id as string,
+        name: p.name as string,
+        category: p.category as string,
+        is_you: p.user_id === user.id,
+      }));
+    } else {
+      // Not in a circle yet → automatically recommend one via the rule engine.
+      // Pool = paid creators not already in a *confirmed* circle. Read with the
+      // service role: forming a recommendation needs to see other people's
+      // profiles, which RLS (correctly) hides from the user client.
+      const admin = adminClient();
+
+      const { data: matchedRows } = await admin
+        .from('circle_members')
+        .select('user_id, circles!inner(match_status)')
+        .eq('circles.match_status', 'matched');
+      const alreadyMatched = new Set((matchedRows ?? []).map((r) => r.user_id as string));
+
+      const { data: profiles } = await admin
+        .from('profiles')
+        .select('id, first_name, category')
+        .not('paid_at', 'is', null);
+
+      const pool: Creator[] = (profiles ?? [])
+        .filter((p) => !alreadyMatched.has(p.id as string))
+        .map((p) => ({
+          user_id: p.id as string,
+          name: (p.first_name as string) ?? 'Friend',
+          category: (p.category as string) ?? 'other',
+        }));
+
+      const recommended = circleFor(user.id, pool);
+      if (recommended) {
+        members = recommended.members.map((m) => ({
+          user_id: m.user_id,
+          name: m.name,
+          category: m.category,
+          is_you: m.user_id === user.id,
+        }));
+      }
+      // match_status stays 'pending' — a recommendation, not a confirmed circle.
     }
 
     // Next expert talk: soonest upcoming, else most recent past (for recording).

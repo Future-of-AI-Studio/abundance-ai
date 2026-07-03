@@ -8,10 +8,40 @@ export const MOCK = {
     return {
       title: 'The Confident Consultant: from expert to in-demand',
       modules: [
-        { title: 'Own Your Expertise', outcome: 'You can state, in one sentence, the transformation you create.', session_flow: liveFlow('Share your origin story. Map the client journey start to finish. Name their first win together.') },
-        { title: 'Package the Method', outcome: 'You can walk any client through your signature method.', session_flow: 'Teach the framework. Run it live on a real case. Assign a small, doable action.' },
-        { title: 'Show Up & Be Seen', outcome: 'You can talk about your work without shrinking.', session_flow: path === 'B' ? 'Record a short lesson. Practice your message. Publish one piece.' : 'Practice your message out loud. Handle the awkward questions. Post once, together.' },
-        { title: 'Keep Them Moving', outcome: 'You can sustain client momentum without burning out.', session_flow: 'Review wins and walls. Coach one sticking point. Set the next commitment.' },
+        {
+          title: 'Own Your Expertise',
+          outcome: 'You can state, in one sentence, the transformation you create.',
+          detail:
+            'This opening module turns years of experience into one clear promise. You start by telling your origin story — the real one, not the polished version — and pull out the moments where you actually changed something for a client. Those moments hold the transformation you sell.\n\nFrom there you map the full client journey: where people are when they find you, what they struggle with in their own words, and where they end up after working with you. You write it in plain language until a stranger could repeat it back.\n\nYou finish with a one-sentence transformation statement and test it on one real person. That sentence becomes the spine of every module, sales page and post that follows.',
+          session_flow: liveFlow('Share your origin story. Map the client journey start to finish. Draft the one-sentence transformation statement together. Name their first win before closing.'),
+          notes: 'Keep two or three client stories ready — people freeze when asked for their transformation cold, and a concrete example thaws the room.',
+        },
+        {
+          title: 'Package the Method',
+          outcome: 'You can walk any client through your signature method.',
+          detail:
+            'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through, in the order you actually do it — including the small judgment calls you make without thinking. That hidden knowledge is the value.\n\nThen you group the steps into three to five named stages. A named method feels ownable and repeatable, and it gives clients a map of where they are and what comes next.\n\nThe module ends with a live walkthrough: one real case taken through the full method, narrated stage by stage. You leave with your method written down, named, and tested once end to end.',
+          session_flow: 'Teach the framework. Run it live on a real case. Group and name the stages together. Assign a small, doable action for the week.',
+          notes: 'Experts skip steps that feel obvious to them. Slow down and ask "what do you check before you do that?" until the invisible steps surface.',
+        },
+        {
+          title: 'Show Up & Be Seen',
+          outcome: 'You can talk about your work without shrinking.',
+          detail:
+            'Being good in private is not enough — this module gets you comfortable being visible. You take the transformation statement from module one and turn it into a short, natural way of talking about your work that does not feel like a pitch.\n\nYou practice out loud, because confidence lives in reps, not in wordsmithing. You rehearse the awkward questions too — "what do you charge?", "why you?" — until they stop being scary.\n\nThe module closes with one real act of visibility: a post, a short lesson, a message to your list. Done together, so the first time is never alone.',
+          session_flow: path === 'B'
+            ? 'Record a short lesson on your method. Practice your message until it sounds like you. Rehearse the awkward questions. Publish one piece before moving on.'
+            : 'Practice your message out loud with the group. Handle the awkward questions in pairs. Post once, together, before the session ends.',
+          notes: 'The first public post is the biggest wall for most learners — make it small, make it live in the room, and celebrate it out loud.',
+        },
+        {
+          title: 'Keep Them Moving',
+          outcome: 'You can sustain client momentum without burning out.',
+          detail:
+            'The final module is about momentum — your clients\' and your own. You learn a simple review rhythm: wins first, then walls. Starting with wins shows clients their own progress, which is what keeps them engaged and referring.\n\nThen you practice coaching through a sticking point without taking it over: ask, reflect, and let them find the next step. That keeps you from carrying every client on your back, which is how helpers burn out.\n\nYou close by writing your own sustainability plan — how many clients you take, when you review, what you say no to — so the program you built this month is one you still enjoy running next year.',
+          session_flow: 'Review wins and walls. Teach the review rhythm and why wins come first. Coach one sticking point live, hands off. Set the next commitment out loud.',
+          notes: 'Keep the live coaching demo genuinely hands-off — the room learns more from watching you hold back than from watching you solve it.',
+        },
       ],
     };
   },
@@ -96,9 +126,9 @@ export const MOCK = {
     return {
       match_status: 'matched',
       members: [
-        { circle_id: 'c1', user_id: 'u0', name: 'You', category: 'professional', level: 'growing', fear_pattern: 'pricing', whatsapp_url: wa, meet_url: meet },
-        { circle_id: 'c1', user_id: 'u1', name: 'Maya', category: 'healer', level: 'starting', fear_pattern: 'visibility', whatsapp_url: wa, meet_url: meet },
-        { circle_id: 'c1', user_id: 'u2', name: 'Tom', category: 'professional', level: 'stalled', fear_pattern: 'consistency', whatsapp_url: wa, meet_url: meet },
+        { user_id: 'u0', name: 'You', category: 'professional', is_you: true },
+        { user_id: 'u1', name: 'Maya', category: 'professional' },
+        { user_id: 'u2', name: 'Tom', category: 'professional' },
       ],
       whatsapp_url: wa,
       meet_url: meet,

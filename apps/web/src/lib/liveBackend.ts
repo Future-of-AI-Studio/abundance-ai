@@ -26,11 +26,13 @@ export function createLiveBackend(): Backend {
         const { data } = supabase.auth.onAuthStateChange((_e, session) => cb(toUser(session?.user)));
         return () => data.subscription.unsubscribe();
       },
-      async signUpWithPassword({ email, password, firstName }) {
+      async signUpWithPassword({ email, password, firstName, category }) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { first_name: firstName } },
+          // first_name + category are read by the handle_new_user trigger to seed
+          // the profile (profiles.category feeds automatic circle matching).
+          options: { data: { first_name: firstName, category } },
         });
         if (error) throw error;
         return { user: toUser(data.user), needsConfirmation: !data.session };
@@ -125,6 +127,14 @@ export function createLiveBackend(): Backend {
       async getContentSources() {
         const { data } = await supabase
           .from(TABLES.content_sources)
+          .select('*')
+          .order('created_at', { ascending: false });
+        return data ?? [];
+      },
+      async getEnrollments() {
+        // RLS scopes this to the signed-in creator's own buyers.
+        const { data } = await supabase
+          .from(TABLES.enrollments)
           .select('*')
           .order('created_at', { ascending: false });
         return data ?? [];

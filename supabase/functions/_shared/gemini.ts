@@ -22,6 +22,8 @@ export interface CallGeminiArgs<T> {
   userPrompt: string;
   schema: z.ZodSchema<T>;
   temperature?: number;
+  /** Output cap override for long-form responses (default 8192). */
+  maxOutputTokens?: number;
   /** Inline media (audio/PDF/image) to analyze alongside the prompt. */
   mediaParts?: VertexMediaPart[];
   /** When set, serve a cached parsed value if present, and store on miss. */
@@ -67,6 +69,7 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
     mediaParts: args.mediaParts,
     temperature: args.temperature,
     json: true,
+    maxOutputTokens: args.maxOutputTokens,
     mockText: args.mockText,
   });
 

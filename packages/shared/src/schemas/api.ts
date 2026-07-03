@@ -7,7 +7,7 @@ import {
   stripeChecklistSchema,
   mindsetCheckinSchema,
   mindsetMessageSchema,
-  circleMemberSchema,
+  circleRosterMemberSchema,
   expertTalkSchema,
   circleMeetupSchema,
   testimonialSchema,
@@ -20,6 +20,7 @@ import {
   matchStatusSchema,
   wallKeySchema,
   contentKindSchema,
+  categorySchema,
   pathSchema,
   meetingPlatformSchema,
   type MeetingPlatform,
@@ -103,7 +104,9 @@ export type ProgramBuildResponse = z.infer<typeof programBuildResponseSchema>;
 export const aiModuleSchema = z.object({
   title: z.string().min(1),
   outcome: z.string().min(1),
+  detail: z.string().min(1),
   session_flow: z.string().min(1),
+  notes: z.string().default(''),
 });
 export const aiProgramSchema = z.object({
   title: z.string().min(1),
@@ -117,11 +120,14 @@ export const moduleUpsertSchema = z.object({
   idx: z.number().int().nonnegative(),
   title: z.string().min(1, 'Give this module a title.'),
   outcome: z.string(),
+  detail: z.string().default(''),
   session_flow: z.string(),
+  notes: z.string().default(''),
 });
 export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
   title: z.string().min(1, 'Your program needs a title.').optional(),
+  price_cents: z.number().int().nonnegative().optional(),
   modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').optional(),
   remove_module_ids: z.array(z.string().uuid()).optional(),
 });
@@ -288,12 +294,12 @@ export type AiReflect = z.infer<typeof aiReflectSchema>;
 
 // ── circle-get ────────────────────────────────────────────────────────────────
 // `members` are the people on the page: once `match_status` is 'matched' they are
-// the user's circle; while 'pending' they are *recommended* people (low-commitment,
-// "here's who you might connect with") so the page is never empty. `meetups` are
-// scheduled, drop-in open rooms shown to everyone.
+// the user's confirmed circle; while 'pending' they are the circle the rule-based
+// matcher *recommends* (same category, 3–5 people) so the page is never empty and
+// matching is automatic. `meetups` are scheduled, drop-in open rooms shown to all.
 export const circleGetResponseSchema = z.object({
   match_status: matchStatusSchema,
-  members: z.array(circleMemberSchema),
+  members: z.array(circleRosterMemberSchema),
   whatsapp_url: z.string().url().nullable(),
   meet_url: z.string().url().nullable(),
   meetups: z.array(circleMeetupSchema),
@@ -322,6 +328,75 @@ export const refundRequestResponseSchema = z.object({
   days_remaining: z.number().int().nullable(),
 });
 export type RefundRequestResponse = z.infer<typeof refundRequestResponseSchema>;
+
+// ── program-public (buyer-facing landing page) ────────────────────────────────
+// Served by a service-role Edge Function so a program can be viewed and sold
+// without exposing the owner's private rows via RLS. Only learner-safe fields are
+// returned — session_flow/notes (creator delivery guidance) are deliberately omitted.
+export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });
+export type ProgramPublicRequest = z.infer<typeof programPublicRequestSchema>;
+
+export const publicModuleSchema = z.object({
+  idx: z.number().int().nonnegative(),
+  title: z.string(),
+  outcome: z.string(),
+  detail: z.string().default(''),
+});
+export type PublicModule = z.infer<typeof publicModuleSchema>;
+
+export const programPublicResponseSchema = z.object({
+  program: z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    price_cents: z.number().int().nonnegative(),
+  }),
+  modules: z.array(publicModuleSchema),
+  creator: z.object({
+    first_name: z.string(),
+    category: categorySchema,
+    avatar_url: z.string().url().nullable(),
+    email: z.string().email(),
+  }),
+});
+export type ProgramPublicResponse = z.infer<typeof programPublicResponseSchema>;
+
+// ── enroll-session (create the PaymentIntent for a program enrollment) ─────────
+export const enrollSessionRequestSchema = z.object({
+  program_id: z.string().uuid(),
+  name: z.string().min(1),
+  email: z.string().email(),
+  contact: z.string().min(1),
+});
+export type EnrollSessionRequest = z.infer<typeof enrollSessionRequestSchema>;
+
+export const enrollSessionResponseSchema = z.object({
+  // Null when Stripe isn't configured — the client falls back to the demo form.
+  client_secret: z.string().nullable(),
+  payment_intent_id: z.string(),
+  amount_cents: z.number().int().nonnegative(),
+  publishable_key: z.string(),
+  stripe: z.boolean(),
+});
+export type EnrollSessionResponse = z.infer<typeof enrollSessionResponseSchema>;
+
+// ── enroll (record the enrollment after payment succeeds) ──────────────────────
+export const enrollRequestSchema = z.object({
+  program_id: z.string().uuid(),
+  name: z.string().min(1, 'Your name, please.'),
+  email: z.string().email('Enter a valid email.'),
+  contact: z.string().min(1, 'A contact number lets your host reach you.'),
+  // The PaymentIntent the buyer just paid; verified server-side before recording.
+  payment_intent_id: z.string().optional(),
+});
+export type EnrollRequest = z.infer<typeof enrollRequestSchema>;
+
+export const enrollResponseSchema = z.object({
+  ok: z.literal(true),
+  program_title: z.string(),
+  creator_first_name: z.string(),
+  amount_cents: z.number().int().nonnegative(),
+});
+export type EnrollResponse = z.infer<typeof enrollResponseSchema>;
 
 // ── journey-update (persist step progress) ────────────────────────────────────
 export const journeyUpdateRequestSchema = z.object({

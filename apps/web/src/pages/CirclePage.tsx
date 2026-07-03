@@ -26,7 +26,16 @@ export function CirclePage() {
   useEffect(() => {
     if (!backend) return;
     void (async () => {
-      try { setData(await backend.api.circleGet()); } catch { /* noop */ } finally { setLoading(false); }
+      try {
+        setData(await backend.api.circleGet());
+      } catch (e) {
+        // Don't fail silently into the empty state — surface it so a broken
+        // request is visible instead of looking like "no circle yet".
+        console.error('[CirclePage] circleGet failed', e);
+        toast.error("We couldn't load your circle just now — try again in a moment.");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [backend]);
 
@@ -84,6 +93,9 @@ export function CirclePage() {
                 {m.name.trim().charAt(0).toUpperCase() || '·'}
               </span>
               <p className="min-w-0 truncate text-body font-semibold text-ink">{m.name}</p>
+              {m.is_you && (
+                <span className="ml-auto shrink-0 rounded-pill bg-surface px-2 py-0.5 text-caption font-medium text-ink-secondary">You</span>
+              )}
             </div>
           ))}
         </div>

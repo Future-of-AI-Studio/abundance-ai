@@ -9,6 +9,8 @@ import { LandingPage } from '@/pages/LandingPage';
 import { AuthPage } from '@/pages/AuthPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { WelcomePage } from '@/pages/WelcomePage';
+import { ProgramLandingPage } from '@/pages/ProgramLandingPage';
+import { StudentsPage } from '@/pages/StudentsPage';
 import { HomePage } from '@/pages/HomePage';
 import { ChoosePathPage } from '@/pages/ChoosePathPage';
 import { AddContentPage } from '@/pages/AddContentPage';
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/gallery" element={<GalleryPage />} />
+          {/* Public program landing page — the link a creator shares to sell. */}
+          <Route path="/p/:programId" element={<ProgramLandingPage />} />
         </Route>
 
         {/* APP — auth required, app shell + bottom tab bar */}
@@ -43,6 +47,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="program" element={<ProgramPage />} />
+          <Route path="students" element={<StudentsPage />} />
           <Route path="mindset" element={<MindsetPage />} />
           <Route path="circle" element={<CirclePage />} />
           {/* Onboarding (linear, resumable stepper) */}

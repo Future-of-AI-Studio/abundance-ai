@@ -104,13 +104,16 @@ Deno.serve(async (req) => {
     const { data: ai } = await callGemini({
       admin, userId: user.id, feature: 'program-build',
       systemPrompt: system, userPrompt, schema: aiProgramSchema,
-      temperature: 0.6, mockText, mediaParts,
+      // Rich per-module detail across up to 6 modules needs more room than the
+      // default 8192 (which also has to cover 2.5 "thinking" tokens).
+      temperature: 0.6, maxOutputTokens: 24576, mockText, mediaParts,
     });
 
     // Persist title + modules, flip status to ready.
     await db.from('programs').update({ title: ai.title, status: 'ready' }).eq('id', program.id);
     const moduleRows = ai.modules.map((m, i) => ({
-      program_id: program.id, idx: i, title: m.title, outcome: m.outcome, session_flow: m.session_flow,
+      program_id: program.id, idx: i, title: m.title, outcome: m.outcome,
+      detail: m.detail, session_flow: m.session_flow, notes: m.notes,
     }));
     await db.from('modules').insert(moduleRows);
 

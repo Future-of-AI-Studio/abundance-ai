@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
+import { CATEGORY_OPTIONS, CATEGORY_VALUES, type Category } from '@abundance/shared';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui';
 import {
@@ -28,12 +29,22 @@ const BRAND_BULLETS = [
   'No tech skills, no business background needed',
 ];
 
-const signupSchema = z.object({
-  firstName: z.string().min(1, 'Your name, please.'),
-  email: z.string().email('Enter a valid email.'),
-  password: z.string().min(8, 'At least 8 characters.'),
-  terms: z.literal(true, { errorMap: () => ({ message: 'Please accept the terms to continue.' }) }),
-});
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, 'Your name, please.'),
+    email: z.string().email('Enter a valid email.'),
+    // What best describes you — feeds automatic circle matching (same category).
+    category: z.enum(CATEGORY_VALUES, {
+      errorMap: () => ({ message: 'Pick the option that fits you best.' }),
+    }),
+    password: z.string().min(8, 'At least 8 characters.'),
+    confirmPassword: z.string().min(1, 'Re-enter your password.'),
+    terms: z.literal(true, { errorMap: () => ({ message: 'Please accept the terms to continue.' }) }),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ['confirmPassword'],
+  });
 const signinSchema = z.object({
   email: z.string().email('Enter a valid email.'),
   password: z.string().min(1, 'Enter your password.'),
@@ -42,7 +53,9 @@ const signinSchema = z.object({
 interface FormValues {
   firstName: string;
   email: string;
+  category: Category | '';
   password: string;
+  confirmPassword: string;
   terms: boolean;
 }
 
@@ -76,7 +89,7 @@ export function AuthPage() {
 
   const { register, handleSubmit, formState: { errors }, setError, clearErrors } = useForm<FormValues>({
     resolver,
-    defaultValues: { firstName: '', email: '', password: '', terms: false },
+    defaultValues: { firstName: '', email: '', category: '', password: '', confirmPassword: '', terms: false },
   });
 
   const isSignup = mode === 'signup';
@@ -110,6 +123,7 @@ export function AuthPage() {
       sessionStorage.setItem('abundance_pending_email', data.email);
       const { needsConfirmation } = await backend.auth.signUpWithPassword({
         email: data.email, password: data.password, firstName: data.firstName,
+        category: data.category as Category,
       });
       if (needsConfirmation) {
         toast.info('Confirm your email, then sign in to continue.');
@@ -235,6 +249,28 @@ export function AuthPage() {
               </div>
             )}
 
+            {/* category (signup only) — what best describes you; drives circle matching */}
+            {isSignup && (
+              <div className="mb-4">
+                <label htmlFor="auth-category" className="mb-1.5 block text-caption font-semibold text-ink">
+                  What best describes you?
+                </label>
+                <select
+                  id="auth-category"
+                  aria-invalid={!!errors.category}
+                  defaultValue=""
+                  className={cn(fieldBase, 'appearance-none', errors.category ? 'border-error' : 'border-line')}
+                  {...register('category')}
+                >
+                  <option value="" disabled>Choose one…</option>
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                {errors.category && <p className="mt-1.5 text-caption text-error">{errors.category.message}</p>}
+              </div>
+            )}
+
             {/* email */}
             <div className="mb-4">
               <label htmlFor="auth-email" className="mb-1.5 block text-caption font-semibold text-ink">Email</label>
@@ -283,6 +319,24 @@ export function AuthPage() {
               </div>
               {errors.password && <p className="mt-1.5 text-caption text-error">{errors.password.message}</p>}
             </div>
+
+            {/* confirm password (signup only) */}
+            {isSignup && (
+              <div className="mt-4">
+                <label htmlFor="auth-confirm" className="mb-1.5 block text-caption font-semibold text-ink">
+                  Confirm password
+                </label>
+                <input
+                  id="auth-confirm"
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="Re-enter your password"
+                  aria-invalid={!!errors.confirmPassword}
+                  className={cn(fieldBase, errors.confirmPassword ? 'border-error' : 'border-line')}
+                  {...register('confirmPassword')}
+                />
+                {errors.confirmPassword && <p className="mt-1.5 text-caption text-error">{errors.confirmPassword.message}</p>}
+              </div>
+            )}
 
             {/* terms (signup only) */}
             {isSignup && (

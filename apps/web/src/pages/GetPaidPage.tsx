@@ -1,30 +1,23 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { isStepComplete } from '@abundance/shared';
 import { Button, Card, Badge } from '@/components/ui';
-import { ShieldIcon } from '@/components/ui/icons';
+import { ShieldIcon, ArrowRight, UsersIcon } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { PageHeader } from '@/components/PageHeader';
 import { JourneyStepper } from '@/components/JourneyStepper';
+import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
+import { env } from '@/lib/env';
 
-// [11] Get Paid — guided Stripe Connect so the user can receive THEIR client
-// payments. AbundanceAI never touches the money.
+// [11] Get Paid — connect payments so the user can receive THEIR client payments.
+// Stripe Connect isn't wired yet, so this is MOCKED: one click marks the step done
+// and reveals the shareable landing-page link. AbundanceAI never touches the money.
 export function GetPaidPage() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const { backend, program, payments, refreshPayments, refreshJourney } = useApp();
+  const { backend, program, journey, payments, refreshPayments, refreshJourney } = useApp();
   const [connecting, setConnecting] = useState(false);
-
-  // Reconcile status if we just returned from Stripe.
-  useEffect(() => {
-    if (params.get('stripe') === 'return' && backend) {
-      void (async () => {
-        try { await backend.api.stripeConnect({ reconcile: true }); await refreshPayments(); } catch { /* noop */ }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backend]);
 
   // Gated too early.
   if (!program.program) {
@@ -40,58 +33,77 @@ export function GetPaidPage() {
     );
   }
 
-  const connected = payments?.connected ?? false;
+  // "Done" = payments step completed OR the connect flag is set. Keyed off the
+  // journey so it survives a reload regardless of the (mocked) Stripe state.
+  const paymentsDone = (payments?.connected ?? false) || isStepComplete(journey ?? { completed_steps: [] }, 'payments');
+  const programId = program.program.id;
 
+  // Mocked connect: flip the local connected flag (mock backend only), then mark
+  // the step complete. No redirect to Stripe until Connect is configured.
   const connect = async () => {
     if (!backend) return;
     setConnecting(true);
     try {
-      const res = await backend.api.stripeConnect({});
-      if (res.onboarding_url) {
-        window.location.href = res.onboarding_url;
-      } else {
-        await refreshPayments();
-        toast.info('Already set up.');
+      if (env.useMocks) {
+        try { await backend.api.stripeConnect({ reconcile: true }); } catch { /* best effort */ }
       }
+      await backend.api.journeyUpdate({ complete_step: 'payments' });
+      await Promise.all([refreshPayments(), refreshJourney()]);
+      toast.success("You're ready to sell — share your program link.");
     } catch {
-      toast.error('Could not open Stripe — please try again.');
+      toast.error('Something went wrong — please try again.');
     } finally {
       setConnecting(false);
     }
   };
 
-  const finish = async () => {
-    if (backend) { await backend.api.journeyUpdate({ complete_step: 'payments' }); await refreshJourney(); }
-    navigate('/app');
-  };
-
   return (
     <div>
       <PageHeader back eyebrow="Get paid" title="Let's get you ready to receive payment.">
-        {connected && <Badge variant="done">Connected</Badge>}
+        {paymentsDone && <Badge variant="done">Connected</Badge>}
       </PageHeader>
 
       <JourneyStepper className="mb-5" />
 
-      <Card variant="plain" className="mb-4">
-        <p className="text-body text-ink">
-          Connect your Stripe account to accept payments from your clients. It takes a few minutes — Stripe handles
-          the bank details and verification, and payouts go straight to you.
-        </p>
-      </Card>
+      {!paymentsDone ? (
+        <>
+          <Card variant="plain" className="mb-4">
+            <p className="text-body text-ink">
+              Connect your payment account to accept payments from your clients. Payouts go straight to you —
+              AbundanceAI never holds your money.
+            </p>
+          </Card>
 
-      <div className="mb-4"><VideoPlayer poster="" label="Watch the walkthrough" /></div>
+          <div className="mb-4"><VideoPlayer poster="" label="Watch the walkthrough" /></div>
 
-      {!connected ? (
-        <Button size="lg" loading={connecting} onClick={connect}>Connect Stripe</Button>
+          <Button size="lg" loading={connecting} onClick={connect}>Connect Stripe</Button>
+
+          <div className="mt-4 flex items-center gap-2 rounded-md border border-line bg-surface px-4 py-3">
+            <ShieldIcon width={20} height={20} className="text-accent" />
+            <p className="text-body-sm text-ink-secondary">AbundanceAI never touches your money. It goes straight to your account.</p>
+          </div>
+        </>
       ) : (
-        <Button size="lg" onClick={finish}>Done</Button>
-      )}
+        <>
+          <Card variant="plain" className="mb-4 border-l-2 border-l-success bg-success-bg">
+            <h2 className="text-h3 font-semibold text-ink">You're ready to sell.</h2>
+            <p className="mt-1 text-body-sm text-ink-secondary">
+              Here's your program's landing page. Post the link anywhere — social, your bio, a DM. Anyone who opens it
+              can preview your program and enroll.
+            </p>
+            <ShareProgramLink programId={programId} className="mt-4" />
+          </Card>
 
-      <div className="mt-4 flex items-center gap-2 rounded-md border border-line bg-surface px-4 py-3">
-        <ShieldIcon width={20} height={20} className="text-accent" />
-        <p className="text-body-sm text-ink-secondary">AbundanceAI never touches your money. It goes straight to your account.</p>
-      </div>
+          <div className="space-y-2">
+            <Button size="lg" iconLeft={<UsersIcon width={18} height={18} />} onClick={() => navigate('/app/students')}>
+              View my students
+            </Button>
+            <Button size="lg" variant="ghost" iconRight={<ArrowRight width={18} height={18} />} onClick={() => navigate('/app')}>
+              Go to dashboard
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

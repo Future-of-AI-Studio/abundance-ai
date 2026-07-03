@@ -20,6 +20,21 @@ export type ProgramStatus = z.infer<typeof programStatusSchema>;
 export const categorySchema = z.enum(['healer', 'hobbyist', 'professional', 'other']);
 export type Category = z.infer<typeof categorySchema>;
 
+/** The category values as a tuple — handy for building selects / custom enums. */
+export const CATEGORY_VALUES = categorySchema.options;
+
+/** Display labels for each category (shared by signup, account, roster). */
+export const CATEGORY_LABELS: Record<Category, string> = {
+  healer: 'Healer',
+  hobbyist: 'Hobbyist',
+  professional: 'Professional',
+  other: 'Other',
+};
+
+/** Ready-made {value,label} options for category selects. */
+export const CATEGORY_OPTIONS: Array<{ value: Category; label: string }> =
+  CATEGORY_VALUES.map((value) => ({ value, label: CATEGORY_LABELS[value] }));
+
 // circle_members.level — the member's stage. Structured for the future matcher.
 export const memberLevelSchema = z.enum(['starting', 'stalled', 'growing', 'scaling']);
 export type MemberLevel = z.infer<typeof memberLevelSchema>;

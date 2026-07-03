@@ -10,6 +10,12 @@ import type {
   ProgramBuildResponse,
   ProgramUpdateRequest,
   ProgramUpdateResponse,
+  ProgramPublicRequest,
+  ProgramPublicResponse,
+  EnrollSessionRequest,
+  EnrollSessionResponse,
+  EnrollRequest,
+  EnrollResponse,
   MarketingGenerateRequest,
   MarketingGenerateResponse,
   MarketingUpdateRequest,
@@ -55,6 +61,12 @@ export interface AbundanceClient {
   contentUploadUrl(req: ContentUploadRequest): Promise<ContentUploadResponse>;
   programBuild(req: ProgramBuildRequest): Promise<ProgramBuildResponse>;
   programUpdate(req: ProgramUpdateRequest): Promise<ProgramUpdateResponse>;
+  /** Public landing-page view of a program (no auth) — for prospective buyers. */
+  programPublic(req: ProgramPublicRequest): Promise<ProgramPublicResponse>;
+  /** Create the PaymentIntent for an enrollment (no auth) — before payment. */
+  enrollSession(req: EnrollSessionRequest): Promise<EnrollSessionResponse>;
+  /** Record a buyer's enrollment after payment succeeds (no auth). */
+  enroll(req: EnrollRequest): Promise<EnrollResponse>;
   marketingGenerate(req: MarketingGenerateRequest): Promise<MarketingGenerateResponse>;
   marketingUpdate(req: MarketingUpdateRequest): Promise<MarketingUpdateResponse>;
   sessionsSetLink(req: SessionsSetLinkRequest): Promise<SessionsSetLinkResponse>;
@@ -75,9 +87,13 @@ export interface AbundanceClient {
  */
 export function createApiClient(supabase: SupabaseClient): AbundanceClient {
   async function call<T>(fn: string, body?: unknown, method = 'POST'): Promise<T> {
+    // GET/HEAD requests must NOT carry a body — the Fetch API throws
+    // synchronously ("Request with GET/HEAD method cannot have body"), which
+    // would reject before any request is sent (invisible in the Network tab).
+    const hasBody = method !== 'GET' && method !== 'HEAD';
     const { data, error } = await supabase.functions.invoke(fn, {
-      body: body ?? {},
       method: method as 'POST' | 'GET' | 'PATCH' | 'PUT',
+      ...(hasBody ? { body: body ?? {} } : {}),
     });
 
     if (error) {
@@ -110,6 +126,9 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     contentUploadUrl: (req) => call('content-upload-url', req),
     programBuild: (req) => call('program-build', req),
     programUpdate: (req) => call('program-update', req, 'PATCH'),
+    programPublic: (req) => call('program-public', req),
+    enrollSession: (req) => call('enroll-session', req),
+    enroll: (req) => call('enroll', req),
     marketingGenerate: (req) => call('marketing-generate', req),
     marketingUpdate: (req) => call('marketing-update', req, 'PATCH'),
     sessionsSetLink: (req) => call('sessions-set-link', req, 'PUT'),

@@ -79,6 +79,7 @@ export const programSchema = z.object({
   user_id: uuid,
   title: z.string().min(1),
   status: programStatusSchema,
+  price_cents: z.number().int().nonnegative().default(14900), // what buyers pay on the landing page
   created_at: timestamp,
 });
 export type Program = z.infer<typeof programSchema>;
@@ -90,9 +91,28 @@ export const moduleSchema = z.object({
   idx: z.number().int().nonnegative(),
   title: z.string().min(1),
   outcome: z.string(),
+  detail: z.string().default(''),
   session_flow: z.string(),
+  notes: z.string().default(''),
 });
 export type Module = z.infer<typeof moduleSchema>;
+
+// ── enrollments ───────────────────────────────────────────────────────────────
+// A buyer who signed up through a program's public landing page. `creator_id` is
+// the program owner (denormalized so the creator's Students list is a plain read).
+export const enrollmentSchema = z.object({
+  id: uuid,
+  program_id: uuid,
+  creator_id: uuid,
+  name: z.string(),
+  email: z.string().email(),
+  contact: z.string().default(''),
+  amount_cents: z.number().int().nonnegative().default(0),
+  status: z.string().default('enrolled'),
+  stripe_payment_intent: z.string().nullable().default(null),
+  created_at: timestamp,
+});
+export type Enrollment = z.infer<typeof enrollmentSchema>;
 
 // ── content_sources ───────────────────────────────────────────────────────────
 export const contentSourceSchema = z.object({
@@ -212,6 +232,18 @@ export const circleMemberSchema = z.object({
   meet_url: z.string().url().nullable(),
 });
 export type CircleMember = z.infer<typeof circleMemberSchema>;
+
+// The trimmed member shape the circle *page* actually renders — a warm roster of
+// name + avatar (spec A3: no labels/categories someone didn't choose to wear).
+// Used for both a confirmed circle and an automatically recommended one, so the
+// UI is identical whether the roster comes from circle_members or the matcher.
+export const circleRosterMemberSchema = z.object({
+  user_id: uuid,
+  name: z.string(),
+  category: categorySchema, // kept for the matcher/analytics, not shown as a label
+  is_you: z.boolean().optional(), // marks the current user in the roster
+});
+export type CircleRosterMember = z.infer<typeof circleRosterMemberSchema>;
 
 // ── expert_talks ──────────────────────────────────────────────────────────────
 export const expertTalkSchema = z.object({

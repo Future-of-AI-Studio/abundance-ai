@@ -31,6 +31,7 @@ export const TABLES = {
   journey_state: 'journey_state',
   programs: 'programs',
   modules: 'modules',
+  enrollments: 'enrollments',
   content_sources: 'content_sources',
   marketing_posts: 'marketing_posts',
   sessions: 'sessions',
@@ -50,15 +51,17 @@ export const TABLES = {
 
 export const CONTENT_BUCKET = 'content';
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-// Document uploads are restricted to what Gemini can actually read inline: PDFs
-// and images. (Word docs aren't analyzable; speech goes through the recorder,
-// which stores WAV.) Keep this in sync with the server allowlist in
-// content-upload-url and the storage bucket's allowed_mime_types.
+// Document uploads are restricted to what Gemini can actually read inline: PDFs,
+// images, and plain text (typed/pasted notes are stored as .txt). Word docs
+// aren't analyzable; speech goes through the recorder, which stores WAV. Keep
+// this in sync with the server allowlist in content-upload-url and the storage
+// bucket's allowed_mime_types.
 export const ACCEPTED_UPLOAD_TYPES = [
   'application/pdf',
+  'text/plain',
   'image/png',
   'image/jpeg',
   'image/webp',
 ];
 /** `accept` attribute for the file picker — mirrors ACCEPTED_UPLOAD_TYPES. */
-export const ACCEPTED_UPLOAD_ACCEPT = '.pdf,image/png,image/jpeg,image/webp';
+export const ACCEPTED_UPLOAD_ACCEPT = '.pdf,.txt,text/plain,image/png,image/jpeg,image/webp';

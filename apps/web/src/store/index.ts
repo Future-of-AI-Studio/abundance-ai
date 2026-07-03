@@ -12,6 +12,7 @@ import type {
   StripeConnect,
   MindsetCheckin,
   ContentSource,
+  Enrollment,
 } from '@abundance/shared';
 
 interface AppState {
@@ -28,6 +29,7 @@ interface AppState {
   payments: StripeConnect | null;
   latestCheckin: MindsetCheckin | null;
   contentSources: ContentSource[]; // Step 2 draft — auto-saved uploads/recordings
+  enrollments: Enrollment[]; // buyers who signed up through the landing page
 
   init: () => Promise<void>;
   hydrate: () => Promise<void>;
@@ -38,6 +40,7 @@ interface AppState {
   refreshPayments: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshContent: () => Promise<void>;
+  refreshEnrollments: () => Promise<void>;
   setUser: (u: AuthUser | null) => void;
 }
 
@@ -53,6 +56,7 @@ export const useApp = create<AppState>((set, get) => ({
   payments: null,
   latestCheckin: null,
   contentSources: [],
+  enrollments: [],
 
   async init() {
     const backend = await getBackend();
@@ -62,7 +66,7 @@ export const useApp = create<AppState>((set, get) => ({
     backend.auth.onChange((u) => {
       set({ user: u });
       if (u) void get().hydrate();
-      else set({ profile: null, journey: null, program: { program: null, modules: [] }, posts: [], session: null, payments: null, latestCheckin: null, contentSources: [] });
+      else set({ profile: null, journey: null, program: { program: null, modules: [] }, posts: [], session: null, payments: null, latestCheckin: null, contentSources: [], enrollments: [] });
     });
     if (user) await get().hydrate();
     set({ ready: true });
@@ -91,6 +95,7 @@ export const useApp = create<AppState>((set, get) => ({
   async refreshPayments() { const b = get().backend; if (b) set({ payments: await b.reads.getStripeConnect() }); },
   async refreshProfile() { const b = get().backend; if (b) set({ profile: await b.reads.getProfile() }); },
   async refreshContent() { const b = get().backend; if (b) set({ contentSources: await b.reads.getContentSources() }); },
+  async refreshEnrollments() { const b = get().backend; if (b) set({ enrollments: await b.reads.getEnrollments() }); },
   setUser(user) { set({ user }); },
 }));
 
