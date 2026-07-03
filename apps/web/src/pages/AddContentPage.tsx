@@ -20,6 +20,18 @@ import { blobToWav } from '@/lib/audio';
 // becomes an EDIT surface — re-building warns first, then replaces (the chosen
 // product behaviour), since program-build regenerates modules from scratch.
 
+// What the first-time visitor will get out of this step — shown as an
+// orientation checklist above the input options.
+const LAB_GUIDELINES = [
+  'Clarify your expertise and are naturally gifted to guide',
+  'Identify who your experience is for',
+  'Define the value or transformation they will receive',
+  'Discover the key words for a compelling title and description',
+  'Create the foundation for your first Group Mentoring Experience',
+  'Identify all the ways you can reach out to the first people you would love to invite',
+  'Build the confidence to begin with your first participants',
+];
+
 // Typed/pasted notes are stored as .txt file sources (see saveNote) — this is how
 // we tell them apart from real uploads so they can be re-opened and edited.
 function isTextNote(s: ContentSource): boolean {
@@ -280,8 +292,10 @@ export function AddContentPage() {
         back
         backTo={editing ? '/app/program' : '/app/onboarding/path'}
         eyebrow={editing ? 'Edit your content' : 'Step 2'}
-        title={editing ? 'Update your material, then rebuild.' : 'Give me the raw material — messy is fine.'}
-      />
+        title={editing ? 'Update your material, then rebuild.' : 'The Mentoring Experience Lab'}
+      >
+        {!editing && 'Turn what you know and love into an experience that helps others to thrive.'}
+      </PageHeader>
 
       <JourneyStepper className="mb-5" />
 
@@ -292,6 +306,20 @@ export function AddContentPage() {
           </p>
         </Card>
       )}
+
+      <Card variant="plain" className="mb-5">
+        <p className="text-body-sm font-semibold text-ink">In this lab, together we&rsquo;ll:</p>
+        <ol className="mt-3 space-y-2.5">
+          {LAB_GUIDELINES.map((guideline, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-primary/10 font-mono text-caption font-semibold text-primary">
+                {i + 1}
+              </span>
+              <span className="text-body-sm text-ink-secondary">{guideline}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Upload */}

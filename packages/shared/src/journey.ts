@@ -27,7 +27,7 @@ const ROUTE: Record<JourneyStep, string> = {
 
 const META: Record<JourneyStep, Omit<StepMeta, 'step' | 'route'>> = {
   path: { label: "Let's turn your expertise into a program", trailLabel: 'Path' },
-  content: { label: 'Add your content', trailLabel: 'Content' },
+  content: { label: 'Enter the Experience Lab', trailLabel: 'Content' },
   building: { label: 'Building your program', trailLabel: 'Build' },
   program: { label: 'See your program', trailLabel: 'Program' },
   marketing: { label: 'Get your marketing kit', trailLabel: 'Marketing' },
