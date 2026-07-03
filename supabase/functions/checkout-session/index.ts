@@ -30,6 +30,17 @@ Deno.serve(async (req) => {
         .eq('stripe_payment_intent', payment_intent_id)
         .maybeSingle();
       if (order?.status === 'paid') paid = true;
+
+      // If Stripe confirms the charge but the webhook hasn't landed yet, flip the
+      // order to paid here (idempotent) so the paid_at trigger fires immediately —
+      // the client can proceed without racing the async webhook.
+      if (paid && order?.status === 'created') {
+        await admin
+          .from('orders')
+          .update({ status: 'paid' })
+          .eq('stripe_payment_intent', payment_intent_id)
+          .eq('status', 'created');
+      }
       return json({ paid, email: email ?? order?.email ?? null, order_id: order?.id ?? null });
     }
 

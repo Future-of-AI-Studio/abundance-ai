@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Card, ChecklistRow, Badge } from '@/components/ui';
+import { Button, Card, Badge } from '@/components/ui';
 import { ShieldIcon } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { PageHeader } from '@/components/PageHeader';
+import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 
-// [11] Get Paid — guided Stripe Connect + readiness checklist so the user can
-// receive THEIR client payments. AbundanceAI never touches the money.
+// [11] Get Paid — guided Stripe Connect so the user can receive THEIR client
+// payments. AbundanceAI never touches the money.
 export function GetPaidPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -30,6 +31,7 @@ export function GetPaidPage() {
     return (
       <div>
         <PageHeader back eyebrow="Get paid" title="Let's get you ready to receive payment." />
+        <JourneyStepper className="mb-5" />
         <Card variant="plain" className="text-center">
           <p className="text-body text-ink-secondary">This unlocks once your program's ready — no rush, you're not selling yet.</p>
           <div className="mx-auto mt-4 max-w-xs"><Button onClick={() => navigate('/app/program')}>Build your program</Button></div>
@@ -38,7 +40,6 @@ export function GetPaidPage() {
     );
   }
 
-  const checklist = payments?.checklist ?? { bank: false, id: false, email: true };
   const connected = payments?.connected ?? false;
 
   const connect = async () => {
@@ -70,11 +71,13 @@ export function GetPaidPage() {
         {connected && <Badge variant="done">Connected</Badge>}
       </PageHeader>
 
+      <JourneyStepper className="mb-5" />
+
       <Card variant="plain" className="mb-4">
-        <p className="mb-1 font-mono text-data text-ink-secondary">READINESS CHECKLIST</p>
-        <ChecklistRow label="Email" status={checklist.email ? 'done' : 'todo'} />
-        <ChecklistRow label="Bank account" status={checklist.bank ? 'done' : 'todo'} />
-        <ChecklistRow label="Photo ID" status={checklist.id ? 'done' : 'todo'} />
+        <p className="text-body text-ink">
+          Connect your Stripe account to accept payments from your clients. It takes a few minutes — Stripe handles
+          the bank details and verification, and payouts go straight to you.
+        </p>
       </Card>
 
       <div className="mb-4"><VideoPlayer poster="" label="Watch the walkthrough" /></div>

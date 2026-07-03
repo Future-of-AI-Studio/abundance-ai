@@ -5,6 +5,7 @@ import { isValidMeetingLink, MEETING_PLATFORM_LABEL } from '@abundance/shared';
 import { Button, Card, TextInput, Select } from '@/components/ui';
 import { CopyIcon, ArrowRight } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
+import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 
@@ -38,6 +39,7 @@ export function LiveSessionsPage() {
     return (
       <div>
         <PageHeader back eyebrow="Recording guidance" title="Record once, sell on repeat." />
+        <JourneyStepper className="mb-5" />
         <Card variant="plain">
           <p className="text-body text-ink">For a self-paced course, you'll record each module on your own time. A few tips:</p>
           <ul className="mt-3 space-y-2 text-body-sm text-ink-secondary">
@@ -82,6 +84,8 @@ export function LiveSessionsPage() {
   return (
     <div>
       <PageHeader back eyebrow="Step 4" title="Where your group will meet." />
+
+      <JourneyStepper className="mb-5" />
 
       <Card variant="plain" className="space-y-4">
         <Select<MeetingPlatform>

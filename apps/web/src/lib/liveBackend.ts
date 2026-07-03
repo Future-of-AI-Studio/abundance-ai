@@ -150,13 +150,16 @@ export function createLiveBackend(): Backend {
           size_bytes: file.size,
           duration_sec: durationSec ?? null,
         });
-        // PUT the bytes to the signed URL.
-        const put = await fetch(res.signed_url, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'application/octet-stream' },
-          body: file,
-        });
-        if (!put.ok) throw new Error('Upload failed.');
+        // Upload via the browser storage client using the returned path + token.
+        // (Don't PUT to res.signed_url directly — that absolute URL is built from
+        // the Edge Function's SUPABASE_URL, which is the internal Docker host in
+        // local dev and unreachable from the browser.)
+        const { error } = await supabase.storage
+          .from('content')
+          .uploadToSignedUrl(res.storage_path, res.token, file, {
+            contentType: file.type || 'application/octet-stream',
+          });
+        if (error) throw new Error('Upload failed.');
         return { id: res.content_source_id, filename: file.name };
       },
       async remove(id) {
@@ -172,6 +175,12 @@ export function createLiveBackend(): Backend {
         }
         const { error } = await supabase.from(TABLES.content_sources).delete().eq('id', id);
         if (error) throw error;
+      },
+      async signedUrl(storagePath) {
+        // Private bucket → issue a time-limited signed URL the <audio> can stream.
+        const { data, error } = await supabase.storage.from('content').createSignedUrl(storagePath, 3600);
+        if (error || !data?.signedUrl) throw new Error('Could not load that recording.');
+        return data.signedUrl;
       },
     },
   };

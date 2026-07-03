@@ -8,6 +8,34 @@ import { requireUser, userClient, adminClient } from '../_shared/supabase.ts';
 import { callGemini } from '../_shared/gemini.ts';
 import { programBuildPrompt } from '../_shared/prompts.ts';
 
+// Map a stored source to a Gemini-supported inline MIME type, or null if it can't
+// be analyzed inline (e.g. .docx, or a legacy .webm recording — Gemini has no
+// reader for those). Recordings are normalized to WAV client-side. We key strictly
+// off the extension so we never MISLABEL bytes (claiming webm is wav → decode error).
+function inlineMime(kind: string, ext: string): string | null {
+  const byExt: Record<string, string> = {
+    pdf: 'application/pdf',
+    wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac',
+    ogg: 'audio/ogg', flac: 'audio/flac',
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
+  };
+  if (byExt[ext]) return byExt[ext];
+  // A recording with no extension is our normalized WAV; anything else unknown
+  // (e.g. legacy webm) is noted by filename instead of attached.
+  if (kind === 'voice' && !ext) return 'audio/wav';
+  return null;
+}
+
+// Base64-encode bytes in chunks (avoids blowing the call stack on large buffers).
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
   let programId: string | null = null;
@@ -41,25 +69,42 @@ Deno.serve(async (req) => {
     }
     programId = program.id;
 
-    // Assemble raw text: pull text-extractable files; note other media by name.
+    // Assemble the model input: extract text from text files, and attach audio /
+    // PDFs / images as inline media so Gemini actually analyzes them (not just the
+    // filenames). Non-analyzable or oversized files are noted by name.
     let raw = '';
+    const mediaParts: { mimeType: string; dataBase64: string }[] = [];
+    let mediaBytes = 0;
+    const MEDIA_CAP = 18 * 1024 * 1024; // keep the total inline request under Vertex's limit
+
     for (const s of sources) {
-      if (s.kind === 'file' && /\.(txt|md|csv)$/i.test(s.filename)) {
+      const ext = (s.filename.split('.').pop() ?? '').toLowerCase();
+      if (/^(txt|md|csv)$/.test(ext)) {
         const { data: blob } = await admin.storage.from('content').download(s.storage_path);
         if (blob) raw += `\n\n=== ${s.filename} ===\n` + (await blob.text()).slice(0, 6000);
-      } else {
-        raw += `\n\n[${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}]`;
+        continue;
       }
+      const mime = inlineMime(s.kind, ext);
+      if (mime && mediaBytes < MEDIA_CAP) {
+        const { data: blob } = await admin.storage.from('content').download(s.storage_path);
+        if (blob && blob.size + mediaBytes <= MEDIA_CAP) {
+          mediaParts.push({ mimeType: mime, dataBase64: toBase64(new Uint8Array(await blob.arrayBuffer())) });
+          mediaBytes += blob.size;
+          raw += `\n\n[attached ${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}]`;
+          continue;
+        }
+      }
+      raw += `\n\n[${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}]`;
     }
-    if (raw.trim().length < 20) {
-      raw = 'The expert provided recordings and files about their area of expertise; infer a sensible foundational program.';
+    if (raw.trim().length < 20 && mediaParts.length === 0) {
+      raw = 'The expert provided material about their area of expertise; infer a sensible foundational program.';
     }
 
-    const { system, user: userPrompt, mockText } = programBuildPrompt(raw, path);
+    const { system, user: userPrompt, mockText } = programBuildPrompt(raw, path, mediaParts.length);
     const { data: ai } = await callGemini({
       admin, userId: user.id, feature: 'program-build',
       systemPrompt: system, userPrompt, schema: aiProgramSchema,
-      temperature: 0.6, mockText,
+      temperature: 0.6, mockText, mediaParts,
     });
 
     // Persist title + modules, flip status to ready.

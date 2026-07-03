@@ -2,10 +2,11 @@
 // + user prompt and a deterministic mockText (valid JSON) for the local mock path.
 
 const VOICE =
-  'Voice: warm, plain-spoken, second person, short sentences. Encouraging, never blaming, never cute.';
+  'Voice: warm, plain-spoken, second person, short sentences. Encouraging, never blaming, never cute. ' +
+  'Write in PLAIN TEXT ONLY — no markdown, no asterisks, no bullet characters, no bold/italic markers, no headings.';
 
 // ── program-build ─────────────────────────────────────────────────────────────
-export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined) {
+export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined, mediaCount = 0) {
   const format =
     path === 'B'
       ? 'self-paced, pre-recorded modules'
@@ -13,13 +14,17 @@ export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined)
   const system = [
     'You are a curriculum architect for everyday experts turning their knowledge into a sellable program.',
     `Design a ${format} program from the raw, messy material the expert provides.`,
+    'The material may include attached audio recordings and documents — listen to and read them as the PRIMARY source. Ground the program in what the expert actually says and shares; do not invent a generic curriculum.',
     'Return STRICT JSON only, no prose, matching exactly:',
     '{"title": string, "modules": [{"title": string, "outcome": string, "session_flow": string}]}',
     'Rules: 3 to 6 modules. Each "outcome" is one sentence on what the learner can DO after.',
     '"session_flow" is 2-3 short sentences describing how that session/module runs.',
     VOICE,
   ].join('\n');
-  const user = `Raw expertise material:\n"""\n${content.slice(0, 12000)}\n"""\n\nStructure it into a program now.`;
+  const attachNote = mediaCount
+    ? `\n\n${mediaCount} recording(s)/document(s) are attached below — analyze them as the main input.`
+    : '';
+  const user = `Raw expertise material:\n"""\n${content.slice(0, 12000)}\n"""${attachNote}\n\nStructure it into a program now.`;
   const mockText = JSON.stringify({
     title: 'Your Signature Program',
     modules: [
@@ -32,27 +37,90 @@ export function programBuildPrompt(content: string, path: 'A' | 'B' | undefined)
 }
 
 // ── marketing-generate ────────────────────────────────────────────────────────
+type SocialPlatform = 'facebook' | 'instagram' | 'x' | 'linkedin';
+
+// Per-network voice + format guidance, so each post reads native to its platform.
+const PLATFORM_GUIDE: Record<SocialPlatform, string> = {
+  facebook: 'Facebook: warm, story-driven, community feel. 1-3 short paragraphs. 0-2 hashtags.',
+  instagram: 'Instagram: personal and vivid, first line is a strong hook, tasteful emojis, line breaks. 3-5 hashtags.',
+  x: 'X (Twitter): one punchy idea, under 280 characters, conversational. 1-2 hashtags.',
+  linkedin: 'LinkedIn: professional and credible, lead with the value/insight, no hype. 3-4 hashtags.',
+};
+
+// Deterministic mock captions per platform (used when GCP creds are absent).
+const MOCK_CAPTION: Record<SocialPlatform, (t: string) => string> = {
+  facebook: (t) => `I finally built the thing I wish I'd had when I started: "${t}". It's for anyone who's been "meaning to" for too long. Doors are open — come build with me.`,
+  instagram: (t) => `This took me years to figure out. You get it in weeks. ✨\n\n"${t}" is open now — clarity, a real method, and people in your corner.`,
+  x: (t) => `You don't need it all figured out to begin. "${t}" walks you through it, step by step. It's open now.`,
+  linkedin: (t) => `After years of doing this work, I've packaged what actually moves people forward into "${t}". If you've been sitting on your expertise, this is the structured path to sharing it.`,
+};
+const MOCK_TAGS: Record<SocialPlatform, string[]> = {
+  facebook: ['#startnow'],
+  instagram: ['#coaching', '#mindset', '#startnow'],
+  x: ['#growth', '#startnow'],
+  linkedin: ['#coaching', '#professionaldevelopment', '#expertise'],
+};
+
+interface ModuleBrief {
+  title: string;
+  outcome: string;
+  session_flow?: string;
+}
+
+type MarketingPhase = 'launch' | 'ongoing' | 'evergreen';
+
+// What each launch stage's content should emphasize.
+const PHASE_GUIDE: Record<MarketingPhase, string> = {
+  launch: 'Stage — JUST STARTING (announcement): doors are opening. Build anticipation, introduce the program and exactly who it\'s for, invite people in.',
+  ongoing: 'Stage — ONGOING (the program is live): sustain momentum. Share a useful tip or insight from the program, social-proof angles, and gentle reminders it\'s still open.',
+  evergreen: 'Stage — AFTER LAUNCH (evergreen): timeless promotion. Lead with the transformation and results, invite the next cohort or a waitlist, keep it compelling long after launch.',
+};
+
 export function marketingPrompt(
   programTitle: string,
-  moduleTitles: string[],
+  modules: ModuleBrief[],
+  platforms: SocialPlatform[],
   includeEmail: boolean,
+  phase: MarketingPhase,
+  count: number,
 ) {
+  const guides = platforms.map((p) => `- ${PLATFORM_GUIDE[p]}`).join('\n');
   const system = [
     'You write authentic, non-salesy marketing for everyday experts launching a program.',
+    'Base every post on the SPECIFIC program below — its title and the concrete outcomes each module delivers. Reference the real transformation this program gives; never write generic, interchangeable copy.',
+    PHASE_GUIDE[phase],
     'Return STRICT JSON only matching exactly:',
-    '{"posts": [{"channel": "social" | "email", "caption": string, "hashtags": [string]}]}',
-    'Write 3 social posts. ' + (includeEmail ? 'Then 1 email (channel "email", hashtags []).' : 'No email posts.'),
-    'Captions are short, real, and in the expert\'s warm voice. 2-4 relevant hashtags per social post.',
+    '{"posts": [{"channel": "social" | "email", "platform": "facebook" | "instagram" | "x" | "linkedin" | null, "caption": string, "hashtags": [string]}]}',
+    platforms.length
+      ? `Write exactly ${count} DISTINCT posts for EACH of these platforms — vary the hook and angle across the ${count}, each tailored to the platform's style (set "platform" accordingly):\n${guides}`
+      : 'Do not write any social posts.',
+    includeEmail
+      ? `Then write ${count} distinct emails (channel "email", platform null, hashtags []).`
+      : 'Do not write any email post.',
+    'Every social post has channel "social" and its "platform" set. Hashtags include the leading #. Captions are real and in the expert\'s warm voice — never salesy.',
     VOICE,
   ].join('\n');
-  const user = `Program: "${programTitle}"\nModules: ${moduleTitles.join('; ')}\n\nWrite the posts now.`;
-  const posts = [
-    { channel: 'social', caption: `I built something I'm proud of: "${programTitle}". It's the thing I wish I'd had when I started. Doors are open.`, hashtags: ['#yourtime', '#coaching', '#startnow'] },
-    { channel: 'social', caption: `You don't need to have it all figured out to begin. "${programTitle}" walks you through it, step by step.`, hashtags: ['#growth', '#mindset'] },
-    { channel: 'social', caption: `Three things this program gives you: clarity, a real method, and people in your corner. That's it. That's the work.`, hashtags: ['#community', '#learn', '#share'] },
-  ];
+  const moduleLines = modules.length
+    ? modules.map((m) => `- ${m.title} → ${m.outcome}`).join('\n')
+    : '- (no modules provided)';
+  const user =
+    `Program title: "${programTitle}"\n` +
+    `What this program actually delivers (module → the outcome the learner gets):\n${moduleLines}\n\n` +
+    `Ground each post in these specific outcomes. Write ${count} per platform now.`;
+
+  // Deterministic mock (no-creds path): `count` variations per target.
+  const posts: Array<{ channel: string; platform: string | null; caption: string; hashtags: string[] }> = [];
+  for (const p of platforms) {
+    for (let i = 0; i < count; i++) {
+      const prefix = count > 1 ? `(${i + 1}/${count}) ` : '';
+      posts.push({ channel: 'social', platform: p, caption: prefix + MOCK_CAPTION[p](programTitle), hashtags: MOCK_TAGS[p] });
+    }
+  }
   if (includeEmail) {
-    posts.push({ channel: 'email', caption: `Subject: It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions — I read every one.`, hashtags: [] });
+    for (let i = 0; i < count; i++) {
+      const prefix = count > 1 ? `(${i + 1}/${count}) ` : '';
+      posts.push({ channel: 'email', platform: null, caption: `Subject: ${prefix}It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions — I read every one.`, hashtags: [] });
+    }
   }
   return { system, user, mockText: JSON.stringify({ posts }) };
 }

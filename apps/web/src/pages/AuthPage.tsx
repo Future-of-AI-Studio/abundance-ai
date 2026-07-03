@@ -120,11 +120,7 @@ export function AuthPage() {
     } catch (e) {
       setSubmitting(false);
       const msg = e instanceof Error ? e.message : '';
-      if (mode === 'signup' && /payment_required|paid order/i.test(msg)) {
-        // Live backend gates account creation on a paid order — pay first instead.
-        sessionStorage.setItem('abundance_pending_email', data.email);
-        navigate('/checkout');
-      } else if (/already/i.test(msg)) {
+      if (/already/i.test(msg)) {
         setError('email', { message: "That email's already in use — sign in instead." });
         switchMode('signin');
       } else if (mode === 'signin') {

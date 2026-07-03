@@ -12,6 +12,8 @@ import { z } from 'zod';
 export const pathSchema = z.enum(['A', 'B']);
 export const categorySchema = z.enum(['healer', 'hobbyist', 'professional', 'other']);
 export const channelSchema = z.enum(['social', 'email']);
+export const platformSchema = z.enum(['facebook', 'instagram', 'x', 'linkedin']);
+export const marketingPhaseSchema = z.enum(['launch', 'ongoing', 'evergreen']);
 export const meetingPlatformSchema = z.enum(['google_meet', 'zoom', 'teams', 'other']);
 export const contentKindSchema = z.enum(['file', 'voice']);
 export const journeyStepSchema = z.enum([
@@ -72,10 +74,13 @@ export const programUpdateRequestSchema = z.object({
 
 // ── marketing ─────────────────────────────────────────────────────────────────
 export const marketingGenerateRequestSchema = z.object({
+  platforms: z.array(platformSchema).optional(),
   include_email: z.boolean().optional().default(false),
+  phase: marketingPhaseSchema.optional().default('launch'),
 });
 export const aiPostSchema = z.object({
   channel: channelSchema,
+  platform: platformSchema.nullable(),
   caption: z.string().min(1),
   hashtags: z.array(z.string()),
 });

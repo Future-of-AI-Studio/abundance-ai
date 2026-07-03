@@ -13,7 +13,15 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     const db = userClient(req);
     const admin = adminClient();
-    const { include_email } = await parseBody(req, marketingGenerateRequestSchema);
+    const { platforms, include_email, phase } = await parseBody(req, marketingGenerateRequestSchema);
+    // Omitted platforms = all four; an explicit [] = email only.
+    const targetPlatforms = platforms ?? ['facebook', 'instagram', 'x', 'linkedin'];
+    if (targetPlatforms.length === 0 && !include_email) {
+      return errorResponse('nothing_selected', 'Pick at least one platform or email.', 400);
+    }
+    // Scale posts-per-target inversely to how many targets are chosen.
+    const targetCount = targetPlatforms.length + (include_email ? 1 : 0);
+    const perTarget = ({ 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 } as Record<number, number>)[targetCount] ?? 2;
 
     const { data: program } = await db
       .from('programs').select('id, title').eq('user_id', user.id)
@@ -22,10 +30,10 @@ Deno.serve(async (req) => {
       return errorResponse('no_program', 'Your marketing kit unlocks once your program is ready.', 400);
     }
     const { data: modules } = await db
-      .from('modules').select('title').eq('program_id', program.id).order('idx');
+      .from('modules').select('title, outcome, session_flow').eq('program_id', program.id).order('idx');
 
     const { system, user: userPrompt, mockText } = marketingPrompt(
-      program.title, (modules ?? []).map((m) => m.title), include_email,
+      program.title, modules ?? [], targetPlatforms, include_email, phase, perTarget,
     );
     const { data: ai } = await callGemini({
       admin, userId: user.id, feature: 'marketing-generate',
@@ -33,10 +41,12 @@ Deno.serve(async (req) => {
       temperature: 0.8, mockText,
     });
 
-    // Replace any previous generated posts (keep it simple + idempotent-ish).
-    await db.from('marketing_posts').delete().eq('user_id', user.id);
+    // Replace only THIS phase's posts, so other stages' content is preserved and
+    // the user can build a library across launch → ongoing → evergreen.
+    await db.from('marketing_posts').delete().eq('user_id', user.id).eq('phase', phase);
     const rows = ai.posts.map((p) => ({
-      user_id: user.id, channel: p.channel, caption: p.caption, hashtags: p.hashtags, posted: false,
+      user_id: user.id, channel: p.channel, platform: p.platform ?? null, phase,
+      caption: p.caption, hashtags: p.hashtags, posted: false,
     }));
     await db.from('marketing_posts').insert(rows);
 

@@ -88,11 +88,13 @@ export function createMockBackend(): Backend {
   const listeners = new Set<(u: AuthUser | null) => void>();
   const save = () => localStorage.setItem(KEY, JSON.stringify(state));
   const emit = () => listeners.forEach((cb) => cb(state.user));
+  // In-memory storage_path → object URL, for playing back uploads/recordings this session.
+  const blobUrls = new Map<string, string>();
 
   function bootstrapUser(email: string, firstName: string, category: Category = 'other') {
     const id = uid();
     state.user = { id, email };
-    state.profile = { id, first_name: firstName, email, avatar_url: null, category, created_at: nowIso() };
+    state.profile = { id, first_name: firstName, email, avatar_url: null, category, paid_at: nowIso(), created_at: nowIso() };
     state.journey = { user_id: id, path: null, current_step: null, completed_steps: [], updated_at: nowIso() };
     state.session = { user_id: id, platform: 'google_meet', meet_link: null, updated_at: nowIso() };
     state.stripe = { user_id: id, connected: false, account_id: null, checklist: { bank: false, id: false, email: true }, updated_at: nowIso() };
@@ -153,9 +155,15 @@ export function createMockBackend(): Backend {
     },
     async marketingGenerate(req) {
       await delay(1800);
-      state.posts = MOCK.posts(state.program.program?.title ?? 'Your program', req.include_email).map((p) => ({
-        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, ...p,
+      const platforms = req.platforms ?? ['facebook', 'instagram', 'x', 'linkedin'];
+      const phase = req.phase ?? 'launch';
+      const targetCount = platforms.length + (req.include_email ? 1 : 0);
+      const count = ({ 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 } as Record<number, number>)[targetCount] ?? 2;
+      const fresh = MOCK.posts(state.program.program?.title ?? 'Your program', platforms, req.include_email, count).map((p) => ({
+        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, phase, ...p,
       }));
+      // Replace only this phase's posts (mirrors the live backend).
+      state.posts = [...state.posts.filter((p) => p.phase !== phase), ...fresh];
       save();
       return { posts: state.posts };
     },
@@ -335,11 +343,15 @@ export function createMockBackend(): Backend {
       async upload(file, kind, durationSec) {
         await delay(500);
         const id = uid();
+        const storagePath = `mock/${id}-${file.name}`;
+        // Keep a playable object URL in memory so the recording can be played back
+        // this session (blob URLs don't survive a reload — fine for the mock).
+        blobUrls.set(storagePath, URL.createObjectURL(file));
         state.contentSources.unshift({
           id,
           user_id: state.user?.id ?? 'mock-user',
           kind,
-          storage_path: `mock/${id}-${file.name}`,
+          storage_path: storagePath,
           filename: file.name,
           duration_sec: durationSec ?? null,
           created_at: nowIso(),
@@ -349,8 +361,15 @@ export function createMockBackend(): Backend {
       },
       async remove(id) {
         await delay(150);
+        const gone = state.contentSources.find((s) => s.id === id);
+        if (gone) { const u = blobUrls.get(gone.storage_path); if (u) URL.revokeObjectURL(u); blobUrls.delete(gone.storage_path); }
         state.contentSources = state.contentSources.filter((s) => s.id !== id);
         save();
+      },
+      async signedUrl(storagePath) {
+        const u = blobUrls.get(storagePath);
+        if (!u) throw new Error('That recording isn\'t available anymore (demo resets on reload).');
+        return u;
       },
     },
   };

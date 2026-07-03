@@ -10,7 +10,7 @@ import { GoogleAuth } from 'google-auth-library';
 
 const PROJECT = Deno.env.get('GOOGLE_VERTEX_PROJECT_ID') ?? '';
 const LOCATION = Deno.env.get('GOOGLE_VERTEX_LOCATION') ?? 'us-central1';
-export const VERTEX_MODEL = Deno.env.get('GOOGLE_VERTEX_MODEL') ?? 'gemini-2.0-flash-001';
+export const VERTEX_MODEL = Deno.env.get('GOOGLE_VERTEX_MODEL') ?? 'gemini-2.5-flash';
 const SA_KEY_RAW = Deno.env.get('GOOGLE_VERTEX_SA_KEY') ?? '';
 
 export interface VertexResult {
@@ -26,12 +26,21 @@ export interface VertexMessage {
   text: string;
 }
 
+/** Inline binary attachment (audio, PDF, image) sent alongside the text prompt. */
+export interface VertexMediaPart {
+  mimeType: string;
+  /** base64-encoded bytes. */
+  dataBase64: string;
+}
+
 export interface VertexCallArgs {
   systemPrompt: string;
   /** Single-turn prompt. Ignored when `messages` is provided. */
   userPrompt?: string;
   /** Multi-turn history (oldest → newest). When set, overrides `userPrompt`. */
   messages?: VertexMessage[];
+  /** Inline media attached to the single-turn user message (audio/PDF/image). */
+  mediaParts?: VertexMediaPart[];
   temperature?: number;
   /** When true, force JSON output (responseMimeType application/json). */
   json?: boolean;
@@ -72,16 +81,24 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
     `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT}` +
     `/locations/${LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
 
+  // Single-turn user message = the text prompt plus any inline media (audio/PDF/image).
+  const userParts: Array<Record<string, unknown>> = [];
+  if (args.userPrompt) userParts.push({ text: args.userPrompt });
+  for (const m of args.mediaParts ?? []) {
+    userParts.push({ inlineData: { mimeType: m.mimeType, data: m.dataBase64 } });
+  }
   const contents = args.messages
     ? args.messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
-    : [{ role: 'user', parts: [{ text: args.userPrompt ?? '' }] }];
+    : [{ role: 'user', parts: userParts.length ? userParts : [{ text: args.userPrompt ?? '' }] }];
 
   const body = {
     systemInstruction: { parts: [{ text: args.systemPrompt }] },
     contents,
     generationConfig: {
       temperature: args.temperature ?? 0.7,
-      maxOutputTokens: 2048,
+      // Room for the JSON output plus any 2.5 "thinking" tokens so structured
+      // responses aren't truncated mid-object (marketing can be a batch of posts).
+      maxOutputTokens: 8192,
       ...(args.json ? { responseMimeType: 'application/json' } : {}),
     },
   };

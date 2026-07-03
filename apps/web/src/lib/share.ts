@@ -4,7 +4,7 @@
 // share sheet, so we fall back to per-platform composer links. Facebook's sharer
 // and Instagram can't be prefilled with text, so callers copy the caption first.
 
-export type SharePlatform = 'x' | 'facebook' | 'instagram';
+export type SharePlatform = 'x' | 'facebook' | 'instagram' | 'linkedin';
 
 /** Caption + hashtags joined the same way the Copy button builds clipboard text. */
 export function buildShareText(caption: string, hashtags: string[]): string {
@@ -42,6 +42,10 @@ export function intentUrl(platform: SharePlatform, text: string, url: string): s
       return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     case 'facebook':
       return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    case 'linkedin':
+      // LinkedIn's share dialog only accepts a URL (no prefilled text), so the
+      // caller copies the caption for pasting — same pattern as Facebook.
+      return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
     case 'instagram':
       return null;
   }

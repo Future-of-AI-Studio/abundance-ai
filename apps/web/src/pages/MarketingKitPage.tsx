@@ -1,30 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { MarketingPost, Channel } from '@abundance/shared';
+import type { MarketingPost, Platform, MarketingPhase } from '@abundance/shared';
+import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget } from '@abundance/shared';
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
-import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon } from '@/components/ui/icons';
+import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
+import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
+import { cn } from '@/lib/cn';
+import { plainText } from '@/lib/text';
 import { buildShareText, canNativeShare, nativeShare, intentUrl, type SharePlatform } from '@/lib/share';
 
-// [09] Marketing Kit — AI-written posts to copy, edit, publish. Skeletons while
-// generating. Email segment enabled only if the user has a list.
+const ALL_PLATFORMS: Platform[] = ['facebook', 'instagram', 'x', 'linkedin'];
+const PLATFORM_ICON = { facebook: FacebookIcon, instagram: InstagramIcon, x: XIcon, linkedin: LinkedInIcon } as const;
+// Selectable targets = the four networks plus Email, shown as one row of chips.
+type Target = Platform | 'email';
+const ALL_TARGETS: Target[] = [...ALL_PLATFORMS, 'email'];
+const TARGET_ICON = { ...PLATFORM_ICON, email: MailIcon } as const;
+const TARGET_LABEL = { facebook: 'Facebook', instagram: 'Instagram', x: 'X', linkedin: 'LinkedIn', email: 'Email' } as const;
+const PHASE_ORDER: MarketingPhase[] = ['launch', 'ongoing', 'evergreen'];
+const PHASE_SEGMENTS = PHASE_ORDER.map((v) => ({ value: v, label: PHASE_LABELS[v] }));
+
+// [09] Marketing Kit — pick the platforms you want, then AI writes a post tailored
+// to each (Facebook / Instagram / X / LinkedIn), plus an optional email.
 export function MarketingKitPage() {
   const navigate = useNavigate();
   const { backend, program, posts, refreshMarketing, refreshJourney } = useApp();
-  const [segment, setSegment] = useState<Channel>('social');
+  const [selected, setSelected] = useState<Set<Target>>(new Set(ALL_PLATFORMS));
+  const [phase, setPhase] = useState<MarketingPhase>('launch');
   const [generating, setGenerating] = useState(false);
-  const [hasEmailList, setHasEmailList] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [tab, setTab] = useState<Target>('facebook');
 
-  const generate = async (includeEmail: boolean) => {
-    if (!backend) return;
+  const toggle = (t: Target) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      next.has(t) ? next.delete(t) : next.add(t);
+      return next;
+    });
+
+  const generate = async () => {
+    if (!backend || selected.size === 0) return;
     setGenerating(true);
     setFailed(false);
     try {
-      await backend.api.marketingGenerate({ include_email: includeEmail });
+      const platforms = ALL_PLATFORMS.filter((p) => selected.has(p));
+      await backend.api.marketingGenerate({ platforms, include_email: selected.has('email'), phase });
       await refreshMarketing();
+      setTab(platforms[0] ?? 'email');
     } catch {
       setFailed(true);
     } finally {
@@ -32,10 +56,30 @@ export function MarketingKitPage() {
     }
   };
 
+  // On the first visit (program just built, nothing generated yet), automatically
+  // draft the "Just starting" launch content. This is a real marketing-generate
+  // call — Gemini writes it, grounded in this program's modules — not static copy.
+  // After that, the picker + phase options drive any regeneration or new stages.
+  const autoRan = useRef(false);
   useEffect(() => {
-    if (program.program && posts.length === 0 && !generating) void generate(false);
+    if (autoRan.current || !backend || !program.program || posts.length > 0) return;
+    autoRan.current = true;
+    setGenerating(true);
+    setFailed(false);
+    (async () => {
+      try {
+        await backend.api.marketingGenerate({ platforms: ALL_PLATFORMS, include_email: false, phase: 'launch' });
+        await refreshMarketing();
+        setPhase('launch');
+        setTab('facebook');
+      } catch {
+        setFailed(true);
+      } finally {
+        setGenerating(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [program.program]);
+  }, [backend, program.program, posts.length]);
 
   if (!program.program) {
     return (
@@ -48,43 +92,83 @@ export function MarketingKitPage() {
     );
   }
 
-  const visible = posts.filter((p) => p.channel === segment);
+  // The kit is a per-phase library — only show the stage currently selected.
+  const phasePosts = posts.filter((p) => p.phase === phase);
+  const platformTabs = ALL_PLATFORMS.filter((p) => phasePosts.some((post) => post.platform === p));
+  const hasEmail = phasePosts.some((p) => p.channel === 'email');
+  const tabSegments: { value: Platform | 'email'; label: string }[] = [
+    ...platformTabs.map((p) => ({ value: p, label: PLATFORM_LABELS[p] })),
+    ...(hasEmail ? [{ value: 'email' as const, label: 'Email' }] : []),
+  ];
+  const activeTab = tabSegments.some((s) => s.value === tab) ? tab : (tabSegments[0]?.value ?? 'facebook');
+  const visible = phasePosts.filter((p) => (activeTab === 'email' ? p.channel === 'email' : p.platform === activeTab));
+  const perTarget = postsPerTarget(selected.size);
 
   return (
     <div>
-      <PageHeader eyebrow="Marketing kit" title="Your posts are written. Just make them yours." />
+      <PageHeader eyebrow="Marketing kit" title="Pick your platforms — we'll write for each." />
 
-      <SegmentedControl<Channel>
-        segments={[
-          { value: 'social', label: 'Social posts' },
-          { value: 'email', label: 'Email', disabled: !hasEmailList },
-        ]}
-        value={segment}
-        onChange={setSegment}
-      />
+      <JourneyStepper className="mb-5" />
 
-      <label className="mt-3 flex items-center gap-2 text-body-sm text-ink-secondary">
-        <input
-          type="checkbox"
-          checked={hasEmailList}
-          onChange={(e) => { setHasEmailList(e.target.checked); if (e.target.checked) void generate(true); }}
-          className="h-4 w-4 accent-[#B5532A]"
-        />
-        I have an email list
-      </label>
+      {/* Target picker — the four networks plus Email, all as toggle chips. */}
+      <Card variant="plain" className="space-y-3">
+        <p className="text-body-sm font-medium text-ink">Where do you want to share?</p>
+        <div className="flex flex-wrap gap-2">
+          {ALL_TARGETS.map((t) => {
+            const Icon = TARGET_ICON[t];
+            const on = selected.has(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggle(t)}
+                aria-pressed={on}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-body-sm transition-colors',
+                  on ? 'border-primary bg-primary/10 text-ink' : 'border-line text-ink-secondary hover:border-primary/40',
+                )}
+              >
+                <Icon width={16} height={16} />
+                {TARGET_LABEL[t]}
+              </button>
+            );
+          })}
+        </div>
 
+        <p className="pt-1 text-body-sm font-medium text-ink">Which stage are you at?</p>
+        <SegmentedControl<MarketingPhase> segments={PHASE_SEGMENTS} value={phase} onChange={setPhase} />
+
+        <p className="text-caption text-ink-secondary">
+          {selected.size === 0
+            ? 'Pick at least one place to share.'
+            : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks.`}
+        </p>
+
+        <Button size="lg" loading={generating} disabled={selected.size === 0} onClick={generate}>
+          {phasePosts.length ? `Regenerate ${PHASE_LABELS[phase].toLowerCase()} content` : `Generate ${PHASE_LABELS[phase].toLowerCase()} content`}
+        </Button>
+      </Card>
+
+      {/* Results (for the selected stage) */}
       <div className="mt-5 space-y-3">
-        {generating && posts.length === 0 ? (
+        {generating && phasePosts.length === 0 ? (
           [0, 1, 2].map((i) => <Skeleton key={i} variant="post-card" />)
         ) : failed ? (
           <Card variant="plain" className="text-center">
             <p className="text-body text-ink">Couldn't write your posts just now.</p>
-            <div className="mx-auto mt-4 max-w-xs"><Button onClick={() => generate(hasEmailList)}>Try again</Button></div>
+            <div className="mx-auto mt-4 max-w-xs"><Button onClick={generate}>Try again</Button></div>
           </Card>
-        ) : visible.length === 0 ? (
-          <p className="py-8 text-center text-body-sm text-ink-secondary">No {segment} posts yet.</p>
+        ) : phasePosts.length === 0 ? (
+          <p className="py-8 text-center text-body-sm text-ink-secondary">
+            No {PHASE_LABELS[phase].toLowerCase()} content yet — pick your platforms and generate.
+          </p>
         ) : (
-          visible.map((p) => <PostCard key={p.id} post={p} />)
+          <>
+            <SegmentedControl<Platform | 'email'> segments={tabSegments} value={activeTab} onChange={setTab} />
+            <div className="mt-3 space-y-3">
+              {visible.map((p) => <PostCard key={p.id} post={p} />)}
+            </div>
+          </>
         )}
       </div>
 
@@ -119,7 +203,9 @@ function PostCard({ post }: { post: MarketingPost }) {
   const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const shareText = buildShareText(caption, post.hashtags);
+  const shareText = buildShareText(plainText(caption), post.hashtags);
+  const PlatformIcon = post.platform ? PLATFORM_ICON[post.platform] : null;
+  const platformLabel = post.platform ? PLATFORM_LABELS[post.platform] : 'Email';
 
   const copy = async () => {
     await navigator.clipboard.writeText(shareText);
@@ -134,8 +220,6 @@ function PostCard({ post }: { post: MarketingPost }) {
     if (backend) { await backend.api.marketingUpdate({ id: post.id, caption }); await refreshMarketing(); }
   };
 
-  // Reflect that the user took the post out to a platform. We can't know they
-  // hit "publish", but opening the composer is the strongest signal we get.
   const markShared = async () => {
     if (backend && !post.posted) { await backend.api.marketingUpdate({ id: post.id, posted: true }); await refreshMarketing(); }
   };
@@ -144,7 +228,7 @@ function PostCard({ post }: { post: MarketingPost }) {
     if (backend) { await backend.api.marketingUpdate({ id: post.id, posted: !post.posted }); await refreshMarketing(); }
   };
 
-  // Mobile: hand to the OS share sheet (covers IG/FB/X). Desktop: open the menu.
+  // Mobile: hand to the OS share sheet. Desktop: open the per-platform menu.
   const share = async () => {
     if (canNativeShare(shareText)) {
       if (await nativeShare(shareText)) await markShared();
@@ -157,10 +241,10 @@ function PostCard({ post }: { post: MarketingPost }) {
     setShareOpen(false);
     const url = intentUrl(platform, shareText, window.location.origin);
     if (url) {
-      // FB can't prefill the caption — copy it so the user can paste.
-      if (platform === 'facebook') {
+      // FB & LinkedIn can't prefill the caption — copy it so the user can paste.
+      if (platform === 'facebook' || platform === 'linkedin') {
         await navigator.clipboard.writeText(shareText);
-        toast.success('Caption copied — paste it into your Facebook post');
+        toast.success('Caption copied — paste it into your post');
       }
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
@@ -173,6 +257,10 @@ function PostCard({ post }: { post: MarketingPost }) {
 
   return (
     <Card variant="plain">
+      <div className="mb-2 flex items-center gap-1.5 text-caption font-medium text-ink-secondary">
+        {PlatformIcon && <PlatformIcon width={14} height={14} />}
+        {platformLabel}
+      </div>
       {editing ? (
         <textarea
           value={caption}
@@ -184,7 +272,7 @@ function PostCard({ post }: { post: MarketingPost }) {
         />
       ) : (
         <button onClick={() => setEditing(true)} className="w-full whitespace-pre-wrap text-left text-body text-ink">
-          {caption}
+          {plainText(caption)}
         </button>
       )}
       {post.hashtags.length > 0 && (
@@ -214,8 +302,11 @@ function PostCard({ post }: { post: MarketingPost }) {
           <Button variant="secondary" iconLeft={<InstagramIcon width={18} height={18} />} onClick={() => shareTo('instagram')}>
             Share to Instagram
           </Button>
+          <Button variant="secondary" iconLeft={<LinkedInIcon width={18} height={18} />} onClick={() => shareTo('linkedin')}>
+            Share to LinkedIn
+          </Button>
           <p className="pt-1 text-center text-body-sm text-ink-secondary">
-            Facebook & Instagram don't accept pre-filled captions, so we copy yours to paste.
+            Facebook, Instagram & LinkedIn don't accept pre-filled captions, so we copy yours to paste.
           </p>
         </div>
       </Sheet>

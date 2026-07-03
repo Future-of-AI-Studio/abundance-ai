@@ -6,6 +6,8 @@ import {
   memberLevelSchema,
   fearPatternSchema,
   channelSchema,
+  platformSchema,
+  marketingPhaseSchema,
   meetingPlatformSchema,
   matchStatusSchema,
   orderStatusSchema,
@@ -43,6 +45,7 @@ export const profileSchema = z.object({
   email: z.string().email(),
   avatar_url: z.string().url().nullable(),
   category: categorySchema,
+  paid_at: timestamp.nullable(), // null = has not paid; set when a Stripe order is paid
   created_at: timestamp,
 });
 export type Profile = z.infer<typeof profileSchema>;
@@ -108,6 +111,8 @@ export const marketingPostSchema = z.object({
   id: uuid,
   user_id: uuid,
   channel: channelSchema,
+  platform: platformSchema.nullable(), // which social network this is tailored for; null for email
+  phase: marketingPhaseSchema, // launch stage this content is for
   caption: z.string(),
   hashtags: z.array(z.string()).default([]),
   posted: z.boolean().default(false),

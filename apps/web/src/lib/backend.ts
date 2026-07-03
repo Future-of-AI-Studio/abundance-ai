@@ -65,6 +65,8 @@ export interface BackendStorage {
   upload(file: File, kind: 'file' | 'voice', durationSec?: number): Promise<{ id: string; filename: string }>;
   /** Remove a saved source — deletes the stored object and its content_sources row. */
   remove(id: string): Promise<void>;
+  /** A short-lived, playable URL for a stored object (the bucket is private → signed). */
+  signedUrl(storagePath: string): Promise<string>;
 }
 
 export interface Backend {

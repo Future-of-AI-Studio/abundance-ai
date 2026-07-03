@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Path } from '@abundance/shared';
 import { Button } from '@/components/ui';
 import { PageHeader } from '@/components/PageHeader';
+import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import { cn } from '@/lib/cn';
 import { CheckIcon } from '@/components/ui/icons';
@@ -38,6 +39,8 @@ export function ChoosePathPage() {
   return (
     <div>
       <PageHeader back backTo="/app" eyebrow="Step 1 of your journey" title="Ready to show up live and coach?" />
+
+      <JourneyStepper className="mb-5" />
 
       <div className="grid gap-4">
         {OPTIONS.map((o) => {

@@ -7,11 +7,13 @@ import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, contentUploadRequestSchema } from '../_shared/contract.ts';
 import { requireUser, adminClient } from '../_shared/supabase.ts';
 
+// Documents the model can analyze inline (PDF + images), plus the audio formats
+// the in-app recorder produces (WAV normalized client-side; others as fallback).
+// Word docs and video are intentionally excluded — Gemini can't read them.
 const ACCEPTED = new Set([
-  'application/pdf', 'text/plain', 'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/ogg',
-  'video/mp4', 'video/quicktime', 'video/webm',
+  'application/pdf',
+  'image/png', 'image/jpeg', 'image/webp',
+  'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/webm',
 ]);
 
 Deno.serve(async (req) => {

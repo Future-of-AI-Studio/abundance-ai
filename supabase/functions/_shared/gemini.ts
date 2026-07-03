@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { callVertex, VERTEX_MODEL, type VertexMessage } from './vertex.ts';
+import { callVertex, VERTEX_MODEL, type VertexMessage, type VertexMediaPart } from './vertex.ts';
 import { ApiHttpError } from './response.ts';
 
 /**
@@ -22,6 +22,8 @@ export interface CallGeminiArgs<T> {
   userPrompt: string;
   schema: z.ZodSchema<T>;
   temperature?: number;
+  /** Inline media (audio/PDF/image) to analyze alongside the prompt. */
+  mediaParts?: VertexMediaPart[];
   /** When set, serve a cached parsed value if present, and store on miss. */
   cacheKey?: string;
   /** Deterministic JSON used by the local mock when GCP creds are absent. */
@@ -62,6 +64,7 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
   const result = await callVertex({
     systemPrompt: args.systemPrompt,
     userPrompt: args.userPrompt,
+    mediaParts: args.mediaParts,
     temperature: args.temperature,
     json: true,
     mockText: args.mockText,

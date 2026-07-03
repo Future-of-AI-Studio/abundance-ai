@@ -10,14 +10,18 @@ export function AppShell() {
   const navigate = useNavigate();
   const { ready, user, profile } = useApp();
 
-  if (!ready) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-bg text-primary">
-        <Spinner size={28} />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/welcome" replace />;
+  const loading = (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-bg text-primary">
+      <Spinner size={28} />
+    </div>
+  );
+
+  if (!ready) return loading;
+  if (!user) return <Navigate to="/auth" replace />;
+  // Signed in but the profile is still hydrating — wait before deciding the gate.
+  if (!profile) return loading;
+  // Account-first: signed in but unpaid → send to checkout to unlock the app.
+  if (!profile.paid_at) return <Navigate to="/checkout" replace />;
 
   const firstName = profile?.first_name ?? 'there';
 

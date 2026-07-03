@@ -1,6 +1,6 @@
 // Mock content for the in-memory backend. Warm, on-voice sample data so the demo
 // looks populated and real.
-import type { CircleGetResponse, Channel } from '@abundance/shared';
+import type { CircleGetResponse, Channel, Platform } from '@abundance/shared';
 
 export const MOCK = {
   buildProgram(path: 'A' | 'B' | undefined) {
@@ -16,14 +16,26 @@ export const MOCK = {
     };
   },
 
-  posts(programTitle: string, includeEmail: boolean): Array<{ channel: Channel; caption: string; hashtags: string[] }> {
-    const posts: Array<{ channel: Channel; caption: string; hashtags: string[] }> = [
-      { channel: 'social', caption: `I built the program I wish I'd had when I started: "${programTitle}". It's open now.`, hashtags: ['#yourtime', '#coaching', '#startnow'] },
-      { channel: 'social', caption: `You don't need it all figured out to begin. I'll walk you through it, step by step.`, hashtags: ['#growth', '#mindset'] },
-      { channel: 'social', caption: `Clarity, a real method, and people in your corner. That's the whole offer. That's the work.`, hashtags: ['#community', '#learn'] },
-    ];
+  posts(
+    programTitle: string,
+    platforms: Platform[],
+    includeEmail: boolean,
+    count: number,
+  ): Array<{ channel: Channel; platform: Platform | null; caption: string; hashtags: string[] }> {
+    const perPlatform: Record<Platform, { caption: string; hashtags: string[] }> = {
+      facebook: { caption: `I finally built the thing I wish I'd had when I started: "${programTitle}". It's for anyone who's been "meaning to" for too long. Doors are open.`, hashtags: ['#startnow'] },
+      instagram: { caption: `This took me years to figure out. You get it in weeks. ✨\n\n"${programTitle}" is open now.`, hashtags: ['#coaching', '#mindset', '#startnow'] },
+      x: { caption: `You don't need it all figured out to begin. "${programTitle}" walks you through it, step by step. It's open now.`, hashtags: ['#growth', '#startnow'] },
+      linkedin: { caption: `After years doing this work, I've packaged what actually moves people forward into "${programTitle}". If you've been sitting on your expertise, this is the structured path to sharing it.`, hashtags: ['#coaching', '#professionaldevelopment', '#expertise'] },
+    };
+    const label = (i: number) => (count > 1 ? `(${i + 1}/${count}) ` : '');
+    const posts: Array<{ channel: Channel; platform: Platform | null; caption: string; hashtags: string[] }> = [];
+    for (const p of platforms) {
+      const c = perPlatform[p]!;
+      for (let i = 0; i < count; i++) posts.push({ channel: 'social', platform: p, caption: label(i) + c.caption, hashtags: c.hashtags });
+    }
     if (includeEmail) {
-      posts.push({ channel: 'email', caption: `Subject: It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions — I read every one.`, hashtags: [] });
+      for (let i = 0; i < count; i++) posts.push({ channel: 'email', platform: null, caption: `Subject: ${label(i)}It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions — I read every one.`, hashtags: [] });
     }
     return posts;
   },

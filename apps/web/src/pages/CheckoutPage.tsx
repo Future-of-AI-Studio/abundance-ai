@@ -94,17 +94,10 @@ function TrustRow() {
   );
 }
 
-function proceed(navigate: ReturnType<typeof useNavigate>, email: string, paymentIntentId: string) {
-  // Post-payment token for the /welcome gate.
-  sessionStorage.setItem('abundance_pay_token', JSON.stringify({ email, payment_intent_id: paymentIntentId }));
-  navigate('/welcome');
-}
-
 // Real Stripe payment fields + Pay button (inside <Elements>).
-function StripeForm({ email, paymentIntentId }: { email: string; paymentIntentId: string }) {
+function StripeForm({ paymentIntentId, onPaid }: { paymentIntentId: string; onPaid: (piId: string) => void }) {
   const stripe = useStripe();
   const elements = useElements();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +116,7 @@ function StripeForm({ email, paymentIntentId }: { email: string; paymentIntentId
       return;
     }
     if (paymentIntent?.status === 'succeeded') {
-      proceed(navigate, email, paymentIntent.id || paymentIntentId);
+      onPaid(paymentIntent.id || paymentIntentId);
     } else {
       setError('Payment is still processing. Hang tight a moment and try again.');
       setLoading(false);
@@ -145,8 +138,7 @@ function StripeForm({ email, paymentIntentId }: { email: string; paymentIntentId
 }
 
 // Mock card fields (no Stripe configured) — simulates a successful charge.
-function MockForm({ email }: { email: string }) {
-  const navigate = useNavigate();
+function MockForm({ onPaid }: { onPaid: (piId: string) => void }) {
   const [loading, setLoading] = useState(false);
   const fieldBase =
     'w-full rounded-md border border-line bg-surface-plain px-4 text-body text-ink placeholder:text-ink-secondary/60';
@@ -171,7 +163,7 @@ function MockForm({ email }: { email: string }) {
         size="lg"
         loading={loading}
         iconLeft={<LockIcon width={18} height={18} />}
-        onClick={() => { setLoading(true); setTimeout(() => proceed(navigate, email, `pi_mock_${Date.now()}`), 700); }}
+        onClick={() => { setLoading(true); setTimeout(() => onPaid(`pi_mock_${Date.now()}`), 700); }}
       >
         {loading ? 'Processing…' : 'Pay $25'}
       </Button>
@@ -197,6 +189,7 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 export function CheckoutPage() {
   const navigate = useNavigate();
   const backend = useApp((s) => s.backend);
+  const refreshProfile = useApp((s) => s.refreshProfile);
   const userEmail = useApp((s) => s.user?.email);
   // Prefill from the auth step (signed-in user, or the email entered at /auth).
   const [email, setEmail] = useState(() => userEmail ?? sessionStorage.getItem('abundance_pending_email') ?? '');
@@ -240,6 +233,21 @@ export function CheckoutPage() {
     if (EMAIL_RE.test(email)) void beginPayment(email);
   }, [email, beginPayment]);
 
+  // Payment succeeded: confirm server-side (marks the order paid → stamps
+  // profiles.paid_at), refresh the profile, then enter the app. The /app guard
+  // re-checks paid_at, so even if the refresh lags the user lands correctly.
+  const onPaid = useCallback(async (paymentIntentId: string) => {
+    try {
+      if (backend && !env.useMocks) {
+        await backend.api.verifyPayment({ payment_intent_id: paymentIntentId });
+      }
+      await refreshProfile();
+    } catch {
+      // Non-fatal — the guard will send them back to checkout if not yet paid.
+    }
+    navigate('/app', { replace: true });
+  }, [backend, refreshProfile, navigate]);
+
   const started = startedRef.current;
   const emailValid = EMAIL_RE.test(email);
 
@@ -280,12 +288,12 @@ export function CheckoutPage() {
                 <Button size="lg" disabled iconLeft={<LockIcon width={18} height={18} />}>Pay $25</Button>
               ) : useStripeFlow && clientSecret && stripePromise ? (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'flat' } }}>
-                  <StripeForm email={email} paymentIntentId={piId} />
+                  <StripeForm paymentIntentId={piId} onPaid={onPaid} />
                 </Elements>
               ) : initing || (useStripeFlow && started && !clientSecret) ? (
                 <PaymentSkeleton />
               ) : (
-                <MockForm email={email} />
+                <MockForm onPaid={onPaid} />
               )}
             </div>
 

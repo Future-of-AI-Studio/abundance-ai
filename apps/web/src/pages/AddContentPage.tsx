@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, isStepComplete } from '@abundance/shared';
+import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
 import type { ContentSource } from '@abundance/shared';
-import { Button, Card, Sheet, Skeleton } from '@/components/ui';
+import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/PageHeader';
-import { UploadIcon, MicIcon, TrashIcon, SparkleIcon } from '@/components/ui/icons';
+import { JourneyStepper } from '@/components/JourneyStepper';
+import { UploadIcon, MicIcon, TrashIcon, SparkleIcon, PlayIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
+import { blobToWav } from '@/lib/audio';
 
 // [06] Add Your Content — upload files or record speech to feed the AI. ≥1 source
 // to enable Build. 50 MB + type allowlist enforced inline.
@@ -24,12 +26,46 @@ function sourceMeta(s: ContentSource): { name: string; meta: string } {
   return { name: s.filename, meta: `Saved ${new Date(s.created_at).toLocaleDateString()}` };
 }
 
+// Lazy audio playback for a saved source: fetch a signed URL on first Play, then
+// hand off to the native <audio> controls (play/pause/scrub) for the rest.
+function SourcePlayer({ load }: { load: () => Promise<string> }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const onPlay = async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      setUrl(await load());
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (url) return <audio className="mt-2 h-9 w-full" controls autoPlay src={url} />;
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      disabled={loading}
+      className="mt-1 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline disabled:opacity-50"
+    >
+      {loading ? <Spinner size={12} /> : <PlayIcon width={14} height={14} />}
+      {loading ? 'Loading…' : failed ? 'Unavailable — tap to retry' : 'Play'}
+    </button>
+  );
+}
+
 export function AddContentPage() {
   const navigate = useNavigate();
   const { backend, journey, contentSources, refreshContent, refreshJourney } = useApp();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [savingLabel, setSavingLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmRebuild, setConfirmRebuild] = useState(false);
@@ -57,11 +93,12 @@ export function AddContentPage() {
         setError("That file's a bit big (max 50 MB). Try a smaller one — or just record instead.");
         continue;
       }
-      if (file.type && !ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
-        setError("That file type isn't supported. Try a document, audio, or video — or record instead.");
+      if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
+        setError('Only PDF or image files can be uploaded. To share spoken material, use “Just talk” to record instead.');
         continue;
       }
       setBusy(true);
+      setSavingLabel('Saving your file…');
       try {
         await backend.storage.upload(file, 'file');
         await refreshContent();
@@ -69,6 +106,7 @@ export function AddContentPage() {
         setError('Upload failed — give it another try.');
       } finally {
         setBusy(false);
+        setSavingLabel(null);
       }
     }
   };
@@ -78,6 +116,7 @@ export function AddContentPage() {
   const chunksRef = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const secondsRef = useRef(0); // authoritative duration for the save (state is stale in onstop)
   const timerRef = useRef<number | null>(null);
 
   const startRecording = async () => {
@@ -88,23 +127,35 @@ export function AddContentPage() {
       rec.ondataavailable = (e) => chunksRef.current.push(e.data);
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
-        if (backend) {
-          setBusy(true);
+        const webm = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (!backend) return;
+        setBusy(true);
+        setSavingLabel('Saving your recording…');
+        try {
+          // Normalize to WAV so Gemini can analyze it; fall back to the raw
+          // recording if this browser can't decode/convert it.
+          let file: File;
           try {
-            await backend.storage.upload(file, 'voice', seconds);
-            await refreshContent();
-          } finally {
-            setBusy(false);
+            const wav = await blobToWav(webm);
+            file = new File([wav], `recording-${Date.now()}.wav`, { type: 'audio/wav' });
+          } catch {
+            file = new File([webm], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
           }
+          await backend.storage.upload(file, 'voice', secondsRef.current);
+          await refreshContent();
+        } catch {
+          setError('Couldn\'t save that recording — give it another try.');
+        } finally {
+          setBusy(false);
+          setSavingLabel(null);
         }
       };
       rec.start();
       recorderRef.current = rec;
       setRecording(true);
       setSeconds(0);
-      timerRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+      secondsRef.current = 0;
+      timerRef.current = window.setInterval(() => setSeconds((s) => { secondsRef.current = s + 1; return s + 1; }), 1000);
     } catch {
       setError('We need mic access to record. Enable it in your browser, or upload a file instead.');
     }
@@ -157,6 +208,8 @@ export function AddContentPage() {
         title={editing ? 'Update your material, then rebuild.' : 'Give me the raw material — messy is fine.'}
       />
 
+      <JourneyStepper className="mb-5" />
+
       {editing && (
         <Card variant="plain" className="mb-4 border-l-2 border-l-primary bg-primary/5">
           <p className="text-body-sm text-ink">
@@ -173,8 +226,8 @@ export function AddContentPage() {
         >
           <UploadIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">Upload a file</span>
-          <span className="text-caption text-ink-secondary">Docs, audio or video · max 50 MB</span>
-          <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
+          <span className="text-caption text-ink-secondary">PDF or image · max 50 MB</span>
+          <input ref={fileInput} type="file" accept={ACCEPTED_UPLOAD_ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
         </button>
 
         {/* Record */}
@@ -200,6 +253,14 @@ export function AddContentPage() {
 
       {error && <p className="mt-4 text-caption text-error">{error}</p>}
 
+      {/* Saving indicator — shown while an upload/recording is being stored. */}
+      {savingLabel && (
+        <Card variant="plain" className="mt-4 flex items-center gap-3 border-primary/30 bg-primary/5">
+          <Spinner size={18} />
+          <span className="text-body-sm font-medium text-ink">{savingLabel}</span>
+        </Card>
+      )}
+
       {/* Saved sources (auto-saved draft) */}
       {loading ? (
         <Card className="mt-6 divide-y divide-line p-0">
@@ -219,16 +280,19 @@ export function AddContentPage() {
             {contentSources.map((s) => {
               const { name, meta } = sourceMeta(s);
               return (
-                <div key={s.id} className="flex items-center justify-between px-5 py-3">
-                  <div>
+                <div key={s.id} className="flex items-start justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0 flex-1">
                     <p className="text-body-sm font-medium text-ink">{name}</p>
                     <p className="text-caption text-ink-secondary">{meta}</p>
+                    {s.kind === 'voice' && backend && (
+                      <SourcePlayer load={() => backend.storage.signedUrl(s.storage_path)} />
+                    )}
                   </div>
                   <button
                     onClick={() => remove(s.id)}
                     disabled={removingId === s.id}
                     aria-label="Remove"
-                    className="text-ink-secondary hover:text-error disabled:opacity-40"
+                    className="mt-0.5 shrink-0 text-ink-secondary hover:text-error disabled:opacity-40"
                   >
                     <TrashIcon width={18} height={18} />
                   </button>

@@ -50,20 +50,15 @@ export const TABLES = {
 
 export const CONTENT_BUCKET = 'content';
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+// Document uploads are restricted to what Gemini can actually read inline: PDFs
+// and images. (Word docs aren't analyzable; speech goes through the recorder,
+// which stores WAV.) Keep this in sync with the server allowlist in
+// content-upload-url and the storage bucket's allowed_mime_types.
 export const ACCEPTED_UPLOAD_TYPES = [
-  // documents
   'application/pdf',
-  'text/plain',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  // audio
-  'audio/mpeg',
-  'audio/mp4',
-  'audio/wav',
-  'audio/webm',
-  'audio/ogg',
-  // video
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
 ];
+/** `accept` attribute for the file picker — mirrors ACCEPTED_UPLOAD_TYPES. */
+export const ACCEPTED_UPLOAD_ACCEPT = '.pdf,image/png,image/jpeg,image/webp';

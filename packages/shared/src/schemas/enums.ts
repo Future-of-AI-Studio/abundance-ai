@@ -39,6 +39,40 @@ export type FearPattern = z.infer<typeof fearPatternSchema>;
 export const channelSchema = z.enum(['social', 'email']);
 export type Channel = z.infer<typeof channelSchema>;
 
+// marketing_posts.platform — the social network a social post is tailored for.
+// null for email. Structured so posts can be filtered/shared per platform.
+export const platformSchema = z.enum(['facebook', 'instagram', 'x', 'linkedin']);
+export type Platform = z.infer<typeof platformSchema>;
+
+/** Display labels for each social platform. */
+export const PLATFORM_LABELS: Record<Platform, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  x: 'X',
+  linkedin: 'LinkedIn',
+};
+
+// marketing_posts.phase — which stage of the launch the content is for. Lets the
+// user build a library over weeks: announce first, then sustain, then evergreen.
+export const marketingPhaseSchema = z.enum(['launch', 'ongoing', 'evergreen']);
+export type MarketingPhase = z.infer<typeof marketingPhaseSchema>;
+
+export const PHASE_LABELS: Record<MarketingPhase, string> = {
+  launch: 'Just starting',
+  ongoing: 'Ongoing',
+  evergreen: 'After launch',
+};
+
+/**
+ * How many posts to write per selected target, scaled inversely to how many
+ * targets are chosen — fewer targets get more depth, so the total stays a
+ * useful batch (1→5, 2→3, 3→3, 4→2, 5→2).
+ */
+export function postsPerTarget(targetCount: number): number {
+  const table: Record<number, number> = { 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 };
+  return table[targetCount] ?? 2;
+}
+
 // sessions.platform — the video-conferencing tool the live group meets on.
 // 'other' accepts any https link (Webex, Whereby, a personal room, etc.).
 export const meetingPlatformSchema = z.enum(['google_meet', 'zoom', 'teams', 'other']);

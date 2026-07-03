@@ -15,6 +15,8 @@ import {
 } from './entities.js';
 import {
   channelSchema,
+  platformSchema,
+  marketingPhaseSchema,
   matchStatusSchema,
   wallKeySchema,
   contentKindSchema,
@@ -130,7 +132,11 @@ export type ProgramUpdateResponse = z.infer<typeof programUpdateResponseSchema>;
 
 // ── marketing-generate ────────────────────────────────────────────────────────
 export const marketingGenerateRequestSchema = z.object({
+  // Which social networks to write for. Omitted = all four; [] = email only.
+  platforms: z.array(platformSchema).optional(),
   include_email: z.boolean().optional().default(false),
+  // Which launch stage this batch is for (defaults to the first, "launch").
+  phase: marketingPhaseSchema.optional().default('launch'),
 });
 export type MarketingGenerateRequest = z.infer<typeof marketingGenerateRequestSchema>;
 
@@ -141,6 +147,7 @@ export type MarketingGenerateResponse = z.infer<typeof marketingGenerateResponse
 
 export const aiPostSchema = z.object({
   channel: channelSchema,
+  platform: platformSchema.nullable(),
   caption: z.string().min(1),
   hashtags: z.array(z.string()),
 });

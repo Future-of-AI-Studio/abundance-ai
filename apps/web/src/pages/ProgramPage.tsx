@@ -4,6 +4,7 @@ import type { Module } from '@abundance/shared';
 import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
 import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, SparkleIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
+import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
@@ -106,6 +107,8 @@ export function ProgramPage() {
   return (
     <div>
       <PageHeader eyebrow="Your program" title="Here's your program." />
+
+      <JourneyStepper className="mb-5" />
 
       {/* Title (inline editable) */}
       <Card variant="plain" className="mb-4">
