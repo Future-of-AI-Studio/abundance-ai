@@ -79,7 +79,7 @@ export const programSchema = z.object({
   user_id: uuid,
   title: z.string().min(1),
   status: programStatusSchema,
-  price_cents: z.number().int().nonnegative().default(14900), // what buyers pay on the landing page
+  price_cents: z.number().int().nonnegative().default(2000), // what buyers pay on the landing page ($20 default)
   created_at: timestamp,
 });
 export type Program = z.infer<typeof programSchema>;

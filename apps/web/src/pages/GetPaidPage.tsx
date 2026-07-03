@@ -7,6 +7,7 @@ import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { PageHeader } from '@/components/PageHeader';
 import { JourneyStepper } from '@/components/JourneyStepper';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
+import { PriceEditor } from '@/components/PriceEditor';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { env } from '@/lib/env';
@@ -16,8 +17,19 @@ import { env } from '@/lib/env';
 // and reveals the shareable landing-page link. AbundanceAI never touches the money.
 export function GetPaidPage() {
   const navigate = useNavigate();
-  const { backend, program, journey, payments, refreshPayments, refreshJourney } = useApp();
+  const { backend, program, journey, payments, refreshPayments, refreshJourney, refreshProgram } = useApp();
   const [connecting, setConnecting] = useState(false);
+
+  const savePrice = async (cents: number) => {
+    if (!backend || !program.program) return;
+    try {
+      await backend.api.programUpdate({ program_id: program.program.id, price_cents: cents });
+      await refreshProgram();
+      toast.success('Price updated.');
+    } catch {
+      toast.error("Couldn't save that price — try again.");
+    }
+  };
 
   // Gated too early.
   if (!program.program) {
@@ -88,9 +100,12 @@ export function GetPaidPage() {
           <Card variant="plain" className="mb-4 border-l-2 border-l-success bg-success-bg">
             <h2 className="text-h3 font-semibold text-ink">You're ready to sell.</h2>
             <p className="mt-1 text-body-sm text-ink-secondary">
-              Here's your program's landing page. Post the link anywhere — social, your bio, a DM. Anyone who opens it
-              can preview your program and enroll.
+              Set your price, then post the link anywhere — social, your bio, a DM. Anyone who opens it can preview your
+              program and enroll.
             </p>
+            <div className="mt-4 rounded-md border border-line bg-surface-plain px-4 py-3">
+              <PriceEditor priceCents={program.program.price_cents} onSave={savePrice} />
+            </div>
             <ShareProgramLink programId={programId} className="mt-4" />
           </Card>
 

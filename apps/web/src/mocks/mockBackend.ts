@@ -129,7 +129,7 @@ export function createMockBackend(): Backend {
       const programId = uid();
       const built = MOCK.buildProgram(req.path);
       state.program = {
-        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 14900, created_at: nowIso() },
+        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, created_at: nowIso() },
         modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, ...m })),
       };
       save();

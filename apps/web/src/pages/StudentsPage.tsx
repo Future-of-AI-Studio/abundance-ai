@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, EmptyState, Select, Skeleton, TextInput } from '@/components/ui';
-import { UsersIcon, MailIcon, CheckIcon, PencilIcon } from '@/components/ui/icons';
+import { UsersIcon, MailIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
+import { PriceEditor } from '@/components/PriceEditor';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { formatPrice } from '@/lib/money';
@@ -184,53 +185,6 @@ export function StudentsPage() {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function PriceEditor({ priceCents, onSave }: { priceCents: number; onSave: (cents: number) => Promise<void> }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(String(priceCents / 100));
-  const [saving, setSaving] = useState(false);
-
-  const commit = async () => {
-    const dollars = Number(value);
-    if (!Number.isFinite(dollars) || dollars < 0) { toast.error('Enter a valid price.'); return; }
-    setSaving(true);
-    await onSave(Math.round(dollars * 100));
-    setSaving(false);
-    setEditing(false);
-  };
-
-  if (!editing) {
-    return (
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-caption text-ink-secondary">Program price</p>
-          <p className="text-h3 font-semibold text-ink">{formatPrice(priceCents)}</p>
-        </div>
-        <button
-          onClick={() => { setValue(String(priceCents / 100)); setEditing(true); }}
-          className="inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline"
-        >
-          <PencilIcon width={14} height={14} /> Edit price
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1">
-        <TextInput
-          label="Program price (USD)"
-          type="number"
-          inputMode="decimal"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-      </div>
-      <Button size="md" fullWidth={false} loading={saving} iconLeft={<CheckIcon width={15} height={15} />} onClick={commit}>Save</Button>
     </div>
   );
 }
