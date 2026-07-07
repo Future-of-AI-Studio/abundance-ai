@@ -114,10 +114,10 @@ export function createMockBackend(): Backend {
   const findBuild = (id: string): ProgramWithModules | undefined =>
     state.programs.find((b) => b.program?.id === id);
 
-  function bootstrapUser(email: string, firstName: string, category: Category = 'other') {
+  function bootstrapUser(email: string, firstName: string, category: Category = 'other', categoryOther: string | null = null) {
     const id = uid();
     state.user = { id, email };
-    state.profile = { id, first_name: firstName, email, avatar_url: null, category, paid_at: nowIso(), created_at: nowIso() };
+    state.profile = { id, first_name: firstName, email, avatar_url: null, category, category_other: category === 'other' ? categoryOther : null, bio: null, paid_at: nowIso(), created_at: nowIso() };
     state.journey = { user_id: id, path: null, current_step: null, completed_steps: [], updated_at: nowIso() };
     state.session = { user_id: id, platform: 'google_meet', meet_link: null, updated_at: nowIso() };
     state.stripe = { user_id: id, connected: false, account_id: null, checklist: { bank: false, id: false, email: true }, updated_at: nowIso() };
@@ -146,15 +146,19 @@ export function createMockBackend(): Backend {
     },
     async programBuild(req) {
       await delay(2600); // narrated loader has time to breathe
+      // We retain up to 6 builds — at the cap the user must delete one first.
+      if (state.programs.length >= 6) {
+        throw new AbundanceApiError('build_limit', "You've reached the limit of 6 builds. Delete one to make room for a new one.");
+      }
       const programId = uid();
       const built = MOCK.buildProgram(req.path);
-      // Non-destructive: deactivate current builds, prepend the new active one, cap at 6.
+      // Non-destructive: deactivate current builds, prepend the new active one.
       state.programs.forEach((b) => { if (b.program) b.program.is_active = false; });
       const build: ProgramWithModules = {
         program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, is_active: true, created_at: nowIso() },
         modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, ...m })),
       };
-      state.programs = [build, ...state.programs].slice(0, 6);
+      state.programs = [build, ...state.programs];
       save();
       return { program: build.program!, modules: build.modules };
     },
@@ -166,6 +170,17 @@ export function createMockBackend(): Backend {
       target.program.is_active = true;
       save();
       return { program: target.program, modules: target.modules };
+    },
+    async programDelete(req) {
+      await delay(200);
+      const target = findBuild(req.program_id);
+      if (!target?.program) throw new AbundanceApiError('not_found', "We couldn't find that build.");
+      if (target.program.is_active) {
+        throw new AbundanceApiError('active_build', 'That build is active. Switch to another build first, then delete this one.');
+      }
+      state.programs = state.programs.filter((b) => b.program?.id !== req.program_id);
+      save();
+      return { ok: true as const };
     },
     async programUpdate(req) {
       await delay(250);
@@ -186,6 +201,7 @@ export function createMockBackend(): Backend {
           detail: m.detail ?? '',
           session_flow: m.session_flow,
           notes: m.notes ?? '',
+          participant_notes: m.participant_notes ?? '',
         }));
       }
       p.modules.sort((a, b) => a.idx - b.idx);
@@ -212,6 +228,7 @@ export function createMockBackend(): Backend {
           category: state.profile?.category ?? 'other',
           avatar_url: state.profile?.avatar_url ?? null,
           email: state.profile?.email ?? 'hello@abundance.ai',
+          bio: state.profile?.bio ?? null,
         },
       };
     },
@@ -387,9 +404,9 @@ export function createMockBackend(): Backend {
         listeners.add(cb);
         return () => listeners.delete(cb);
       },
-      async signUpWithPassword({ email, firstName, category }) {
+      async signUpWithPassword({ email, firstName, category, categoryOther }) {
         await delay(400);
-        bootstrapUser(email, firstName || 'Friend', category);
+        bootstrapUser(email, firstName || 'Friend', category, categoryOther ?? null);
         return { user: state.user, needsConfirmation: false };
       },
       async signInWithPassword({ email }) {
@@ -456,6 +473,17 @@ export function createMockBackend(): Backend {
         });
         save();
         return { id, filename: file.name };
+      },
+      async uploadAvatar(file) {
+        await delay(400);
+        // Encode as a data URL so it renders with no backend and survives a reload
+        // via the persisted store (blob URLs don't).
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error('Upload failed.'));
+          reader.readAsDataURL(file);
+        });
       },
       async remove(id) {
         await delay(150);

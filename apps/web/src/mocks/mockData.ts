@@ -15,6 +15,7 @@ export const MOCK = {
             'This opening module turns years of experience into one clear promise. You start by telling your origin story — the real one, not the polished version — and pull out the moments where you actually changed something for a client. Those moments hold the transformation you sell.\n\nFrom there you map the full client journey: where people are when they find you, what they struggle with in their own words, and where they end up after working with you. You write it in plain language until a stranger could repeat it back.\n\nYou finish with a one-sentence transformation statement and test it on one real person. That sentence becomes the spine of every module, sales page and post that follows.',
           session_flow: liveFlow('Share your origin story. Map the client journey start to finish. Draft the one-sentence transformation statement together. Name their first win before closing.'),
           notes: 'Keep two or three client stories ready — people freeze when asked for their transformation cold, and a concrete example thaws the room.',
+          participant_notes: 'Come with one real client story you can tell out loud.\nJot down where your clients start and where they end up.\nDon\'t polish it — the honest version is the useful one.\nBe ready to test your transformation statement on one real person this week.',
         },
         {
           title: 'Package the Method',
@@ -23,6 +24,7 @@ export const MOCK = {
             'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through, in the order you actually do it — including the small judgment calls you make without thinking. That hidden knowledge is the value.\n\nThen you group the steps into three to five named stages. A named method feels ownable and repeatable, and it gives clients a map of where they are and what comes next.\n\nThe module ends with a live walkthrough: one real case taken through the full method, narrated stage by stage. You leave with your method written down, named, and tested once end to end.',
           session_flow: 'Teach the framework. Run it live on a real case. Group and name the stages together. Assign a small, doable action for the week.',
           notes: 'Experts skip steps that feel obvious to them. Slow down and ask "what do you check before you do that?" until the invisible steps surface.',
+          participant_notes: 'Bring the transformation statement from module one.\nList every step you take a client through, even the obvious ones.\nHave a real case ready to run your method against.\nNote the judgment calls you make without thinking — those are the gold.',
         },
         {
           title: 'Show Up & Be Seen',
@@ -33,6 +35,7 @@ export const MOCK = {
             ? 'Record a short lesson on your method. Practice your message until it sounds like you. Rehearse the awkward questions. Publish one piece before moving on.'
             : 'Practice your message out loud with the group. Handle the awkward questions in pairs. Post once, together, before the session ends.',
           notes: 'The first public post is the biggest wall for most learners — make it small, make it live in the room, and celebrate it out loud.',
+          participant_notes: 'Draft a short, natural way to describe your work that isn\'t a pitch.\nPractice saying it out loud before the session — reps build confidence.\nThink through the awkward questions ("what do you charge?", "why you?").\nBe ready to publish one small piece by the end of the module.',
         },
         {
           title: 'Keep Them Moving',
@@ -41,6 +44,7 @@ export const MOCK = {
             'The final module is about momentum — your clients\' and your own. You learn a simple review rhythm: wins first, then walls. Starting with wins shows clients their own progress, which is what keeps them engaged and referring.\n\nThen you practice coaching through a sticking point without taking it over: ask, reflect, and let them find the next step. That keeps you from carrying every client on your back, which is how helpers burn out.\n\nYou close by writing your own sustainability plan — how many clients you take, when you review, what you say no to — so the program you built this month is one you still enjoy running next year.',
           session_flow: 'Review wins and walls. Teach the review rhythm and why wins come first. Coach one sticking point live, hands off. Set the next commitment out loud.',
           notes: 'Keep the live coaching demo genuinely hands-off — the room learns more from watching you hold back than from watching you solve it.',
+          participant_notes: 'Think of a recent win and a current wall before you arrive.\nBe ready to be coached on one real sticking point.\nDecide how many clients you can realistically hold at once.\nWrite down your next commitment and say it out loud.',
         },
       ],
     };

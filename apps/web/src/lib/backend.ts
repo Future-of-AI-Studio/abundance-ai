@@ -37,6 +37,8 @@ export interface BackendAuth {
     password: string;
     firstName: string;
     category: Category;
+    // The user's own words when category === 'other'; ignored otherwise.
+    categoryOther?: string | null;
   }): Promise<{ user: AuthUser | null; needsConfirmation: boolean }>;
   signInWithPassword(args: { email: string; password: string }): Promise<AuthUser>;
   signInWithMagicLink(email: string): Promise<void>;
@@ -67,12 +69,14 @@ export interface BackendReads {
   getContentSources(): Promise<ContentSource[]>;
   /** Buyers who enrolled through the creator's program landing page, newest first. */
   getEnrollments(): Promise<Enrollment[]>;
-  updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category'>>): Promise<Profile>;
+  updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category' | 'category_other' | 'bio' | 'avatar_url'>>): Promise<Profile>;
 }
 
 /** Content upload (signed URL issued by the Edge Function, bytes PUT by the client). */
 export interface BackendStorage {
   upload(file: File, kind: 'file' | 'voice', durationSec?: number): Promise<{ id: string; filename: string }>;
+  /** Upload a profile picture to the public avatars bucket; returns its public URL. */
+  uploadAvatar(file: File): Promise<string>;
   /** Remove a saved source — deletes the stored object and its content_sources row. */
   remove(id: string): Promise<void>;
   /** A short-lived, playable URL for a stored object (the bucket is private → signed). */

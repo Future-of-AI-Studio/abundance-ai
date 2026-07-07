@@ -35,6 +35,18 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 export const CATEGORY_OPTIONS: Array<{ value: Category; label: string }> =
   CATEGORY_VALUES.map((value) => ({ value, label: CATEGORY_LABELS[value] }));
 
+/**
+ * How a category should read to a human. For 'other' with a custom label the
+ * user's own words win; otherwise fall back to the enum label ('Other', etc.).
+ */
+export function categoryLabel(category: Category, categoryOther?: string | null): string {
+  if (category === 'other') {
+    const custom = categoryOther?.trim();
+    if (custom) return custom;
+  }
+  return CATEGORY_LABELS[category];
+}
+
 // circle_members.level — the member's stage. Structured for the future matcher.
 export const memberLevelSchema = z.enum(['starting', 'stalled', 'growing', 'scaling']);
 export type MemberLevel = z.infer<typeof memberLevelSchema>;

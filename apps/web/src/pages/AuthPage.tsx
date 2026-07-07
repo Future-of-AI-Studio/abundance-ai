@@ -37,6 +37,8 @@ const signupSchema = z
     category: z.enum(CATEGORY_VALUES, {
       errorMap: () => ({ message: 'Pick the option that fits you best.' }),
     }),
+    // Free text shown only when 'Other' is chosen; required in that case.
+    categoryOther: z.string(),
     password: z.string().min(8, 'At least 8 characters.'),
     confirmPassword: z.string().min(1, 'Re-enter your password.'),
     terms: z.literal(true, { errorMap: () => ({ message: 'Please accept the terms to continue.' }) }),
@@ -44,6 +46,10 @@ const signupSchema = z
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords don't match.",
     path: ['confirmPassword'],
+  })
+  .refine((d) => d.category !== 'other' || d.categoryOther.trim().length > 0, {
+    message: 'Tell us what best describes you.',
+    path: ['categoryOther'],
   });
 const signinSchema = z.object({
   email: z.string().email('Enter a valid email.'),
@@ -54,6 +60,7 @@ interface FormValues {
   firstName: string;
   email: string;
   category: Category | '';
+  categoryOther: string;
   password: string;
   confirmPassword: string;
   terms: boolean;
@@ -87,12 +94,13 @@ export function AuthPage() {
     return { values: {} as FormValues, errors: errors as never };
   };
 
-  const { register, handleSubmit, formState: { errors }, setError, clearErrors } = useForm<FormValues>({
+  const { register, handleSubmit, watch, formState: { errors }, setError, clearErrors } = useForm<FormValues>({
     resolver,
-    defaultValues: { firstName: '', email: '', category: '', password: '', confirmPassword: '', terms: false },
+    defaultValues: { firstName: '', email: '', category: '', categoryOther: '', password: '', confirmPassword: '', terms: false },
   });
 
   const isSignup = mode === 'signup';
+  const showCategoryOther = watch('category') === 'other';
 
   const switchMode = (next: Mode) => {
     if (next === mode) return;
@@ -124,6 +132,7 @@ export function AuthPage() {
       const { needsConfirmation } = await backend.auth.signUpWithPassword({
         email: data.email, password: data.password, firstName: data.firstName,
         category: data.category as Category,
+        categoryOther: data.category === 'other' ? data.categoryOther.trim() : null,
       });
       if (needsConfirmation) {
         toast.info('Confirm your email, then sign in to continue.');
@@ -268,6 +277,22 @@ export function AuthPage() {
                   ))}
                 </select>
                 {errors.category && <p className="mt-1.5 text-caption text-error">{errors.category.message}</p>}
+
+                {/* Custom category — revealed only when "Other" is chosen. */}
+                {showCategoryOther && (
+                  <div className="mt-3">
+                    <label htmlFor="auth-category-other" className="sr-only">Describe what best fits you</label>
+                    <input
+                      id="auth-category-other"
+                      type="text"
+                      placeholder="Tell us in your own words…"
+                      aria-invalid={!!errors.categoryOther}
+                      className={cn(fieldBase, errors.categoryOther ? 'border-error' : 'border-line')}
+                      {...register('categoryOther')}
+                    />
+                    {errors.categoryOther && <p className="mt-1.5 text-caption text-error">{errors.categoryOther.message}</p>}
+                  </div>
+                )}
               </div>
             )}
 

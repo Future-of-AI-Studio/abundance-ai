@@ -10,7 +10,10 @@ import type { Backend } from '@/lib/backend';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
-type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 'session_flow' | 'notes'>;
+type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 'session_flow' | 'notes' | 'participant_notes'>;
+
+// "Notes for Participants" is stored as one string, one bullet per line.
+const toBullets = (text: string) => text.split('\n').map((l) => l.trim()).filter(Boolean);
 
 // Short, human timestamp for labelling a build in the switcher.
 const buildWhen = (iso: string) =>
@@ -28,7 +31,7 @@ export function ProgramPage() {
 
   useEffect(() => {
     setTitle(program.program?.title ?? '');
-    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '' })));
+    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '', participant_notes: m.participant_notes ?? '' })));
   }, [program]);
 
   if (!ready) return <div className="space-y-4"><Skeleton variant="line" className="w-1/2" />{[0, 1, 2].map((i) => <Skeleton key={i} variant="module-card" />)}</div>;
@@ -61,7 +64,7 @@ export function ProgramPage() {
     try {
       await backend.api.programUpdate({
         program_id: programId,
-        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes })),
+        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })),
       });
       await refreshProgram();
     } catch { toast.error("Couldn't save that edit — tap to retry"); }
@@ -100,7 +103,7 @@ export function ProgramPage() {
   };
 
   const add = () => {
-    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', outcome: '', detail: '', session_flow: '', notes: '' };
+    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', outcome: '', detail: '', session_flow: '', notes: '', participant_notes: '' };
     void persist([...modules, newModule]);
   };
 
@@ -120,7 +123,7 @@ export function ProgramPage() {
         builds={builds}
         activeId={programId}
         backend={backend}
-        onActivated={async () => { await refreshProgram(); await refreshBuilds(); }}
+        onChanged={async () => { await refreshProgram(); await refreshBuilds(); }}
       />
 
       {/* Title (inline editable) */}
@@ -276,6 +279,16 @@ function ModuleCard({
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
+              <div>
+                <textarea
+                  value={m.participant_notes}
+                  onChange={(e) => onChange({ participant_notes: e.target.value })}
+                  placeholder={'Notes for participants — one bullet per line\ne.g. Bring a recent client story\nPractice your message out loud'}
+                  rows={4}
+                  className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
+                />
+                <p className="mt-1 text-caption text-ink-secondary">One note per line — each becomes a bullet your participants see.</p>
+              </div>
               <Button size="sm" fullWidth={false} iconLeft={<CheckIcon width={15} height={15} />} onClick={() => { setEditing(false); onCommit(); }}>
                 Save
               </Button>
@@ -300,6 +313,19 @@ function ModuleCard({
                       <p className="mt-1 whitespace-pre-line text-body-sm text-ink">{m.session_flow}</p>
                     </div>
                   )}
+                  {toBullets(m.participant_notes).length > 0 && (
+                    <div>
+                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Notes for participants</p>
+                      <ul className="mt-1 space-y-1">
+                        {toBullets(m.participant_notes).map((note, i) => (
+                          <li key={i} className="flex gap-2 text-body-sm text-ink">
+                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                            <span>{note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {m.notes && (
                     <div className="rounded-md bg-primary/5 px-3 py-2">
                       <p className="text-caption font-semibold uppercase tracking-wide text-primary">Notes for you</p>
@@ -308,7 +334,7 @@ function ModuleCard({
                   )}
                 </div>
               )}
-              {(m.detail || m.session_flow || m.notes) && (
+              {(m.detail || m.session_flow || m.notes || m.participant_notes) && (
                 <button
                   onClick={() => setExpanded((v) => !v)}
                   className="mt-2 text-caption font-medium text-primary hover:underline"
@@ -334,12 +360,12 @@ function ModuleCard({
 // compare results and pick which one is active. Builds arrive newest-first; they're
 // numbered by age (oldest = Build 1) so "Build N" is stable as new ones are added.
 function BuildSwitcher({
-  builds, activeId, backend, onActivated,
+  builds, activeId, backend, onChanged,
 }: {
   builds: Program[];
   activeId: string;
   backend: Backend | null;
-  onActivated: () => Promise<void>;
+  onChanged: () => Promise<void>;
 }) {
   const [previewId, setPreviewId] = useState<string | null>(null);
   // Nothing to switch between until there's more than one build.
@@ -382,28 +408,33 @@ function BuildSwitcher({
         buildNumber={preview ? numberOf(preview.id) : 0}
         backend={backend}
         onClose={() => setPreviewId(null)}
-        onActivated={onActivated}
+        onChanged={onChanged}
       />
     </Card>
   );
 }
 
-// Read-only preview of a non-active build, with a "Make this active" action.
+// Read-only preview of a non-active build, with "Make this active" and delete
+// actions. Only non-active builds open this sheet, so deleting never touches the
+// active build (there's always exactly one active build to fall back on).
 function BuildPreviewSheet({
-  build, buildNumber, backend, onClose, onActivated,
+  build, buildNumber, backend, onClose, onChanged,
 }: {
   build: Program | null;
   buildNumber: number;
   backend: Backend;
   onClose: () => void;
-  onActivated: () => Promise<void>;
+  onChanged: () => Promise<void>;
 }) {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activating, setActivating] = useState(false);
+  const [busy, setBusy] = useState<null | 'activate' | 'delete'>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!build) { setModules([]); return; }
+    // Reset the delete confirmation whenever a different build is opened.
+    setConfirmingDelete(false);
     let alive = true;
     setLoading(true);
     void backend.reads.getProgramModules(build.id).then((m) => {
@@ -414,16 +445,31 @@ function BuildPreviewSheet({
 
   const activate = async () => {
     if (!build) return;
-    setActivating(true);
+    setBusy('activate');
     try {
       await backend.api.programActivate({ program_id: build.id });
-      await onActivated();
+      await onChanged();
       toast.success('Switched to this build.');
       onClose();
     } catch {
       toast.error("Couldn't switch to that build — try again");
     } finally {
-      setActivating(false);
+      setBusy(null);
+    }
+  };
+
+  const remove = async () => {
+    if (!build) return;
+    setBusy('delete');
+    try {
+      await backend.api.programDelete({ program_id: build.id });
+      await onChanged();
+      toast.success('Build deleted.');
+      onClose();
+    } catch {
+      toast.error("Couldn't delete that build — try again");
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -433,9 +479,25 @@ function BuildPreviewSheet({
       onClose={onClose}
       title={build ? `Build ${buildNumber}` : ''}
       footer={build && (
-        <Button size="lg" loading={activating} disabled={build.status !== 'ready'} onClick={activate}>
-          Make this active
-        </Button>
+        confirmingDelete ? (
+          <>
+            <Button size="lg" variant="destructive" loading={busy === 'delete'} onClick={remove}>
+              Delete Build {buildNumber}
+            </Button>
+            <Button size="lg" variant="ghost" disabled={busy !== null} onClick={() => setConfirmingDelete(false)}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button size="lg" loading={busy === 'activate'} disabled={build.status !== 'ready'} onClick={activate}>
+              Make this active
+            </Button>
+            <Button size="lg" variant="destructive" disabled={busy !== null} onClick={() => setConfirmingDelete(true)}>
+              Delete this build
+            </Button>
+          </>
+        )
       )}
     >
       {build && (
@@ -444,6 +506,11 @@ function BuildPreviewSheet({
             <h3 className="text-h3 font-semibold text-ink">{build.title}</h3>
             <p className="text-caption text-ink-secondary">Created {buildWhen(build.created_at)}</p>
           </div>
+          {confirmingDelete && (
+            <div className="rounded-md border border-error/40 bg-error/5 px-3 py-2">
+              <p className="text-body-sm text-ink">Delete Build {buildNumber}? This can't be undone.</p>
+            </div>
+          )}
           {loading ? (
             <Skeleton variant="module-card" />
           ) : (

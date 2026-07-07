@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { Category, ProgramPublicResponse, EnrollResponse } from '@abundance/shared';
 import { Button, TextInput, Avatar, Sheet, Spinner } from '@/components/ui';
 import { Logo } from '@/layouts/PublicLayout';
-import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, VideoIcon, UsersIcon, SparkleIcon } from '@/components/ui/icons';
+import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { formatPrice } from '@/lib/money';
 import { env } from '@/lib/env';
@@ -87,16 +87,6 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
   const subtitle = modules[0]?.outcome
     ? modules[0].outcome
     : `A step-by-step program from ${creator.first_name}, built to move you forward.`;
-  const included = useMemo(
-    () => [
-      `${modules.length} focused modules, start to finish`,
-      'Guided, step-by-step lessons that are yours to keep',
-      'Real exercises you complete as you go',
-      `Direct access to ${creator.first_name}`,
-      'Lifetime access to the material',
-    ],
-    [modules.length, creator.first_name],
-  );
 
   return (
     <div className="min-h-[100dvh] bg-bg">
@@ -118,19 +108,10 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
             <h1 className="mt-3 font-serif text-display leading-tight text-ink-deep">{program.title}</h1>
             <p className="mt-4 max-w-md text-body text-ink-secondary">{subtitle}</p>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              {[`${modules.length} modules`, 'Small cohort', 'Beginner-friendly'].map((b) => (
-                <span key={b} className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-caption font-medium text-ink">
-                  {b}
-                </span>
-              ))}
-            </div>
-
             <div className="mt-6 flex items-center gap-3">
               <Avatar name={creator.first_name} src={creator.avatar_url} size={44} className="bg-accent/20 text-accent" />
               <p className="text-body-sm text-ink">
                 with <span className="font-semibold">{creator.first_name}</span>
-                <span className="text-ink-secondary"> · {CREATOR_ROLE[creator.category]}</span>
               </p>
             </div>
 
@@ -140,20 +121,30 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
                 <Button size="lg" iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>Enroll now</Button>
               </div>
             </div>
-            <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-ink-secondary">
-              <ShieldIcon width={15} height={15} className="text-success" /> 90-day money-back guarantee
-            </p>
           </div>
 
-          {/* Hero panel */}
-          <div className="relative hidden rounded-xl bg-gradient-to-br from-accent/15 via-primary/10 to-surface p-8 lg:block">
-            <div className="flex h-full min-h-[300px] flex-col justify-between">
-              <SparkleIcon width={28} height={28} className="text-accent" />
+          {/* Meet your guide — the creator's intro, front and center in the hero. */}
+          <div className="relative rounded-xl bg-gradient-to-br from-accent/15 via-primary/10 to-surface p-8">
+            <p className="font-mono text-data uppercase tracking-wide text-primary">Meet your guide</p>
+            <div className="mt-4 flex items-center gap-5">
+              <Avatar name={creator.first_name} src={creator.avatar_url} size={112} className="shadow-md ring-4 ring-surface-plain bg-accent/20 text-accent" />
               <div>
-                <p className="font-serif text-h1 leading-tight text-ink-deep">Everything you need, in {modules.length} clear steps.</p>
-                <p className="mt-3 text-body-sm text-ink-secondary">Go at your own pace. Start today.</p>
+                <h2 className="font-serif text-h2 leading-tight text-ink-deep">{creator.first_name}</h2>
+                <p className="text-body-sm text-ink-secondary">{CREATOR_ROLE[creator.category]}</p>
               </div>
             </div>
+            {creator.bio?.trim() ? (
+              <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed text-ink-secondary">{creator.bio}</p>
+            ) : (
+              <p className="mt-4 text-body-sm leading-relaxed text-ink-secondary">
+                {creator.first_name} built this program from years of real work with real people — {modules.length} focused
+                modules you can start today, unhurried and practical, made for people finally ready to begin.
+              </p>
+            )}
+            <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm text-ink-secondary">
+              <MailIcon width={16} height={16} /> Questions before you enroll?{' '}
+              <a href={`mailto:${creator.email}`} className="font-medium text-primary hover:underline">{creator.email}</a>
+            </p>
           </div>
         </div>
       </section>
@@ -163,69 +154,14 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
         <p className="font-mono text-data uppercase tracking-wide text-accent">A look inside the program</p>
         <h2 className="mt-2 font-serif text-h1 text-ink-deep">What you'll work through.</h2>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {modules.map((m, i) => (
-              <div key={m.idx} className="rounded-lg border border-line bg-surface-plain p-5">
-                <span className="font-mono text-data text-accent">{String(i + 1).padStart(2, '0')}</span>
-                <h3 className="mt-1 text-h3 font-semibold text-ink">{m.title}</h3>
-                {m.outcome && <p className="mt-1.5 text-body-sm text-ink-secondary">{m.outcome}</p>}
-              </div>
-            ))}
-          </div>
-
-          {/* What's included + price card */}
-          <div className="rounded-xl border border-line bg-surface-plain p-6 shadow-lg lg:sticky lg:top-6">
-            <p className="font-mono text-data uppercase tracking-wide text-accent">What's included</p>
-            <ul className="mt-4 space-y-3">
-              {included.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-body-sm text-ink">
-                  <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-success" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-6 flex items-baseline gap-2 border-t border-line pt-5">
-              <span className="font-serif text-h1 text-ink-deep">{price}</span>
-              <span className="text-caption text-ink-secondary">one-time</span>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {modules.map((m, i) => (
+            <div key={m.idx} className="rounded-lg border border-line bg-surface-plain p-5">
+              <span className="font-mono text-data text-accent">{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="mt-1 text-h3 font-semibold text-ink">{m.title}</h3>
+              {m.outcome && <p className="mt-1.5 text-body-sm text-ink-secondary">{m.outcome}</p>}
             </div>
-            <div className="mt-4">
-              <Button size="lg" onClick={onEnroll}>Reserve my spot</Button>
-            </div>
-            <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-ink-secondary">
-              <LockIcon width={14} height={14} /> Secure · 90-day guarantee
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Meet your guide */}
-      <section className="border-t border-line bg-surface">
-        <div className="mx-auto grid max-w-[1200px] gap-8 px-6 lg:px-8 py-14 lg:grid-cols-[1fr_1.5fr] lg:items-center">
-          <div className="flex justify-center">
-            <Avatar name={creator.first_name} src={creator.avatar_url} size={160} className="bg-accent/20 text-accent" />
-          </div>
-          <div>
-            <p className="font-mono text-data uppercase tracking-wide text-primary">Meet your guide</p>
-            <h2 className="mt-2 font-serif text-h1 text-ink-deep">{creator.first_name}</h2>
-            <p className="mt-3 max-w-lg text-body text-ink-secondary">
-              {creator.first_name} built this program from years of real work with real people. It distills
-              that experience into {modules.length} focused modules you can start today — unhurried, practical, and
-              made for people who are finally ready to begin.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-caption text-ink">
-                <UsersIcon width={15} height={15} /> Small, supportive cohort
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-caption text-ink">
-                <VideoIcon width={15} height={15} /> Guided sessions
-              </span>
-            </div>
-            <p className="mt-5 inline-flex items-center gap-1.5 text-body-sm text-ink-secondary">
-              <MailIcon width={16} height={16} /> Questions before you enroll?{' '}
-              <a href={`mailto:${creator.email}`} className="font-medium text-primary hover:underline">{creator.email}</a>
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 

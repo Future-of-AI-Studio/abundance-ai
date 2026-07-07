@@ -56,6 +56,19 @@ Deno.serve(async (req) => {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
     }
 
+    // We retain up to 6 builds. At the cap, the user must delete one to make room
+    // (checked before we deactivate the current build, so a rejected build leaves
+    // the active one untouched).
+    const { count: buildCount } = await db
+      .from('programs').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+    if ((buildCount ?? 0) >= 6) {
+      return errorResponse(
+        'build_limit',
+        "You've reached the limit of 6 builds. Delete one to make room for a new one.",
+        400,
+      );
+    }
+
     // Rebuilds are non-destructive: keep every prior build and add a NEW one.
     // Deactivate the current builds first (the partial unique index allows at most
     // one active build per user), then insert the fresh build as the active one.
@@ -133,6 +146,7 @@ Deno.serve(async (req) => {
     const moduleRows = ai.modules.map((m, i) => ({
       program_id: program.id, idx: i, title: m.title, outcome: m.outcome,
       detail: m.detail, session_flow: m.session_flow, notes: m.notes,
+      participant_notes: m.participant_notes,
     }));
     await db.from('modules').insert(moduleRows);
 
@@ -140,16 +154,6 @@ Deno.serve(async (req) => {
       .from('modules').select('*').eq('program_id', program.id).order('idx');
     const { data: finalProgram } = await db
       .from('programs').select('*').eq('id', program.id).single();
-
-    // Retain up to 6 builds per user — prune the oldest beyond that (modules
-    // cascade). The just-inserted build is newest, so the active build is never
-    // pruned (prune only ever runs here, right after that insert).
-    const { data: allBuilds } = await db
-      .from('programs').select('id').eq('user_id', user.id).order('created_at', { ascending: false });
-    const stale = (allBuilds ?? []).slice(6).map((p) => p.id);
-    if (stale.length) {
-      await db.from('programs').delete().in('id', stale);
-    }
 
     return json({ program: finalProgram, modules: modules ?? [] });
   } catch (err) {

@@ -12,6 +12,8 @@ import type {
   ProgramUpdateResponse,
   ProgramActivateRequest,
   ProgramActivateResponse,
+  ProgramDeleteRequest,
+  ProgramDeleteResponse,
   ProgramPublicRequest,
   ProgramPublicResponse,
   EnrollSessionRequest,
@@ -65,6 +67,8 @@ export interface AbundanceClient {
   programUpdate(req: ProgramUpdateRequest): Promise<ProgramUpdateResponse>;
   /** Make one of the user's retained builds the active "your program". */
   programActivate(req: ProgramActivateRequest): Promise<ProgramActivateResponse>;
+  /** Delete one of the user's retained builds (not the active one). */
+  programDelete(req: ProgramDeleteRequest): Promise<ProgramDeleteResponse>;
   /** Public landing-page view of a program (no auth) — for prospective buyers. */
   programPublic(req: ProgramPublicRequest): Promise<ProgramPublicResponse>;
   /** Create the PaymentIntent for an enrollment (no auth) — before payment. */
@@ -96,7 +100,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     // would reject before any request is sent (invisible in the Network tab).
     const hasBody = method !== 'GET' && method !== 'HEAD';
     const { data, error } = await supabase.functions.invoke(fn, {
-      method: method as 'POST' | 'GET' | 'PATCH' | 'PUT',
+      method: method as 'POST' | 'GET' | 'PATCH' | 'PUT' | 'DELETE',
       ...(hasBody ? { body: body ?? {} } : {}),
     });
 
@@ -131,6 +135,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     programBuild: (req) => call('program-build', req),
     programUpdate: (req) => call('program-update', req, 'PATCH'),
     programActivate: (req) => call('program-activate', req, 'PATCH'),
+    programDelete: (req) => call('program-delete', req, 'DELETE'),
     programPublic: (req) => call('program-public', req),
     enrollSession: (req) => call('enroll-session', req),
     enroll: (req) => call('enroll', req),

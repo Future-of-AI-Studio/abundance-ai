@@ -93,7 +93,7 @@ export function StudentsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Students" title="Your students." />
+      <PageHeader eyebrow="Participants" title="Your participants." />
 
       {/* Share + price */}
       <Card variant="plain" className="mb-4">

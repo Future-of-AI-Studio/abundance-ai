@@ -45,6 +45,12 @@ export const profileSchema = z.object({
   email: z.string().email(),
   avatar_url: z.string().url().nullable(),
   category: categorySchema,
+  // Free-text label when category === 'other'; null otherwise. Keeps the enum
+  // structured (A3) while preserving what the user actually typed.
+  category_other: z.string().nullable(),
+  // Creator's self-written intro, shown as "Meet your guide" on the public
+  // landing page. Null until they write one (landing falls back to a blurb).
+  bio: z.string().nullable(),
   paid_at: timestamp.nullable(), // null = has not paid; set when a Stripe order is paid
   created_at: timestamp,
 });
@@ -95,6 +101,8 @@ export const moduleSchema = z.object({
   detail: z.string().default(''),
   session_flow: z.string(),
   notes: z.string().default(''),
+  // Notes FOR the participant — one bullet per line (private "notes" is for the expert).
+  participant_notes: z.string().default(''),
 });
 export type Module = z.infer<typeof moduleSchema>;
 

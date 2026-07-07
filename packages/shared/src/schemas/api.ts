@@ -110,6 +110,7 @@ export const aiModuleSchema = z.object({
   detail: z.string().min(1),
   session_flow: z.string().min(1),
   notes: z.string().default(''),
+  participant_notes: z.string().default(''),
 });
 export const aiProgramSchema = z.object({
   title: z.string().min(1),
@@ -126,6 +127,7 @@ export const moduleUpsertSchema = z.object({
   detail: z.string().default(''),
   session_flow: z.string(),
   notes: z.string().default(''),
+  participant_notes: z.string().default(''),
 });
 export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
@@ -148,6 +150,15 @@ export type ProgramActivateRequest = z.infer<typeof programActivateRequestSchema
 
 export const programActivateResponseSchema = programBuildResponseSchema;
 export type ProgramActivateResponse = z.infer<typeof programActivateResponseSchema>;
+
+// ── program-delete ────────────────────────────────────────────────────────────
+// Delete one of the user's retained builds (modules cascade). The active build
+// can't be deleted — the user switches to another first.
+export const programDeleteRequestSchema = z.object({ program_id: z.string().uuid() });
+export type ProgramDeleteRequest = z.infer<typeof programDeleteRequestSchema>;
+
+export const programDeleteResponseSchema = z.object({ ok: z.literal(true) });
+export type ProgramDeleteResponse = z.infer<typeof programDeleteResponseSchema>;
 
 // ── marketing-generate ────────────────────────────────────────────────────────
 export const marketingGenerateRequestSchema = z.object({
@@ -369,6 +380,8 @@ export const programPublicResponseSchema = z.object({
     category: categorySchema,
     avatar_url: z.string().url().nullable(),
     email: z.string().email(),
+    // Creator's self-written intro for "Meet your guide"; null → generated blurb.
+    bio: z.string().nullable(),
   }),
 });
 export type ProgramPublicResponse = z.infer<typeof programPublicResponseSchema>;

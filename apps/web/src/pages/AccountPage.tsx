@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Category } from '@abundance/shared';
-import { Button, Card, TextInput, Select, Sheet, Eyebrow } from '@/components/ui';
+import { categoryLabel, type Category } from '@abundance/shared';
+import { Button, Card, TextInput, Textarea, Select, Sheet, Eyebrow, Avatar, Spinner } from '@/components/ui';
 import {
-  PencilIcon, CardIcon, LockIcon, HelpIcon, BookIcon, CircleTabIcon, ShieldIcon, ArrowRight,
+  PencilIcon, CardIcon, LockIcon, HelpIcon, BookIcon, CircleTabIcon, ShieldIcon, ArrowRight, UploadIcon,
 } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
@@ -15,10 +15,6 @@ const CATEGORIES: Array<{ value: Category; label: string }> = [
   { value: 'professional', label: 'Professional' },
   { value: 'other', label: 'Other' },
 ];
-const CATEGORY_LABEL: Record<Category, string> = {
-  healer: 'Healer', hobbyist: 'Hobbyist', professional: 'Professional', other: 'Other',
-};
-
 type Cadence = 'gentle' | 'balanced' | 'active';
 const CADENCE: Array<{ value: Cadence; label: string; note: string }> = [
   { value: 'gentle', label: 'Gentle', note: 'up to 1 check-in a week' },
@@ -37,7 +33,13 @@ export function AccountPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState(profile?.first_name ?? '');
   const [category, setCategory] = useState<Category>(profile?.category ?? 'other');
+  const [categoryOther, setCategoryOther] = useState(profile?.category_other ?? '');
+  const [bio, setBio] = useState(profile?.bio ?? '');
   const [savingName, setSavingName] = useState(false);
+
+  // Profile picture upload
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Local notification preferences (UI-only for now).
   const [mindsetNudges, setMindsetNudges] = useState(true);
@@ -53,10 +55,40 @@ export function AccountPage() {
   const saveProfile = async () => {
     if (!backend) return;
     if (!name.trim()) { toast.error("Your name can't be empty."); return; }
+    const trimmedOther = categoryOther.trim();
+    if (category === 'other' && !trimmedOther) { toast.error('Tell us what best describes you.'); return; }
     setSavingName(true);
-    try { await backend.reads.updateProfile({ first_name: name, category }); await refreshProfile(); toast.success('Saved'); setEditOpen(false); }
+    try {
+      await backend.reads.updateProfile({
+        first_name: name,
+        category,
+        category_other: category === 'other' ? trimmedOther : null,
+        bio: bio.trim() || null,
+      });
+      await refreshProfile();
+      toast.success('Saved');
+      setEditOpen(false);
+    }
     catch { toast.error("Couldn't save — try again."); }
     finally { setSavingName(false); }
+  };
+
+  // Upload a new profile picture as soon as one is chosen, then persist the URL.
+  const onAvatarPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file later
+    if (!file || !backend) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB.'); return; }
+    setUploadingAvatar(true);
+    try {
+      const url = await backend.storage.uploadAvatar(file);
+      await backend.reads.updateProfile({ avatar_url: url });
+      await refreshProfile();
+      toast.success('Photo updated');
+    }
+    catch { toast.error("Couldn't upload that photo — try again."); }
+    finally { setUploadingAvatar(false); }
   };
 
   const requestRefund = async () => {
@@ -89,22 +121,61 @@ export function AccountPage() {
       <p className="mt-1.5 text-body text-ink-secondary">Manage your profile, how we reach you, and your guarantee.</p>
 
       {/* Profile */}
-      <Card variant="plain" className="mt-6 flex items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-pill bg-accent font-mono text-h3 text-white">
-          {displayName.charAt(0).toUpperCase()}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-h3 font-semibold text-ink">{displayName}</p>
-          {profile?.email && <p className="truncate text-body-sm text-ink-secondary">{profile.email}</p>}
-          {profile?.category && (
-            <span className="mt-1.5 inline-flex rounded-pill border border-success-border bg-success-bg px-2.5 py-0.5 font-mono text-data text-success">
-              {CATEGORY_LABEL[profile.category]}
-            </span>
+      <Card variant="plain" className="mt-6">
+        <div className="flex items-center gap-4">
+          {/* Profile picture — click to upload/replace. */}
+          <div className="relative shrink-0">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onAvatarPicked}
+            />
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              aria-label="Upload profile picture"
+              className="group relative block h-14 w-14 rounded-pill focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Avatar name={displayName} src={profile?.avatar_url} size={56} className="h-14 w-14 bg-accent text-white" />
+              {uploadingAvatar ? (
+                <span className="absolute inset-0 flex items-center justify-center rounded-pill bg-ink/45 text-white">
+                  <Spinner size={18} />
+                </span>
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center rounded-pill bg-ink/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <UploadIcon width={18} height={18} />
+                </span>
+              )}
+            </button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-h3 font-semibold text-ink">{displayName}</p>
+            {profile?.email && <p className="truncate text-body-sm text-ink-secondary">{profile.email}</p>}
+            {profile?.category && (
+              <span className="mt-1.5 inline-flex rounded-pill border border-success-border bg-success-bg px-2.5 py-0.5 font-mono text-data text-success">
+                {categoryLabel(profile.category, profile.category_other)}
+              </span>
+            )}
+          </div>
+          <Button variant="secondary" size="md" fullWidth={false} iconLeft={<PencilIcon width={16} height={16} />} onClick={() => { setName(profile?.first_name ?? ''); setCategory(profile?.category ?? 'other'); setCategoryOther(profile?.category_other ?? ''); setBio(profile?.bio ?? ''); setEditOpen(true); }}>
+            Edit profile
+          </Button>
+        </div>
+
+        {/* Bio — shown publicly as "Meet your guide" on your program landing page. */}
+        <div className="mt-4 border-t border-line pt-4">
+          <Eyebrow className="mb-1.5">Your bio · shown on your landing page</Eyebrow>
+          {profile?.bio?.trim() ? (
+            <p className="whitespace-pre-line text-body-sm leading-relaxed text-ink-secondary">{profile.bio}</p>
+          ) : (
+            <p className="text-body-sm italic text-ink-secondary">
+              No bio yet — add one so buyers meet the real you in “Meet your guide.”
+            </p>
           )}
         </div>
-        <Button variant="secondary" size="md" fullWidth={false} iconLeft={<PencilIcon width={16} height={16} />} onClick={() => { setName(profile?.first_name ?? ''); setCategory(profile?.category ?? 'other'); setEditOpen(true); }}>
-          Edit profile
-        </Button>
       </Card>
 
       {/* Two-column dashboard */}
@@ -209,8 +280,42 @@ export function AccountPage() {
         </>
       }>
         <div className="space-y-3">
+          {/* Profile picture — reuses the same hidden input + handler as the card. */}
+          <div className="flex items-center gap-4">
+            <Avatar name={name || displayName} src={profile?.avatar_url} size={64} className="h-16 w-16 bg-accent text-white" />
+            <div>
+              <Button
+                variant="secondary"
+                size="md"
+                fullWidth={false}
+                loading={uploadingAvatar}
+                iconLeft={<UploadIcon width={16} height={16} />}
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                {profile?.avatar_url ? 'Change photo' : 'Upload photo'}
+              </Button>
+              <p className="mt-1.5 text-caption text-ink-secondary">JPG, PNG, or GIF · up to 5 MB</p>
+            </div>
+          </div>
           <TextInput label="First name" value={name} onChange={(e) => setName(e.target.value)} />
           <Select<Category> label="Category" value={category} options={CATEGORIES} onChange={setCategory} />
+          {category === 'other' && (
+            <TextInput
+              label="Describe what best fits you"
+              placeholder="Tell us in your own words…"
+              value={categoryOther}
+              onChange={(e) => setCategoryOther(e.target.value)}
+            />
+          )}
+          <Textarea
+            label="Bio"
+            rows={5}
+            maxLength={600}
+            placeholder="A few sentences about who you are and who you help — this is your “Meet your guide” intro on your program's landing page."
+            helperText={`Shown publicly on your landing page · ${bio.trim().length}/600`}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
         </div>
       </Sheet>
 

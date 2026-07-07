@@ -26,13 +26,20 @@ export function createLiveBackend(): Backend {
         const { data } = supabase.auth.onAuthStateChange((_e, session) => cb(toUser(session?.user)));
         return () => data.subscription.unsubscribe();
       },
-      async signUpWithPassword({ email, password, firstName, category }) {
+      async signUpWithPassword({ email, password, firstName, category, categoryOther }) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          // first_name + category are read by the handle_new_user trigger to seed
-          // the profile (profiles.category feeds automatic circle matching).
-          options: { data: { first_name: firstName, category } },
+          // first_name + category (+ category_other for the 'other' free text) are
+          // read by the handle_new_user trigger to seed the profile
+          // (profiles.category feeds automatic circle matching).
+          options: {
+            data: {
+              first_name: firstName,
+              category,
+              category_other: category === 'other' ? categoryOther ?? null : null,
+            },
+          },
         });
         if (error) throw error;
         return { user: toUser(data.user), needsConfirmation: !data.session };
@@ -195,6 +202,23 @@ export function createLiveBackend(): Backend {
           });
         if (error) throw new Error('Upload failed.');
         return { id: res.content_source_id, filename: file.name };
+      },
+      async uploadAvatar(file) {
+        const { data: userRes } = await supabase.auth.getUser();
+        const uid = userRes.user?.id;
+        if (!uid) throw new Error('You need to be signed in to upload a photo.');
+        // Stable per-user path (upsert) so a new picture replaces the old one and
+        // leaves no orphans. Content-type metadata drives how it's served, so the
+        // path needs no extension.
+        const path = `${uid}/avatar`;
+        const { error } = await supabase.storage.from('avatars').upload(path, file, {
+          upsert: true,
+          contentType: file.type || 'image/jpeg',
+        });
+        if (error) throw new Error('Upload failed.');
+        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+        // Cache-bust so the replaced image shows immediately (the path is reused).
+        return `${data.publicUrl}?v=${Date.now()}`;
       },
       async remove(id) {
         // Look up the stored object first, delete the bytes, then the row.

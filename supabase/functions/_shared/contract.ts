@@ -59,6 +59,7 @@ export const aiModuleSchema = z.object({
   detail: z.string().min(1),
   session_flow: z.string().min(1),
   notes: z.string().default(''),
+  participant_notes: z.string().default(''),
 });
 export const aiProgramSchema = z.object({
   title: z.string().min(1),
@@ -73,6 +74,7 @@ export const moduleUpsertSchema = z.object({
   detail: z.string().default(''),
   session_flow: z.string(),
   notes: z.string().default(''),
+  participant_notes: z.string().default(''),
 });
 export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
@@ -83,6 +85,7 @@ export const programUpdateRequestSchema = z.object({
 });
 
 export const programActivateRequestSchema = z.object({ program_id: z.string().uuid() });
+export const programDeleteRequestSchema = z.object({ program_id: z.string().uuid() });
 
 // ── program-public + enroll (buyer-facing, public) ────────────────────────────
 export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });

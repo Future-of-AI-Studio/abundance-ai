@@ -33,11 +33,11 @@ Deno.serve(async (req) => {
       for (const m of body.modules) {
         if (m.id) {
           await db.from('modules')
-            .update({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes })
+            .update({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })
             .eq('id', m.id).eq('program_id', body.program_id);
         } else {
           await db.from('modules')
-            .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes });
+            .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes });
         }
       }
     }

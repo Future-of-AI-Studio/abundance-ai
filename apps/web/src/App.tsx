@@ -23,6 +23,7 @@ import { MindsetPage } from '@/pages/MindsetPage';
 import { CirclePage } from '@/pages/CirclePage';
 import { AccountPage } from '@/pages/AccountPage';
 import { GalleryPage } from '@/pages/GalleryPage';
+import { HelpPage } from '@/pages/HelpPage';
 
 export default function App() {
   const init = useApp((s) => s.init);
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="students" element={<StudentsPage />} />
           <Route path="mindset" element={<MindsetPage />} />
           <Route path="circle" element={<CirclePage />} />
+          <Route path="help" element={<HelpPage />} />
           {/* Onboarding (linear, resumable stepper) */}
           <Route path="onboarding/path" element={<ChoosePathPage />} />
           <Route path="onboarding/content" element={<AddContentPage />} />

@@ -85,7 +85,7 @@ const MODULE_COUNT_OPTIONS = [null, 3, 4, 5, 6] as const;
 
 export function AddContentPage() {
   const navigate = useNavigate();
-  const { backend, journey, contentSources, program, refreshContent, refreshJourney } = useApp();
+  const { backend, journey, contentSources, program, builds, refreshContent, refreshJourney } = useApp();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -100,6 +100,9 @@ export function AddContentPage() {
   // Once a program has been built, this visit is an edit — re-running build
   // creates a new build (keeping prior ones) and makes it active.
   const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
+  // We retain up to 6 builds. At the cap, rebuilding is blocked until the user
+  // deletes a build from the Program page to make room.
+  const atBuildLimit = editing && builds.length >= 6;
 
   // On an edit, preselect the current program's module count so the choice reflects
   // what they already have. Applied once, so a manual change afterwards sticks.
@@ -478,15 +481,24 @@ export function AddContentPage() {
         </div>
       </div>
 
+      {atBuildLimit && (
+        <Card variant="plain" className="mt-6 border-l-2 border-l-error bg-error/5">
+          <p className="text-body-sm text-ink">
+            You've reached the limit of 6 builds. Delete one from your Program page to make room for a new one.
+          </p>
+        </Card>
+      )}
+
       <div className="mt-6">
         <Button
           size="lg"
           disabled={contentSources.length === 0}
           loading={busy || building}
-          iconLeft={editing ? <SparkleIcon width={18} height={18} /> : undefined}
-          onClick={editing ? () => setConfirmRebuild(true) : build}
+          variant={atBuildLimit ? 'secondary' : 'primary'}
+          iconLeft={editing && !atBuildLimit ? <SparkleIcon width={18} height={18} /> : undefined}
+          onClick={atBuildLimit ? () => navigate('/app/program') : editing ? () => setConfirmRebuild(true) : build}
         >
-          {editing ? 'Rebuild my program' : 'Build my program'}
+          {atBuildLimit ? 'Manage builds to free space' : editing ? 'Rebuild my program' : 'Build my program'}
         </Button>
       </div>
 

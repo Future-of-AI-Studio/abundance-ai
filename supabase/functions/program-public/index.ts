@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     const { data: creator } = await admin
       .from('profiles')
-      .select('first_name, category, avatar_url, email')
+      .select('first_name, category, avatar_url, email, bio')
       .eq('id', program.user_id)
       .maybeSingle();
 

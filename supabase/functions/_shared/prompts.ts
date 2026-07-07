@@ -29,12 +29,13 @@ export function programBuildPrompt(
     `Design a ${format} program from the raw, messy material the expert provides.`,
     'The material may include attached audio recordings and documents — listen to and read them as the PRIMARY source. Ground the program in what the expert actually says and shares — their stories, examples, terms and methods; do not invent a generic curriculum.',
     'Return STRICT JSON only, no prose, matching exactly:',
-    '{"title": string, "modules": [{"title": string, "outcome": string, "detail": string, "session_flow": string, "notes": string}]}',
+    '{"title": string, "modules": [{"title": string, "outcome": string, "detail": string, "session_flow": string, "notes": string, "participant_notes": string}]}',
     moduleRule,
     '"outcome" is one sentence on what the learner can DO after that module.',
     '"detail" is the heart of the module — 2 to 4 short paragraphs (150-250 words total, separated by blank lines) that fully teach what the module is: what it covers, the specific concepts, steps or framework taught (drawn from the expert\'s own material), why this module matters at this point in the journey, and one concrete exercise or practice the learner completes. Be specific and substantive — a paying client should read it and feel the depth. Never a one-line summary, never vague filler.',
     '"session_flow" is 3-5 short sentences walking through how that session/module actually runs from beginning to end: how it opens, what gets taught, what gets practiced, and how it closes.',
     '"notes" is helpful guidance for the expert delivering the module when there is something worth flagging: what to prepare, common sticking points learners hit and how to handle them, or pacing/delivery tips. 1-3 sentences; use "" only if nothing is genuinely needed.',
+    '"participant_notes" is a short list of notes written FOR the participant/student — what to prepare, bring, or keep in mind for this module, and how to get the most from it. Return 3-5 bullets as ONE string with each bullet on its own line (newline-separated), each bullet a short phrase or sentence. Do NOT add bullet characters, dashes or numbers — just the text of each note on its own line. Address the learner directly ("you"/"your").',
     VOICE,
   ].join('\n');
   const attachNote = mediaCount
@@ -53,6 +54,7 @@ export function programBuildPrompt(
           'This opening module turns your years of experience into one clear promise. You start by telling your own story — not the polished version, the real one — and we pull out the moments where you actually changed something for someone. Those moments hold the transformation you sell.\n\nFrom there you map the client journey: where people are when they find you, what they struggle with in their own words, and where they end up after working with you. You write this in plain language, no jargon, until a stranger could repeat it back.\n\nYou finish the module with a one-sentence transformation statement and test it on one real person. That sentence becomes the spine of every module, sales page and post that follows.',
         session_flow: 'Open with your origin story and why this work matters to you. Map where clients start and where they end up, in their words. Draft the one-sentence transformation statement together. Close by having each person say it out loud and commit to testing it on one real person this week.',
         notes: 'Have two or three of your own client stories ready — people freeze when asked for their transformation cold, and a concrete example thaws the room. Expect some to undersell themselves at first; reflect back the bigger change you heard.',
+        participant_notes: 'Come with one real client story you can tell out loud.\nJot down where your clients start and where they end up.\nDon\'t polish it — the honest version is the useful one.\nBe ready to test your transformation statement on one real person this week.',
       },
       {
         title: 'Build the Core Method',
@@ -61,6 +63,7 @@ export function programBuildPrompt(
           'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through, in the order you actually do it — including the small judgment calls you make without thinking. That hidden knowledge is the value.\n\nThen you group the steps into 3 to 5 named stages. Naming matters: a named method feels ownable and repeatable, and it gives clients a map of where they are and what comes next.\n\nThe module ends with a live walkthrough. You take one real example — your own or a volunteer\'s — through the full method, narrating each stage. The learner leaves with your method written down, named, and tested once end to end.',
         session_flow: 'Open by revisiting the transformation statement from module one. Brain-dump every step of your process, then group and name the stages. Run the full method live on one real example, narrating as you go. Close by assigning one small action: use stage one with a real person before next session.',
         notes: 'The hardest part is that experts skip steps that feel obvious to them. Slow them down and ask "what do you check before you do that?" until the invisible steps surface.',
+        participant_notes: 'Bring the transformation statement you wrote in module one.\nList every step you take a client through, even the obvious ones.\nHave a real example ready to run your method against.\nExpect to catch steps you do without thinking — write those down.',
       },
       {
         title: 'Make It Stick',
@@ -69,6 +72,7 @@ export function programBuildPrompt(
           'The last module is about momentum — theirs and yours. You learn a simple review rhythm: wins first, then walls. Starting with wins is not fluff; it shows clients their own progress, which is what keeps them paying and referring.\n\nThen you practice coaching through a sticking point without taking it over. You ask, you reflect, you let them find the next step — that keeps you from carrying every client on your back, which is how helpers burn out.\n\nYou close by building your own sustainability plan: how many clients you take, when you review, and what you say no to. You leave with a program you can run next month and still enjoy next year.',
         session_flow: 'Open with a wins-and-walls review of the whole journey. Teach the review rhythm and why wins come first. Coach one real sticking point live, hands off. Close with each person writing their sustainability plan and their next commitment, said out loud.',
         notes: 'Keep the live coaching demo short and genuinely hands-off — the temptation is to solve it yourself, and the room learns more from watching you hold back.',
+        participant_notes: 'Think about a recent win and a current wall before the session.\nBe ready to be coached on one real sticking point.\nDecide how many clients you can realistically hold at once.\nWrite down your next commitment and say it out loud.',
       },
   ];
   // Keep the local mock consistent with the requested count (repeat the samples
