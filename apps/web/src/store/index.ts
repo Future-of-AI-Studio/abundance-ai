@@ -7,6 +7,7 @@ import type { AuthUser, Backend, ProgramWithModules } from '@/lib/backend';
 import type {
   Profile,
   JourneyState,
+  Program,
   MarketingPost,
   Session,
   StripeConnect,
@@ -23,7 +24,8 @@ interface AppState {
   user: AuthUser | null;
   profile: Profile | null;
   journey: JourneyState | null;
-  program: ProgramWithModules;
+  program: ProgramWithModules; // the active build
+  builds: Program[]; // all retained builds (newest first) — powers the build switcher
   posts: MarketingPost[];
   session: Session | null;
   payments: StripeConnect | null;
@@ -35,6 +37,7 @@ interface AppState {
   hydrate: () => Promise<void>;
   refreshJourney: () => Promise<void>;
   refreshProgram: () => Promise<void>;
+  refreshBuilds: () => Promise<void>;
   refreshMarketing: () => Promise<void>;
   refreshSession: () => Promise<void>;
   refreshPayments: () => Promise<void>;
@@ -51,6 +54,7 @@ export const useApp = create<AppState>((set, get) => ({
   profile: null,
   journey: null,
   program: { program: null, modules: [] },
+  builds: [],
   posts: [],
   session: null,
   payments: null,
@@ -66,7 +70,7 @@ export const useApp = create<AppState>((set, get) => ({
     backend.auth.onChange((u) => {
       set({ user: u });
       if (u) void get().hydrate();
-      else set({ profile: null, journey: null, program: { program: null, modules: [] }, posts: [], session: null, payments: null, latestCheckin: null, contentSources: [], enrollments: [] });
+      else set({ profile: null, journey: null, program: { program: null, modules: [] }, builds: [], posts: [], session: null, payments: null, latestCheckin: null, contentSources: [], enrollments: [] });
     });
     if (user) await get().hydrate();
     set({ ready: true });
@@ -75,21 +79,23 @@ export const useApp = create<AppState>((set, get) => ({
   async hydrate() {
     const b = get().backend;
     if (!b) return;
-    const [profile, journey, program, posts, session, payments, latestCheckin, contentSources] = await Promise.all([
+    const [profile, journey, program, builds, posts, session, payments, latestCheckin, contentSources] = await Promise.all([
       b.reads.getProfile(),
       b.reads.getJourney(),
       b.reads.getProgram(),
+      b.reads.getPrograms(),
       b.reads.getMarketingPosts(),
       b.reads.getSession(),
       b.reads.getStripeConnect(),
       b.reads.getLatestCheckin(),
       b.reads.getContentSources(),
     ]);
-    set({ profile, journey, program, posts, session, payments, latestCheckin, contentSources });
+    set({ profile, journey, program, builds, posts, session, payments, latestCheckin, contentSources });
   },
 
   async refreshJourney() { const b = get().backend; if (b) set({ journey: await b.reads.getJourney() }); },
   async refreshProgram() { const b = get().backend; if (b) set({ program: await b.reads.getProgram() }); },
+  async refreshBuilds() { const b = get().backend; if (b) set({ builds: await b.reads.getPrograms() }); },
   async refreshMarketing() { const b = get().backend; if (b) set({ posts: await b.reads.getMarketingPosts() }); },
   async refreshSession() { const b = get().backend; if (b) set({ session: await b.reads.getSession() }); },
   async refreshPayments() { const b = get().backend; if (b) set({ payments: await b.reads.getStripeConnect() }); },

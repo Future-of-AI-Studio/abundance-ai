@@ -47,7 +47,12 @@ export interface BackendAuth {
 export interface BackendReads {
   getProfile(): Promise<Profile | null>;
   getJourney(): Promise<JourneyState | null>;
+  /** The active build — the one the app reads everywhere as "your program". */
   getProgram(): Promise<ProgramWithModules>;
+  /** All of the user's retained builds (metadata only), newest first — powers the build switcher. */
+  getPrograms(): Promise<Program[]>;
+  /** Modules for a specific build — used to preview a non-active build before activating it. */
+  getProgramModules(programId: string): Promise<Module[]>;
   getMarketingPosts(): Promise<MarketingPost[]>;
   getSession(): Promise<Session | null>;
   getStripeConnect(): Promise<StripeConnect | null>;

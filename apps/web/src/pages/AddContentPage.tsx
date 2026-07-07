@@ -17,8 +17,9 @@ import { blobToWav } from '@/lib/audio';
 // Inputs auto-save: every upload/recording is a content_sources row the instant
 // it lands, so a user can leave and return weeks later and pick up their draft.
 // "Build my program" is the finalize action. Once a program exists, this page
-// becomes an EDIT surface — re-building warns first, then replaces (the chosen
-// product behaviour), since program-build regenerates modules from scratch.
+// becomes an EDIT surface — re-building warns first, then creates a NEW build
+// (the prior builds are kept, up to 6) and makes it active. The user can switch
+// between builds from the Program page.
 
 // What the first-time visitor will get out of this step — shown as an
 // orientation checklist above the input options.
@@ -97,7 +98,7 @@ export function AddContentPage() {
   const [moduleCount, setModuleCount] = useState<number | null>(null);
 
   // Once a program has been built, this visit is an edit — re-running build
-  // regenerates (and replaces) the existing program.
+  // creates a new build (keeping prior ones) and makes it active.
   const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
 
   // On an edit, preselect the current program's module count so the choice reflects
@@ -321,7 +322,7 @@ export function AddContentPage() {
       {editing && (
         <Card variant="plain" className="mb-4 border-l-2 border-l-primary bg-primary/5">
           <p className="text-body-sm text-ink">
-            Rebuilding regenerates your program from these sources. Any edits you made to module titles or outcomes will be replaced.
+            Rebuilding creates a new build from these sources and makes it active. Your current build stays saved — switch back to it anytime from the Program page (up to 6 builds are kept).
           </p>
         </Card>
       )}
@@ -517,17 +518,17 @@ export function AddContentPage() {
       <Sheet
         open={confirmRebuild}
         onClose={() => setConfirmRebuild(false)}
-        title="Rebuild your program?"
+        title="Create a new build?"
         footer={
           <>
-            <Button size="lg" loading={building} onClick={rebuild}>Yes, rebuild it</Button>
+            <Button size="lg" loading={building} onClick={rebuild}>Yes, build a new one</Button>
             <Button size="lg" variant="ghost" onClick={() => setConfirmRebuild(false)}>Keep what I have</Button>
           </>
         }
       >
         <p className="text-body text-ink-secondary">
-          We'll regenerate your program from your current sources. Your existing modules — including any edits you made to
-          titles or outcomes — will be replaced.
+          We'll create a new build from your current sources and make it active. Your current build stays saved — you can
+          switch back to it anytime from the Program page. Up to 6 builds are kept.
         </p>
       </Sheet>
     </div>

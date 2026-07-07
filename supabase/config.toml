@@ -53,6 +53,9 @@ verify_jwt = true
 [functions.program-update]
 verify_jwt = true
 
+[functions.program-activate]
+verify_jwt = true
+
 [functions.program-public]
 verify_jwt = false
 

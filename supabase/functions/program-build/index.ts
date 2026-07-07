@@ -56,14 +56,15 @@ Deno.serve(async (req) => {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
     }
 
-    // Replace any prior program — rebuilds regenerate from scratch, so we drop the
-    // old program (modules cascade) rather than leaving orphans behind the latest.
-    await db.from('programs').delete().eq('user_id', user.id);
+    // Rebuilds are non-destructive: keep every prior build and add a NEW one.
+    // Deactivate the current builds first (the partial unique index allows at most
+    // one active build per user), then insert the fresh build as the active one.
+    await db.from('programs').update({ is_active: false }).eq('user_id', user.id);
 
-    // Create the program in a 'building' state.
+    // Create the program in a 'building' state, active by default.
     const { data: program, error: progErr } = await db
       .from('programs')
-      .insert({ user_id: user.id, title: 'Your program', status: 'building' })
+      .insert({ user_id: user.id, title: 'Your program', status: 'building', is_active: true })
       .select('*')
       .single();
     if (progErr || !program) {
@@ -139,6 +140,16 @@ Deno.serve(async (req) => {
       .from('modules').select('*').eq('program_id', program.id).order('idx');
     const { data: finalProgram } = await db
       .from('programs').select('*').eq('id', program.id).single();
+
+    // Retain up to 6 builds per user — prune the oldest beyond that (modules
+    // cascade). The just-inserted build is newest, so the active build is never
+    // pruned (prune only ever runs here, right after that insert).
+    const { data: allBuilds } = await db
+      .from('programs').select('id').eq('user_id', user.id).order('created_at', { ascending: false });
+    const stale = (allBuilds ?? []).slice(6).map((p) => p.id);
+    if (stale.length) {
+      await db.from('programs').delete().in('id', stale);
+    }
 
     return json({ program: finalProgram, modules: modules ?? [] });
   } catch (err) {

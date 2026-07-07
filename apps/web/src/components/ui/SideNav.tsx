@@ -35,16 +35,28 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
             end={end}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm transition-colors',
+                'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm transition-colors',
                 isActive
                   ? 'bg-primary/10 font-medium text-primary'
-                  : 'text-ink-secondary hover:bg-surface hover:text-ink',
+                  : 'text-ink-secondary hover:bg-surface hover:text-ink active:bg-surface/80',
               )
             }
           >
             {({ isActive }) => (
               <>
-                <Icon width={22} height={22} className={isActive ? 'text-primary' : ''} />
+                {/* Accent bar: solid for the selected tab, a faint hint on hover. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-opacity',
+                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
+                  )}
+                />
+                <Icon
+                  width={22}
+                  height={22}
+                  className={cn('transition-colors', isActive ? 'text-primary' : 'text-ink-secondary group-hover:text-ink')}
+                />
                 <span>{label}</span>
               </>
             )}

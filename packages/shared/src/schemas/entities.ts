@@ -80,6 +80,7 @@ export const programSchema = z.object({
   title: z.string().min(1),
   status: programStatusSchema,
   price_cents: z.number().int().nonnegative().default(2000), // what buyers pay on the landing page ($20 default)
+  is_active: z.boolean().default(true), // the build the app reads as "your program"; ≤1 active per user
   created_at: timestamp,
 });
 export type Program = z.infer<typeof programSchema>;

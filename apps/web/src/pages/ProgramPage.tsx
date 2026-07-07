@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Module } from '@abundance/shared';
-import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
+import type { Module, Program } from '@abundance/shared';
+import { Button, Badge, Card, EmptyState, Sheet, Skeleton } from '@/components/ui';
 import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, SparkleIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
+import type { Backend } from '@/lib/backend';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
 type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 'session_flow' | 'notes'>;
 
+// Short, human timestamp for labelling a build in the switcher.
+const buildWhen = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
 // [08] Your Program ✦ — the first WOW and the permanent Program tab. Inline-edit
 // title + modules, reorder, add/remove. Empty (no program) → warm CTA → Path.
 export function ProgramPage() {
   const navigate = useNavigate();
-  const { ready, backend, program, refreshProgram, refreshJourney } = useApp();
+  const { ready, backend, program, builds, refreshProgram, refreshBuilds, refreshJourney } = useApp();
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [modules, setModules] = useState<LocalModule[]>([]);
@@ -109,6 +114,14 @@ export function ProgramPage() {
       <PageHeader eyebrow="Your program" title="Here's your program." />
 
       <JourneyStepper className="mb-5" />
+
+      {/* Build switcher — every rebuild is kept; pick which one is active. */}
+      <BuildSwitcher
+        builds={builds}
+        activeId={programId}
+        backend={backend}
+        onActivated={async () => { await refreshProgram(); await refreshBuilds(); }}
+      />
 
       {/* Title (inline editable) */}
       <Card variant="plain" className="mb-4">
@@ -314,5 +327,138 @@ function ModuleCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+// Every rebuild creates a new build (max 6 kept). This lists them so the expert can
+// compare results and pick which one is active. Builds arrive newest-first; they're
+// numbered by age (oldest = Build 1) so "Build N" is stable as new ones are added.
+function BuildSwitcher({
+  builds, activeId, backend, onActivated,
+}: {
+  builds: Program[];
+  activeId: string;
+  backend: Backend | null;
+  onActivated: () => Promise<void>;
+}) {
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // Nothing to switch between until there's more than one build.
+  if (builds.length < 2 || !backend) return null;
+  const numberOf = (id: string) => builds.length - builds.findIndex((b) => b.id === id);
+  const preview = builds.find((b) => b.id === previewId) ?? null;
+
+  return (
+    <Card variant="plain" className="mb-4">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Your builds</p>
+        <p className="text-caption text-ink-secondary">{builds.length} of 6 kept</p>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {builds.map((b) => {
+          const isActive = b.id === activeId;
+          return (
+            <button
+              key={b.id}
+              onClick={() => { if (!isActive) setPreviewId(b.id); }}
+              aria-current={isActive}
+              className={cn(
+                'flex shrink-0 flex-col items-start gap-1 rounded-md border px-3 py-2 text-left transition-colors',
+                isActive ? 'border-primary bg-primary/5' : 'border-line hover:border-primary/40',
+              )}
+            >
+              <span className="flex items-center gap-2 text-body-sm font-semibold text-ink">
+                Build {numberOf(b.id)}
+                {isActive && <Badge variant="matched">Active</Badge>}
+                {b.status === 'failed' && <Badge variant="pending">Failed</Badge>}
+                {b.status === 'building' && <Badge variant="new">Building</Badge>}
+              </span>
+              <span className="text-caption text-ink-secondary">{buildWhen(b.created_at)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <BuildPreviewSheet
+        build={preview}
+        buildNumber={preview ? numberOf(preview.id) : 0}
+        backend={backend}
+        onClose={() => setPreviewId(null)}
+        onActivated={onActivated}
+      />
+    </Card>
+  );
+}
+
+// Read-only preview of a non-active build, with a "Make this active" action.
+function BuildPreviewSheet({
+  build, buildNumber, backend, onClose, onActivated,
+}: {
+  build: Program | null;
+  buildNumber: number;
+  backend: Backend;
+  onClose: () => void;
+  onActivated: () => Promise<void>;
+}) {
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activating, setActivating] = useState(false);
+
+  useEffect(() => {
+    if (!build) { setModules([]); return; }
+    let alive = true;
+    setLoading(true);
+    void backend.reads.getProgramModules(build.id).then((m) => {
+      if (alive) { setModules(m); setLoading(false); }
+    });
+    return () => { alive = false; };
+  }, [build, backend]);
+
+  const activate = async () => {
+    if (!build) return;
+    setActivating(true);
+    try {
+      await backend.api.programActivate({ program_id: build.id });
+      await onActivated();
+      toast.success('Switched to this build.');
+      onClose();
+    } catch {
+      toast.error("Couldn't switch to that build — try again");
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  return (
+    <Sheet
+      open={!!build}
+      onClose={onClose}
+      title={build ? `Build ${buildNumber}` : ''}
+      footer={build && (
+        <Button size="lg" loading={activating} disabled={build.status !== 'ready'} onClick={activate}>
+          Make this active
+        </Button>
+      )}
+    >
+      {build && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-h3 font-semibold text-ink">{build.title}</h3>
+            <p className="text-caption text-ink-secondary">Created {buildWhen(build.created_at)}</p>
+          </div>
+          {loading ? (
+            <Skeleton variant="module-card" />
+          ) : (
+            <div className="space-y-3">
+              {modules.map((m, i) => (
+                <div key={m.id} className="rounded-md border border-line px-3 py-2">
+                  <p className="text-body-sm font-semibold text-ink">{i + 1}. {m.title}</p>
+                  {m.outcome && <p className="mt-1 text-caption text-ink-secondary">{m.outcome}</p>}
+                  {m.detail && <p className="mt-2 whitespace-pre-line text-caption text-ink">{m.detail}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Sheet>
   );
 }

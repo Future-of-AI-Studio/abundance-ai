@@ -10,6 +10,8 @@ import type {
   ProgramBuildResponse,
   ProgramUpdateRequest,
   ProgramUpdateResponse,
+  ProgramActivateRequest,
+  ProgramActivateResponse,
   ProgramPublicRequest,
   ProgramPublicResponse,
   EnrollSessionRequest,
@@ -61,6 +63,8 @@ export interface AbundanceClient {
   contentUploadUrl(req: ContentUploadRequest): Promise<ContentUploadResponse>;
   programBuild(req: ProgramBuildRequest): Promise<ProgramBuildResponse>;
   programUpdate(req: ProgramUpdateRequest): Promise<ProgramUpdateResponse>;
+  /** Make one of the user's retained builds the active "your program". */
+  programActivate(req: ProgramActivateRequest): Promise<ProgramActivateResponse>;
   /** Public landing-page view of a program (no auth) — for prospective buyers. */
   programPublic(req: ProgramPublicRequest): Promise<ProgramPublicResponse>;
   /** Create the PaymentIntent for an enrollment (no auth) — before payment. */
@@ -126,6 +130,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     contentUploadUrl: (req) => call('content-upload-url', req),
     programBuild: (req) => call('program-build', req),
     programUpdate: (req) => call('program-update', req, 'PATCH'),
+    programActivate: (req) => call('program-activate', req, 'PATCH'),
     programPublic: (req) => call('program-public', req),
     enrollSession: (req) => call('enroll-session', req),
     enroll: (req) => call('enroll', req),

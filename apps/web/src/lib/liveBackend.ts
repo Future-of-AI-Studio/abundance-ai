@@ -65,12 +65,21 @@ export function createLiveBackend(): Backend {
         return data ?? null;
       },
       async getProgram() {
-        const { data: program } = await supabase
+        // The active build. Fall back to the newest row if somehow none is active
+        // (e.g. mid-migration), so the app never renders empty when a build exists.
+        const { data: active } = await supabase
           .from(TABLES.programs)
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
+          .eq('is_active', true)
           .maybeSingle();
+        const program =
+          active ??
+          (await supabase
+            .from(TABLES.programs)
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()).data;
         if (!program) return { program: null, modules: [] };
         const { data: modules } = await supabase
           .from(TABLES.modules)
@@ -78,6 +87,21 @@ export function createLiveBackend(): Backend {
           .eq('program_id', program.id)
           .order('idx');
         return { program, modules: modules ?? [] };
+      },
+      async getPrograms() {
+        const { data } = await supabase
+          .from(TABLES.programs)
+          .select('*')
+          .order('created_at', { ascending: false });
+        return data ?? [];
+      },
+      async getProgramModules(programId) {
+        const { data } = await supabase
+          .from(TABLES.modules)
+          .select('*')
+          .eq('program_id', programId)
+          .order('idx');
+        return data ?? [];
       },
       async getMarketingPosts() {
         const { data } = await supabase.from(TABLES.marketing_posts).select('*').order('created_at');

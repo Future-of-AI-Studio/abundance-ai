@@ -139,6 +139,16 @@ export type ProgramUpdateRequest = z.infer<typeof programUpdateRequestSchema>;
 export const programUpdateResponseSchema = programBuildResponseSchema;
 export type ProgramUpdateResponse = z.infer<typeof programUpdateResponseSchema>;
 
+// ── program-activate ──────────────────────────────────────────────────────────
+// Make one of the user's retained builds the active one (the build the app reads
+// as "your program"). Rebuilds keep every prior build; this is how the user picks
+// which to use. Returns the now-active build so the client refreshes from it.
+export const programActivateRequestSchema = z.object({ program_id: z.string().uuid() });
+export type ProgramActivateRequest = z.infer<typeof programActivateRequestSchema>;
+
+export const programActivateResponseSchema = programBuildResponseSchema;
+export type ProgramActivateResponse = z.infer<typeof programActivateResponseSchema>;
+
 // ── marketing-generate ────────────────────────────────────────────────────────
 export const marketingGenerateRequestSchema = z.object({
   // Which social networks to write for. Omitted = all four; [] = email only.

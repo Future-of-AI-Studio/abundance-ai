@@ -9,6 +9,7 @@ import type {
 import type {
   Profile,
   JourneyState,
+  Program,
   MarketingPost,
   Session,
   StripeConnect,
@@ -32,7 +33,9 @@ interface MockState {
   user: AuthUser | null;
   profile: Profile | null;
   journey: JourneyState | null;
-  program: ProgramWithModules;
+  // Every rebuild adds a build (newest first); at most one is_active. Mirrors the
+  // live model where programs are retained and the user picks the active one.
+  programs: ProgramWithModules[];
   posts: MarketingPost[];
   session: Session | null;
   stripe: StripeConnect | null;
@@ -62,7 +65,7 @@ function fresh(): MockState {
     user: null,
     profile: null,
     journey: null,
-    program: { program: null, modules: [] },
+    programs: [],
     posts: [],
     session: null,
     stripe: null,
@@ -78,8 +81,19 @@ function fresh(): MockState {
 function load(): MockState {
   try {
     const raw = localStorage.getItem(KEY);
-    // Merge over defaults so state saved before new fields existed stays valid.
-    if (raw) return { ...fresh(), ...(JSON.parse(raw) as Partial<MockState>) };
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<MockState> & { program?: ProgramWithModules };
+      // Merge over defaults so state saved before new fields existed stays valid.
+      const merged = { ...fresh(), ...parsed };
+      // Migrate legacy single-program state into the builds list (one active build).
+      if (!parsed.programs && parsed.program?.program) {
+        merged.programs = [
+          { program: { ...parsed.program.program, is_active: true }, modules: parsed.program.modules ?? [] },
+        ];
+      }
+      delete (merged as { program?: unknown }).program;
+      return merged;
+    }
   } catch {
     /* ignore */
   }
@@ -93,6 +107,12 @@ export function createMockBackend(): Backend {
   const emit = () => listeners.forEach((cb) => cb(state.user));
   // In-memory storage_path → object URL, for playing back uploads/recordings this session.
   const blobUrls = new Map<string, string>();
+
+  // The active build — what the app reads as "your program".
+  const activeBuild = (): ProgramWithModules =>
+    state.programs.find((b) => b.program?.is_active) ?? { program: null, modules: [] };
+  const findBuild = (id: string): ProgramWithModules | undefined =>
+    state.programs.find((b) => b.program?.id === id);
 
   function bootstrapUser(email: string, firstName: string, category: Category = 'other') {
     const id = uid();
@@ -128,18 +148,31 @@ export function createMockBackend(): Backend {
       await delay(2600); // narrated loader has time to breathe
       const programId = uid();
       const built = MOCK.buildProgram(req.path);
-      state.program = {
-        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, created_at: nowIso() },
+      // Non-destructive: deactivate current builds, prepend the new active one, cap at 6.
+      state.programs.forEach((b) => { if (b.program) b.program.is_active = false; });
+      const build: ProgramWithModules = {
+        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, is_active: true, created_at: nowIso() },
         modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, ...m })),
       };
+      state.programs = [build, ...state.programs].slice(0, 6);
       save();
-      return { program: state.program.program!, modules: state.program.modules };
+      return { program: build.program!, modules: build.modules };
+    },
+    async programActivate(req) {
+      await delay(200);
+      const target = findBuild(req.program_id);
+      if (!target?.program) throw new AbundanceApiError('not_found', "We couldn't find that build.");
+      state.programs.forEach((b) => { if (b.program) b.program.is_active = false; });
+      target.program.is_active = true;
+      save();
+      return { program: target.program, modules: target.modules };
     },
     async programUpdate(req) {
       await delay(250);
-      const p = state.program;
-      if (p.program && req.title !== undefined) p.program.title = req.title;
-      if (p.program && req.price_cents !== undefined) p.program.price_cents = req.price_cents;
+      const p = findBuild(req.program_id);
+      if (!p?.program) throw new AbundanceApiError('not_found', "We couldn't find that program.");
+      if (req.title !== undefined) p.program.title = req.title;
+      if (req.price_cents !== undefined) p.program.price_cents = req.price_cents;
       if (req.remove_module_ids?.length) {
         p.modules = p.modules.filter((m) => !req.remove_module_ids!.includes(m.id));
       }
@@ -157,18 +190,20 @@ export function createMockBackend(): Backend {
       }
       p.modules.sort((a, b) => a.idx - b.idx);
       save();
-      return { program: p.program!, modules: p.modules };
+      return { program: p.program, modules: p.modules };
     },
     async programPublic(req) {
       await delay(300);
-      const p = state.program.program;
-      // Demo runs in one browser, so the "buyer" reads the creator's local program.
-      if (!p || p.id !== req.program_id || p.status !== 'ready') {
+      // Demo runs in one browser, so the "buyer" reads the creator's local build.
+      // Each build has its own public URL, so look it up by id (not just the active one).
+      const build = findBuild(req.program_id);
+      const p = build?.program;
+      if (!p || p.status !== 'ready') {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       return {
         program: { id: p.id, title: p.title, price_cents: p.price_cents },
-        modules: state.program.modules
+        modules: build!.modules
           .slice()
           .sort((a, b) => a.idx - b.idx)
           .map((m) => ({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail })),
@@ -182,8 +217,8 @@ export function createMockBackend(): Backend {
     },
     async enrollSession(req) {
       await delay(300);
-      const p = state.program.program;
-      if (!p || p.id !== req.program_id) {
+      const p = findBuild(req.program_id)?.program;
+      if (!p) {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       // No real Stripe in the mock — the landing page shows the demo pay form.
@@ -191,8 +226,8 @@ export function createMockBackend(): Backend {
     },
     async enroll(req) {
       await delay(600);
-      const p = state.program.program;
-      if (!p || p.id !== req.program_id) {
+      const p = findBuild(req.program_id)?.program;
+      if (!p) {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       state.enrollments.unshift({
@@ -215,7 +250,7 @@ export function createMockBackend(): Backend {
       const phase = req.phase ?? 'launch';
       const targetCount = platforms.length + (req.include_email ? 1 : 0);
       const count = ({ 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 } as Record<number, number>)[targetCount] ?? 2;
-      const fresh = MOCK.posts(state.program.program?.title ?? 'Your program', platforms, req.include_email, count).map((p) => ({
+      const fresh = MOCK.posts(activeBuild().program?.title ?? 'Your program', platforms, req.include_email, count).map((p) => ({
         id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, phase, ...p,
       }));
       // Replace only this phase's posts (mirrors the live backend).
@@ -375,7 +410,11 @@ export function createMockBackend(): Backend {
     reads: {
       async getProfile() { return state.profile; },
       async getJourney() { return state.journey; },
-      async getProgram() { return state.program; },
+      async getProgram() { return activeBuild(); },
+      async getPrograms() {
+        return state.programs.map((b) => b.program).filter((p): p is Program => p !== null);
+      },
+      async getProgramModules(programId) { return findBuild(programId)?.modules ?? []; },
       async getMarketingPosts() { return state.posts; },
       async getSession() { return state.session; },
       async getStripeConnect() { return state.stripe; },
