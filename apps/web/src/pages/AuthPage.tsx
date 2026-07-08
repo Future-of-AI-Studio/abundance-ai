@@ -24,9 +24,9 @@ import { toast } from '@/store/toast';
 type Mode = 'signup' | 'signin';
 
 const BRAND_BULLETS = [
-  'AI turns your expertise into a real program',
-  'Courage coaching & a circle beside you',
-  'No tech skills, no business background needed',
+  'It\'s your time to share your knowledge with the world',
+  'Mindset Coaching & Peer Circles to Support You',
+  'No tech or writing skills required',
 ];
 
 const signupSchema = z
@@ -159,7 +159,7 @@ export function AuthPage() {
       <div className="flex w-full max-w-[980px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface-plain shadow-lg md:flex-row">
 
         {/* ============ BRAND / VALUE PANEL ============ */}
-        <div className="dots-cream flex flex-1 flex-col justify-between gap-16 bg-primary p-8 text-white md:p-11">
+        <div className="dots-cream flex flex-1 flex-col justify-between gap-16 bg-lp-teal p-8 text-white md:p-11">
           <div className="flex items-center gap-2.5">
             <span className="flex gap-1">
               <span className="h-2.5 w-2.5 rounded-pill bg-ink-cream" />
@@ -173,7 +173,7 @@ export function AuthPage() {
               You&rsquo;re one step away
             </p>
             <p className="mt-4 font-serif text-[clamp(26px,3.5vw,34px)] font-medium leading-[1.12] tracking-[-0.01em]">
-              It&rsquo;s your time to share your gifts with the world.
+              It&rsquo;s your time to share your knowledge with the world.
             </p>
 
             <div className="mb-8 mt-7 hidden flex-col gap-3.5 md:flex">
@@ -188,9 +188,9 @@ export function AuthPage() {
             <div className="mt-7 flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-4 py-3.5 md:mt-0">
               <ShieldIcon width={24} height={24} className="shrink-0 text-white" />
               <div>
-                <p className="text-body-sm font-semibold text-white">$25 to begin · 90-day guarantee</p>
+                <p className="text-body-sm font-semibold text-white">$25 to begin</p>
                 <p className="mt-0.5 text-caption text-white/80">
-                  Build something you&rsquo;re proud of, or pay nothing.
+                  Build something you&rsquo;re proud of.
                 </p>
               </div>
             </div>
