@@ -57,6 +57,7 @@ export function CirclePage() {
   const matched = data?.match_status === 'matched';
   const members = data?.members ?? [];
   const meetups = data?.meetups ?? [];
+  const nextMeetup = meetups[0];
   const talk = data?.next_talk;
   // Pending with people to show → treat them as recommendations, not a roster.
   const recommending = !matched && members.length > 0;
@@ -80,8 +81,22 @@ export function CirclePage() {
       )}
       {recommending && (
         <p className="mt-1.5 text-body text-ink-secondary">
-          A few people at a similar stage. No pressure to commit — say hi at a meetup below whenever you&rsquo;re ready.
+          A few people at a similar stage. No pressure to commit — say hi, or meet them at the next circle meetup.
         </p>
+      )}
+
+      {/* Featured next meetup — a relaxed, drop-in room. */}
+      {nextMeetup && (
+        <div className="mt-5 flex flex-col gap-3 rounded-lg border border-accent/25 bg-accent/5 p-5 sm:flex-row sm:items-center">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent">
+            <CalendarIcon width={22} height={22} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-body-sm font-semibold text-ink">Next circle meetup · {meetupTime(nextMeetup.starts_at)}</p>
+            <p className="text-caption text-ink-secondary">A relaxed 45 minutes with your group. Cameras optional.</p>
+          </div>
+          <Button variant="accent" fullWidth={false} className="shrink-0" onClick={() => openExternal(nextMeetup.join_url, 'the meetup')}>Drop in</Button>
+        </div>
       )}
 
       {/* Roster (matched circle or recommendations) — name + avatar only. */}
@@ -115,16 +130,17 @@ export function CirclePage() {
         </div>
       )}
 
-      {/* Drop-in meetups — open rooms, scheduled, no commitment. */}
-      {meetups.length > 0 && (
+      {/* More drop-in meetups — open rooms, scheduled, no commitment. The next
+          one is featured above, so list the rest here. */}
+      {meetups.length > 1 && (
         <section className="mt-7">
           <div className="flex items-center gap-2">
             <UsersIcon width={18} height={18} className="text-ink-secondary" />
-            <h2 className="text-body font-semibold text-ink">Drop-in meetups</h2>
+            <h2 className="text-body font-semibold text-ink">More drop-in meetups</h2>
           </div>
           <p className="mt-1 text-caption text-ink-secondary">Open rooms you can join anytime — no commitment.</p>
           <div className="mt-3 space-y-3">
-            {meetups.map((mu) => (
+            {meetups.slice(1).map((mu) => (
               <div key={mu.id} className="flex items-center gap-4 rounded-lg border border-line bg-surface-plain p-4 shadow-sm">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
                   <CalendarIcon width={22} height={22} />

@@ -70,52 +70,26 @@ const STEPS: Step[] = [
 
 export function HelpPage() {
   return (
-    <div className="-mx-5 -mt-4 min-h-[calc(100dvh-7rem)] bg-gradient-to-b from-surface to-bg px-5 pt-6">
-      <div className="mx-auto max-w-calm">
-        <Eyebrow className="mb-2 text-accent">Help</Eyebrow>
-        <h1 className="flex items-center gap-2.5 font-serif text-h1 font-medium text-ink">
-          <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-primary/10 text-primary">
-            <HelpIcon width={20} height={20} />
-          </span>
-          Getting started
-        </h1>
-        <p className="mt-2 text-body text-ink-secondary">
-          A quick guide to running a great session and building your program with AbundanceAI.
-        </p>
+    <div>
+      <Eyebrow className="mb-2 text-accent">Help</Eyebrow>
+      <h1 className="flex items-center gap-2.5 font-serif text-h1 font-medium text-ink">
+        <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-primary/10 text-primary">
+          <HelpIcon width={20} height={20} />
+        </span>
+        Getting started
+      </h1>
+      <p className="mt-2 max-w-2xl text-body text-ink-secondary">
+        A quick guide to running a great session and building your program with AbundanceAI.
+      </p>
 
-        {/* Session format */}
-        <Card className="mt-6">
-          <Eyebrow className="text-accent">Recommended session format</Eyebrow>
-          <h2 className="mt-2 font-serif text-h2 text-ink">Aim for 75–90 minutes</h2>
-          <p className="mt-2 text-body text-ink-secondary">
-            Most online group mentoring sessions work well at 75–90 minutes. We recommend:
-          </p>
-          <div className="mt-4 space-y-3">
-            {SESSION_SPLIT.map((s) => (
-              <div key={s.label}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-body-sm text-ink">{s.label}</span>
-                  <span className="shrink-0 font-mono text-data text-ink-secondary">{s.range}</span>
-                </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-pill bg-accent/15">
-                  <div className="h-full rounded-pill bg-accent" style={{ width: `${s.pct}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-body-sm text-ink-secondary">
-            This creates a balance between sharing your expertise and giving participants the
-            opportunity to engage, apply what they are learning, and receive support.
-          </p>
-        </Card>
-
-        {/* Creation process */}
-        <section className="mt-8">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        {/* Main — the creation process, packed into columns on wide screens */}
+        <section>
           <Eyebrow className="mb-1 text-accent">How the creation process works</Eyebrow>
           <h2 className="font-serif text-h2 text-ink">From your ideas to a program you can sell</h2>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 xl:columns-2 xl:gap-3">
             {STEPS.map(({ Icon, title, lead, bullets, outro }, i) => (
-              <Card key={title} variant="plain">
+              <Card key={title} variant="plain" className="mb-3 break-inside-avoid">
                 <div className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-primary/10 text-primary">
                     <Icon width={20} height={20} />
@@ -142,9 +116,37 @@ export function HelpPage() {
           </div>
         </section>
 
-        <p className="mt-8 pb-4 text-center text-body-sm text-ink-secondary">
-          Still stuck? Reach out any time — we&apos;re here to help.
-        </p>
+        {/* Rail — recommended session format + a gentle contact prompt */}
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <Card>
+            <Eyebrow className="text-accent">Recommended session format</Eyebrow>
+            <h2 className="mt-2 font-serif text-h2 text-ink">Aim for 75–90 minutes</h2>
+            <p className="mt-2 text-body-sm text-ink-secondary">
+              Most online group mentoring sessions work well at 75–90 minutes. We recommend:
+            </p>
+            <div className="mt-4 space-y-3">
+              {SESSION_SPLIT.map((s) => (
+                <div key={s.label}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-body-sm text-ink">{s.label}</span>
+                    <span className="shrink-0 font-mono text-data text-ink-secondary">{s.range}</span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-pill bg-accent/15">
+                    <div className="h-full rounded-pill bg-accent" style={{ width: `${s.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-body-sm text-ink-secondary">
+              This creates a balance between sharing your expertise and giving participants the
+              opportunity to engage, apply what they are learning, and receive support.
+            </p>
+          </Card>
+
+          <Card variant="plain" className="text-center">
+            <p className="text-body-sm text-ink-secondary">Still stuck? Reach out any time — we&apos;re here to help.</p>
+          </Card>
+        </aside>
       </div>
     </div>
   );

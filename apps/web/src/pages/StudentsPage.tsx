@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, EmptyState, Select, Skeleton, TextInput } from '@/components/ui';
-import { UsersIcon, MailIcon } from '@/components/ui/icons';
+import { Avatar, Button, Card, EmptyState, Select, Skeleton, TextInput } from '@/components/ui';
+import { UsersIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { PriceEditor } from '@/components/PriceEditor';
@@ -95,28 +95,29 @@ export function StudentsPage() {
     <div>
       <PageHeader eyebrow="Participants" title="Your participants." />
 
-      {/* Share + price */}
-      <Card variant="plain" className="mb-4">
-        <h2 className="text-h3 font-semibold text-ink">Share your program</h2>
-        <p className="mt-1 text-body-sm text-ink-secondary">
-          Post this link anywhere. Anyone who opens it can preview your program and enroll.
-        </p>
-        <ShareProgramLink programId={programId} className="mt-3" />
-        <div className="mt-4 border-t border-line pt-4">
-          <PriceEditor priceCents={priceCents} onSave={savePrice} />
-        </div>
-      </Card>
+      {/* Share + summary — two columns on desktop */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <Card variant="plain">
+          <h2 className="text-h3 font-semibold text-ink">Share your program</h2>
+          <p className="mt-1 text-body-sm text-ink-secondary">
+            Post this link anywhere. Anyone who opens it can preview your program and enroll.
+          </p>
+          <ShareProgramLink programId={programId} className="mt-3" />
+          <div className="mt-4 border-t border-line pt-4">
+            <PriceEditor priceCents={priceCents} onSave={savePrice} />
+          </div>
+        </Card>
 
-      {/* Summary */}
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        <Card variant="plain" className="text-center">
-          <p className="font-serif text-display text-ink-deep">{enrollments.length}</p>
-          <p className="text-caption text-ink-secondary">{enrollments.length === 1 ? 'Student' : 'Students'}</p>
-        </Card>
-        <Card variant="plain" className="text-center">
-          <p className="font-serif text-display text-primary">{formatPrice(total)}</p>
-          <p className="text-caption text-ink-secondary">Enrolled value</p>
-        </Card>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
+          <Card variant="plain">
+            <p className="font-serif text-display text-ink-deep">{enrollments.length}</p>
+            <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">{enrollments.length === 1 ? 'Student' : 'Students'}</p>
+          </Card>
+          <Card variant="surface">
+            <p className="font-serif text-display text-primary">{formatPrice(total)}</p>
+            <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Enrolled value</p>
+          </Card>
+        </div>
       </div>
 
       {/* Search + sort */}
@@ -152,22 +153,23 @@ export function StudentsPage() {
         </Card>
       ) : (
         <>
+          <div className="mb-1.5 flex items-center gap-4 px-5 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">
+            <span className="flex-1">Student</span>
+            <span className="w-24 text-right">Paid</span>
+            <span className="hidden w-28 text-right sm:block">Joined</span>
+          </div>
           <Card className="divide-y divide-line p-0">
             {pageItems.map((e) => (
-              <div key={e.id} className="flex items-start justify-between gap-3 px-5 py-4">
+              <div key={e.id} className="flex items-center gap-4 px-5 py-4">
+                <Avatar name={e.name} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-body-sm font-semibold text-ink">{e.name}</p>
-                  <div className="mt-1 flex flex-col gap-0.5 text-caption text-ink-secondary">
-                    <a href={`mailto:${e.email}`} className="inline-flex items-center gap-1.5 hover:text-primary">
-                      <MailIcon width={13} height={13} /> {e.email}
-                    </a>
-                    {e.contact && <span>{e.contact}</span>}
-                  </div>
+                  <p className="truncate text-body-sm font-semibold text-ink">{e.name}</p>
+                  <p className="truncate text-caption text-ink-secondary">
+                    <a href={`mailto:${e.email}`} className="hover:text-primary">{e.email}</a>{e.contact ? ` · ${e.contact}` : ''}
+                  </p>
                 </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-body-sm font-semibold text-ink">{formatPrice(e.amount_cents)}</p>
-                  <p className="text-caption text-ink-secondary">{new Date(e.created_at).toLocaleDateString()}</p>
-                </div>
+                <span className="w-24 shrink-0 text-right text-body-sm font-semibold text-ink">{formatPrice(e.amount_cents)}</span>
+                <span className="hidden w-28 shrink-0 text-right text-caption text-ink-secondary sm:block">{new Date(e.created_at).toLocaleDateString()}</span>
               </div>
             ))}
           </Card>

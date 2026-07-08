@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
 import type { ContentSource } from '@abundance/shared';
 import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
-import { PageHeader } from '@/components/PageHeader';
-import { JourneyStepper } from '@/components/JourneyStepper';
+import { StepLayout, RailLabel } from '@/components/StepLayout';
 import { UploadIcon, MicIcon, PencilIcon, TrashIcon, SparkleIcon, PlayIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -309,30 +308,11 @@ export function AddContentPage() {
     navigate('/app/onboarding/building', { state: { moduleCount } });
   };
 
-  return (
-    <div>
-      <PageHeader
-        back
-        backTo={editing ? '/app/program' : '/app/onboarding/path'}
-        eyebrow={editing ? 'Edit your content' : 'Step 2'}
-        title={editing ? 'Update your material, then rebuild.' : 'The Mentoring Experience Lab'}
-      >
-        {!editing && 'Turn what you know and love into an experience that helps others to thrive.'}
-      </PageHeader>
-
-      <JourneyStepper className="mb-5" />
-
-      {editing && (
-        <Card variant="plain" className="mb-4 border-l-2 border-l-primary bg-primary/5">
-          <p className="text-body-sm text-ink">
-            Rebuilding creates a new build from these sources and makes it active. Your current build stays saved — switch back to it anytime from the Program page (up to 6 builds are kept).
-          </p>
-        </Card>
-      )}
-
-      <Card variant="plain" className="mb-5">
+  const main = (
+    <>
+      <Card variant="plain">
         <p className="text-body-sm font-semibold text-ink">In this lab, together we&rsquo;ll:</p>
-        <ol className="mt-3 space-y-2.5">
+        <ol className="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
           {LAB_GUIDELINES.map((guideline, i) => (
             <li key={i} className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-primary/10 font-mono text-caption font-semibold text-primary">
@@ -344,6 +324,7 @@ export function AddContentPage() {
         </ol>
       </Card>
 
+      <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Add your material</p>
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Upload */}
         <button
@@ -543,6 +524,47 @@ export function AddContentPage() {
           switch back to it anytime from the Program page. Up to 6 builds are kept.
         </p>
       </Sheet>
-    </div>
+    </>
+  );
+
+  const aside = editing ? (
+    <>
+      <Card variant="plain" className="border border-primary/25 bg-primary/5 p-4">
+        <RailLabel>What rebuilding does</RailLabel>
+        <p className="text-body-sm text-ink-secondary">
+          Creates a new build from these sources and makes it active. Your current build stays saved — switch back anytime from the Program page.
+        </p>
+      </Card>
+      {builds.length > 0 && (
+        <Card variant="plain" className="p-4">
+          <RailLabel>Builds kept</RailLabel>
+          <p className="font-mono text-h2 font-semibold text-ink">
+            {builds.length}<span className="text-body-sm font-normal text-ink-secondary"> of 6</span>
+          </p>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-line">
+            <div className="h-full rounded-pill bg-accent" style={{ width: `${Math.min(100, (builds.length / 6) * 100)}%` }} />
+          </div>
+        </Card>
+      )}
+    </>
+  ) : (
+    <Card variant="plain" className="border border-accent/25 bg-accent/5 p-4">
+      <RailLabel>How this works</RailLabel>
+      <p className="text-body-sm text-ink-secondary">
+        Add anything you've got — a file, notes, or just talk it out. Messy is fine; I'll find the structure and shape it into modules.
+      </p>
+    </Card>
+  );
+
+  return (
+    <StepLayout
+      back
+      backTo={editing ? '/app/program' : '/app/onboarding/path'}
+      eyebrow={editing ? 'Edit your content' : 'Step 2'}
+      title={editing ? 'Update your material, then rebuild.' : 'The Mentoring Experience Lab'}
+      subtitle={!editing ? 'Turn what you know and love into an experience that helps others to thrive.' : undefined}
+      main={main}
+      aside={aside}
+    />
   );
 }

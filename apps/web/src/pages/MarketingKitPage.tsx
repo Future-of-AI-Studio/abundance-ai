@@ -4,8 +4,7 @@ import type { MarketingPost, Platform, MarketingPhase } from '@abundance/shared'
 import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget } from '@abundance/shared';
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
 import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
-import { PageHeader } from '@/components/PageHeader';
-import { JourneyStepper } from '@/components/JourneyStepper';
+import { StepLayout } from '@/components/StepLayout';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
@@ -108,94 +107,95 @@ export function MarketingKitPage() {
   const perTarget = postsPerTarget(selected.size);
 
   return (
-    <div>
-      <PageHeader eyebrow="Marketing kit" title="Pick your platforms — we'll write for each." />
+    <StepLayout back backTo="/app/program" eyebrow="Marketing kit" title="Pick your platforms — we'll write for each.">
+      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start xl:gap-8">
+        {/* Picker column */}
+        <div className="space-y-4">
+          {/* Target picker — the four networks plus Email, all as toggle chips. */}
+          <Card variant="plain" className="space-y-3">
+            <p className="text-body-sm font-medium text-ink">Where do you want to share?</p>
+            <div className="flex flex-wrap gap-2">
+              {ALL_TARGETS.map((t) => {
+                const Icon = TARGET_ICON[t];
+                const on = selected.has(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggle(t)}
+                    aria-pressed={on}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-body-sm transition-colors',
+                      on ? 'border-primary bg-primary/10 text-ink' : 'border-line text-ink-secondary hover:border-primary/40',
+                    )}
+                  >
+                    <Icon width={16} height={16} />
+                    {TARGET_LABEL[t]}
+                  </button>
+                );
+              })}
+            </div>
 
-      <JourneyStepper className="mb-5" />
+            <p className="pt-1 text-body-sm font-medium text-ink">Which stage are you at?</p>
+            <SegmentedControl<MarketingPhase> segments={PHASE_SEGMENTS} value={phase} onChange={setPhase} />
 
-      {/* Target picker — the four networks plus Email, all as toggle chips. */}
-      <Card variant="plain" className="space-y-3">
-        <p className="text-body-sm font-medium text-ink">Where do you want to share?</p>
-        <div className="flex flex-wrap gap-2">
-          {ALL_TARGETS.map((t) => {
-            const Icon = TARGET_ICON[t];
-            const on = selected.has(t);
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => toggle(t)}
-                aria-pressed={on}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-body-sm transition-colors',
-                  on ? 'border-primary bg-primary/10 text-ink' : 'border-line text-ink-secondary hover:border-primary/40',
-                )}
-              >
-                <Icon width={16} height={16} />
-                {TARGET_LABEL[t]}
-              </button>
-            );
-          })}
+            <p className="text-caption text-ink-secondary">
+              {selected.size === 0
+                ? 'Pick at least one place to share.'
+                : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks.`}
+            </p>
+
+            <Button size="lg" loading={generating} disabled={selected.size === 0} onClick={generate}>
+              {phasePosts.length ? `Regenerate ${PHASE_LABELS[phase].toLowerCase()} content` : `Generate ${PHASE_LABELS[phase].toLowerCase()} content`}
+            </Button>
+          </Card>
+
+          <button onClick={() => navigate('/app/circle')} className="text-body-sm font-medium text-primary">
+            Not on social? See other ways to share →
+          </button>
+
+          <Button
+            size="lg"
+            iconRight={<ArrowRight width={20} height={20} />}
+            onClick={async () => {
+              if (backend) {
+                const path = useApp.getState().journey?.path;
+                await backend.api.journeyUpdate({ complete_step: 'marketing', current_step: path === 'A' ? 'sessions' : 'payments' });
+                await refreshJourney();
+              }
+              navigate(useApp.getState().journey?.path === 'B' ? '/app/onboarding/payments' : '/app/onboarding/sessions');
+            }}
+          >
+            Continue
+          </Button>
         </div>
 
-        <p className="pt-1 text-body-sm font-medium text-ink">Which stage are you at?</p>
-        <SegmentedControl<MarketingPhase> segments={PHASE_SEGMENTS} value={phase} onChange={setPhase} />
-
-        <p className="text-caption text-ink-secondary">
-          {selected.size === 0
-            ? 'Pick at least one place to share.'
-            : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks.`}
-        </p>
-
-        <Button size="lg" loading={generating} disabled={selected.size === 0} onClick={generate}>
-          {phasePosts.length ? `Regenerate ${PHASE_LABELS[phase].toLowerCase()} content` : `Generate ${PHASE_LABELS[phase].toLowerCase()} content`}
-        </Button>
-      </Card>
-
-      {/* Results (for the selected stage) */}
-      <div className="mt-5 space-y-3">
-        {generating && phasePosts.length === 0 ? (
-          [0, 1, 2].map((i) => <Skeleton key={i} variant="post-card" />)
-        ) : failed ? (
-          <Card variant="plain" className="text-center">
-            <p className="text-body text-ink">Couldn't write your posts just now.</p>
-            <div className="mx-auto mt-4 max-w-xs"><Button onClick={generate}>Try again</Button></div>
-          </Card>
-        ) : phasePosts.length === 0 ? (
-          <p className="py-8 text-center text-body-sm text-ink-secondary">
-            No {PHASE_LABELS[phase].toLowerCase()} content yet — pick your platforms and generate.
-          </p>
-        ) : (
-          <>
-            <SegmentedControl<Platform | 'email'> segments={tabSegments} value={activeTab} onChange={setTab} />
-            <div className="mt-3 space-y-3">
-              {visible.map((p) => <PostCard key={p.id} post={p} />)}
-            </div>
-          </>
-        )}
+        {/* Preview column — posts for the selected stage */}
+        <div className="min-w-0 space-y-3">
+          {generating && phasePosts.length === 0 ? (
+            [0, 1, 2].map((i) => <Skeleton key={i} variant="post-card" />)
+          ) : failed ? (
+            <Card variant="plain" className="text-center">
+              <p className="text-body text-ink">Couldn't write your posts just now.</p>
+              <div className="mx-auto mt-4 max-w-xs"><Button onClick={generate}>Try again</Button></div>
+            </Card>
+          ) : phasePosts.length === 0 ? (
+            <Card variant="plain" className="py-12 text-center">
+              <p className="text-body-sm text-ink-secondary">
+                No {PHASE_LABELS[phase].toLowerCase()} content yet — pick your platforms and generate.
+              </p>
+            </Card>
+          ) : (
+            <>
+              <SegmentedControl<Platform | 'email'> segments={tabSegments} value={activeTab} onChange={setTab} />
+              <div className="mt-3 space-y-3">
+                {visible.map((p) => <PostCard key={p.id} post={p} />)}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-
-      <button onClick={() => navigate('/app/circle')} className="mt-4 text-body-sm font-medium text-primary">
-        Not on social? See other ways to share →
-      </button>
-
-      <div className="mt-6">
-        <Button
-          size="lg"
-          iconRight={<ArrowRight width={20} height={20} />}
-          onClick={async () => {
-            if (backend) {
-              const path = useApp.getState().journey?.path;
-              await backend.api.journeyUpdate({ complete_step: 'marketing', current_step: path === 'A' ? 'sessions' : 'payments' });
-              await refreshJourney();
-            }
-            navigate(useApp.getState().journey?.path === 'B' ? '/app/onboarding/payments' : '/app/onboarding/sessions');
-          }}
-        >
-          Continue
-        </Button>
-      </div>
-    </div>
+    </StepLayout>
   );
 }
 

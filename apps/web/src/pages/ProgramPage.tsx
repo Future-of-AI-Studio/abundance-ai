@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Module, Program } from '@abundance/shared';
-import { Button, Badge, Card, EmptyState, Sheet, Skeleton } from '@/components/ui';
-import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, SparkleIcon } from '@/components/ui/icons';
-import { PageHeader } from '@/components/PageHeader';
+import { Button, Badge, Card, Eyebrow, EmptyState, Sheet, Skeleton } from '@/components/ui';
+import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, ArrowLeft, SparkleIcon, ChevronDown, EyeIcon, CloseIcon } from '@/components/ui/icons';
 import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import type { Backend } from '@/lib/backend';
@@ -15,12 +14,20 @@ type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 
 // "Notes for Participants" is stored as one string, one bullet per line.
 const toBullets = (text: string) => text.split('\n').map((l) => l.trim()).filter(Boolean);
 
+// Rough word count for a chunk of prose (empty string → 0).
+const words = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+
+// Reading-time estimate (minutes) for a module's written material, ~200 wpm.
+const readMinutes = (m: { detail: string; session_flow: string; outcome: string }) =>
+  Math.max(1, Math.round((words(m.detail) + words(m.session_flow) + words(m.outcome)) / 200));
+
 // Short, human timestamp for labelling a build in the switcher.
 const buildWhen = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-// [08] Your Program ✦ — the first WOW and the permanent Program tab. Inline-edit
-// title + modules, reorder, add/remove. Empty (no program) → warm CTA → Path.
+// [08] Your Program ✦ — the first WOW and the permanent Program tab. A focused
+// workspace: modules read/edit inline in the main column while builds and stats
+// stay in reach in a right rail. Empty (no program) → warm CTA → Path.
 export function ProgramPage() {
   const navigate = useNavigate();
   const { ready, backend, program, builds, refreshProgram, refreshBuilds, refreshJourney } = useApp();
@@ -28,6 +35,8 @@ export function ProgramPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [modules, setModules] = useState<LocalModule[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [continuing, setContinuing] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
     setTitle(program.program?.title ?? '');
@@ -112,86 +121,147 @@ export function ProgramPage() {
     setModules(next);
   };
 
+  const goMarketing = async () => {
+    setContinuing(true);
+    try {
+      if (backend) { await backend.api.journeyUpdate({ current_step: 'marketing' }); await refreshJourney(); }
+      navigate('/app/onboarding/marketing');
+    } finally { setContinuing(false); }
+  };
+
+  // Honest, derived at-a-glance figures — the data model has no lesson/level/
+  // duration fields, so we surface what the program actually contains.
+  const totalRead = modules.reduce((n, m) => n + readMinutes(m), 0);
+  const noteCount = modules.reduce((n, m) => n + toBullets(m.participant_notes).length, 0);
+
   return (
+    // The Program route runs full-width in the shell (see AppShell `wide`), so the
+    // workspace fills the viewport rather than a centered reading column.
     <div>
-      <PageHeader eyebrow="Your program" title="Here's your program." />
+      {/* Header — Back + eyebrow + title, consistent with the other steps. The
+          forward CTA lives at the bottom of the content, like every step. */}
+      <button onClick={() => navigate('/app/onboarding/content')} className="mb-3 inline-flex items-center gap-1 text-body-sm text-ink-secondary hover:text-ink">
+        <ArrowLeft width={18} height={18} /> Back
+      </button>
+      <div className="mb-5">
+        <Eyebrow className="mb-2">Your program</Eyebrow>
+        <h1 className="text-h1 font-bold text-ink">Here's your program.</h1>
+      </div>
 
-      <JourneyStepper className="mb-5" />
-
-      {/* Build switcher — every rebuild is kept; pick which one is active. */}
-      <BuildSwitcher
-        builds={builds}
-        activeId={programId}
-        backend={backend}
-        onChanged={async () => { await refreshProgram(); await refreshBuilds(); }}
-      />
-
-      {/* Title (inline editable) */}
-      <Card variant="plain" className="mb-4">
-        {editingTitle ? (
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
-            className="w-full rounded-md border border-primary bg-surface-plain px-3 py-2 text-h2 font-semibold text-ink"
-          />
-        ) : (
-          <button onClick={() => setEditingTitle(true)} className="w-full text-left text-h2 font-semibold text-ink hover:text-primary">
-            {title || 'Untitled program'}
-          </button>
-        )}
+      <Card variant="plain" className="mb-6 px-4 py-3">
+        <JourneyStepper />
       </Card>
 
-      {/* Modules */}
-      <div className="space-y-3">
-        {modules.map((m, i) => (
-          <ModuleCard
-            key={m.id}
-            index={i}
-            module={m}
-            isFirst={i === 0}
-            isLast={i === modules.length - 1}
-            isDragging={dragIndex === i}
-            onMove={(dir) => move(i, dir)}
-            onRemove={() => remove(m.id)}
-            onChange={(patch) => editModule(m.id, patch)}
-            onCommit={() => persist(modules)}
-            onDragStart={() => onDragStart(i)}
-            onDragOverItem={() => onDragOverItem(i)}
-            onDragEnd={onDragEnd}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start xl:gap-8">
+        {/* Main column — program title, meta, modules */}
+        <div className="min-w-0">
+          <div className="mb-4">
+            <Eyebrow className="mb-2">Program</Eyebrow>
+            {editingTitle ? (
+              <input
+                autoFocus
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
+                className="w-full rounded-md border border-primary bg-surface-plain px-3 py-2 text-h1 font-bold text-ink"
+              />
+            ) : (
+              <button onClick={() => setEditingTitle(true)} className="block text-left text-h1 font-bold leading-tight text-ink hover:text-primary">
+                {title || 'Untitled program'}
+              </button>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <MetaPill>{modules.length} module{modules.length === 1 ? '' : 's'}</MetaPill>
+              <MetaPill>~{totalRead} min read</MetaPill>
+              {noteCount > 0 && <MetaPill>{noteCount} participant note{noteCount === 1 ? '' : 's'}</MetaPill>}
+            </div>
+          </div>
+
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Modules</p>
+            <button onClick={add} className="inline-flex items-center gap-1.5 rounded-pill border border-dashed border-line-strong px-3 py-1.5 text-body-sm font-medium text-primary hover:bg-primary/5">
+              <PlusIcon width={16} height={16} /> Add module
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {modules.map((m, i) => (
+              <ModuleCard
+                key={m.id}
+                index={i}
+                module={m}
+                isFirst={i === 0}
+                isLast={i === modules.length - 1}
+                isDragging={dragIndex === i}
+                onMove={(dir) => move(i, dir)}
+                onRemove={() => remove(m.id)}
+                onChange={(patch) => editModule(m.id, patch)}
+                onCommit={() => persist(modules)}
+                onDragStart={() => onDragStart(i)}
+                onDragOverItem={() => onDragOverItem(i)}
+                onDragEnd={onDragEnd}
+              />
+            ))}
+          </div>
+
+          {/* Forward CTA at the bottom of the content, consistent with every step.
+              Editing modules above is inline; to change the underlying content and
+              regenerate, head back to the content step (it rebuilds from sources). */}
+          <div className="mt-6 space-y-2">
+            <Button
+              size="lg"
+              loading={continuing}
+              iconRight={<ArrowRight width={20} height={20} />}
+              onClick={goMarketing}
+            >
+              Continue
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              iconLeft={<SparkleIcon width={18} height={18} />}
+              onClick={() => navigate('/app/onboarding/content')}
+            >
+              Edit my content & rebuild
+            </Button>
+          </div>
+        </div>
+
+        {/* Right rail — builds + at-a-glance, sticky on wide screens */}
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <BuildsRail
+            builds={builds}
+            activeId={programId}
+            backend={backend}
+            onOpen={(id) => setPreviewId(id)}
+            onNewBuild={() => navigate('/app/onboarding/content')}
           />
-        ))}
+          <AtAGlance
+            moduleCount={modules.length}
+            readMinutes={totalRead}
+            noteCount={noteCount}
+            onViewLive={() => window.open(`/p/${programId}`, '_blank', 'noopener,noreferrer')}
+          />
+        </aside>
       </div>
 
-      <button onClick={add} className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-line-strong py-3 text-body-sm font-medium text-primary hover:bg-primary/5">
-        <PlusIcon width={18} height={18} /> Add module
-      </button>
-
-      <div className="mt-6 space-y-2">
-        <Button
-          size="lg"
-          iconRight={<ArrowRight width={20} height={20} />}
-          onClick={async () => {
-            if (backend) { await backend.api.journeyUpdate({ current_step: 'marketing' }); await refreshJourney(); }
-            navigate('/app/onboarding/marketing');
-          }}
-        >
-          Looks great — continue
-        </Button>
-        {/* Editing modules above is inline; to change the underlying content and
-            regenerate, head back to the content step (it rebuilds from sources). */}
-        <Button
-          size="lg"
-          variant="ghost"
-          iconLeft={<SparkleIcon width={18} height={18} />}
-          onClick={() => navigate('/app/onboarding/content')}
-        >
-          Edit my content & rebuild
-        </Button>
-      </div>
+      <BuildReader
+        build={builds.find((b) => b.id === previewId && b.id !== programId) ?? null}
+        buildNumber={previewId ? builds.length - builds.findIndex((b) => b.id === previewId) : 0}
+        backend={backend}
+        onClose={() => setPreviewId(null)}
+        onChanged={async () => { await refreshProgram(); await refreshBuilds(); }}
+      />
     </div>
+  );
+}
+
+function MetaPill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-pill border border-line bg-surface-plain px-3 py-1 text-caption font-medium text-ink-secondary">
+      {children}
+    </span>
   );
 }
 
@@ -218,6 +288,9 @@ function ModuleCard({
   // Only drag from the handle, and never while editing (so inputs stay usable).
   const [dragEnabled, setDragEnabled] = useState(false);
 
+  const notes = toBullets(m.participant_notes);
+  const hasDetail = !!(m.detail || m.session_flow || m.notes || m.participant_notes);
+
   return (
     <Card
       variant="plain"
@@ -225,10 +298,10 @@ function ModuleCard({
       onDragStart={onDragStart}
       onDragOver={(e) => { e.preventDefault(); onDragOverItem(); }}
       onDragEnd={() => { setDragEnabled(false); onDragEnd(); }}
-      className={cn('transition-opacity', isDragging && 'opacity-50')}
+      className={cn('p-4 transition-opacity', isDragging && 'opacity-50')}
     >
       <div className="flex items-start gap-3">
-        <div className="flex flex-col items-center gap-1 pt-0.5 text-ink-secondary">
+        <div className="flex flex-col items-center gap-1.5 pt-0.5 text-ink-secondary">
           <span className="flex h-7 w-7 items-center justify-center rounded-pill bg-primary/10 font-mono text-data text-primary">{index + 1}</span>
           <button
             type="button"
@@ -297,10 +370,16 @@ function ModuleCard({
             <div>
               <button onClick={() => setEditing(true)} className="w-full text-left">
                 <h3 className="text-h3 font-semibold text-ink">{m.title}</h3>
-                {m.outcome && <p className="mt-1 text-body-sm text-ink-secondary">{m.outcome}</p>}
               </button>
+              {m.outcome && (
+                <div className="mt-2 flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0 rounded-pill bg-accent/10 px-2 py-0.5 font-mono text-data uppercase tracking-[0.06em] text-accent">Outcome</span>
+                  <p className="text-body-sm text-ink-secondary">{m.outcome}</p>
+                </div>
+              )}
+
               {expanded && (
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 space-y-3 border-t border-line pt-3">
                   {m.detail && (
                     <div>
                       <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">What this module covers</p>
@@ -313,11 +392,11 @@ function ModuleCard({
                       <p className="mt-1 whitespace-pre-line text-body-sm text-ink">{m.session_flow}</p>
                     </div>
                   )}
-                  {toBullets(m.participant_notes).length > 0 && (
+                  {notes.length > 0 && (
                     <div>
                       <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Notes for participants</p>
                       <ul className="mt-1 space-y-1">
-                        {toBullets(m.participant_notes).map((note, i) => (
+                        {notes.map((note, i) => (
                           <li key={i} className="flex gap-2 text-body-sm text-ink">
                             <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
                             <span>{note}</span>
@@ -334,65 +413,75 @@ function ModuleCard({
                   )}
                 </div>
               )}
-              {(m.detail || m.session_flow || m.notes || m.participant_notes) && (
-                <button
-                  onClick={() => setExpanded((v) => !v)}
-                  className="mt-2 text-caption font-medium text-primary hover:underline"
-                >
-                  {expanded ? 'Hide details' : 'Show full module'}
-                </button>
-              )}
+
+              {/* Footer — honest per-module read estimate + expand toggle. */}
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-caption text-ink-secondary">
+                  {readMinutes(m)} min read{notes.length > 0 ? ` · ${notes.length} note${notes.length === 1 ? '' : 's'}` : ''}
+                </span>
+                {hasDetail && (
+                  <button
+                    onClick={() => setExpanded((v) => !v)}
+                    className="inline-flex items-center gap-1 text-caption font-medium text-primary hover:underline"
+                  >
+                    {expanded ? 'Hide details' : 'Show full module'}
+                    <ChevronDown width={14} height={14} className={cn('transition-transform', expanded && 'rotate-180')} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <button disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up" className="text-ink-secondary disabled:opacity-30 hover:text-primary">▲</button>
-          <button disabled={isLast} onClick={() => onMove(1)} aria-label="Move down" className="text-ink-secondary disabled:opacity-30 hover:text-primary">▼</button>
-          <button onClick={onRemove} aria-label="Remove module" className="text-ink-secondary hover:text-error"><TrashIcon width={16} height={16} /></button>
-        </div>
+        {!editing && (
+          <div className="flex flex-col items-center gap-1 text-ink-secondary">
+            <button disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up" className="disabled:opacity-30 hover:text-primary">▲</button>
+            <button disabled={isLast} onClick={() => onMove(1)} aria-label="Move down" className="disabled:opacity-30 hover:text-primary">▼</button>
+            <button onClick={onRemove} aria-label="Remove module" className="mt-0.5 hover:text-error"><TrashIcon width={16} height={16} /></button>
+          </div>
+        )}
       </div>
     </Card>
   );
 }
 
-// Every rebuild creates a new build (max 6 kept). This lists them so the expert can
-// compare results and pick which one is active. Builds arrive newest-first; they're
-// numbered by age (oldest = Build 1) so "Build N" is stable as new ones are added.
-function BuildSwitcher({
-  builds, activeId, backend, onChanged,
+// Right-rail builds card. Every rebuild is kept (max 6); the active one is
+// highlighted, and any other build opens the two-pane reader for comparison.
+// Builds arrive newest-first; they're numbered by age (oldest = Build 1) so
+// "Build N" stays stable as new ones are added.
+function BuildsRail({
+  builds, activeId, backend, onOpen, onNewBuild,
 }: {
   builds: Program[];
   activeId: string;
   backend: Backend | null;
-  onChanged: () => Promise<void>;
+  onOpen: (id: string) => void;
+  onNewBuild: () => void;
 }) {
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  // Nothing to switch between until there's more than one build.
-  if (builds.length < 2 || !backend) return null;
+  if (!backend || builds.length === 0) return null;
   const numberOf = (id: string) => builds.length - builds.findIndex((b) => b.id === id);
-  const preview = builds.find((b) => b.id === previewId) ?? null;
 
   return (
-    <Card variant="plain" className="mb-4">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Your builds</p>
+    <Card variant="plain" className="p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Your builds</p>
         <p className="text-caption text-ink-secondary">{builds.length} of 6 kept</p>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="space-y-2">
         {builds.map((b) => {
           const isActive = b.id === activeId;
           return (
             <button
               key={b.id}
-              onClick={() => { if (!isActive) setPreviewId(b.id); }}
+              onClick={() => { if (!isActive) onOpen(b.id); }}
               aria-current={isActive}
+              disabled={isActive}
               className={cn(
-                'flex shrink-0 flex-col items-start gap-1 rounded-md border px-3 py-2 text-left transition-colors',
-                isActive ? 'border-primary bg-primary/5' : 'border-line hover:border-primary/40',
+                'flex w-full flex-col items-start gap-1.5 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                isActive ? 'border-primary bg-primary/5' : 'border-line hover:border-primary/40 hover:bg-surface/50',
               )}
             >
-              <span className="flex items-center gap-2 text-body-sm font-semibold text-ink">
+              <span className="flex w-full items-center justify-between gap-2 text-body-sm font-semibold text-ink">
                 Build {numberOf(b.id)}
                 {isActive && <Badge variant="matched">Active</Badge>}
                 {b.status === 'failed' && <Badge variant="pending">Failed</Badge>}
@@ -403,37 +492,73 @@ function BuildSwitcher({
           );
         })}
       </div>
-      <BuildPreviewSheet
-        build={preview}
-        buildNumber={preview ? numberOf(preview.id) : 0}
-        backend={backend}
-        onClose={() => setPreviewId(null)}
-        onChanged={onChanged}
-      />
+      <button
+        onClick={onNewBuild}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-2.5 text-body-sm font-medium text-primary hover:bg-primary/5"
+      >
+        <PlusIcon width={16} height={16} /> New build
+      </button>
     </Card>
   );
 }
 
-// Read-only preview of a non-active build, with "Make this active" and delete
-// actions. Only non-active builds open this sheet, so deleting never touches the
-// active build (there's always exactly one active build to fall back on).
-function BuildPreviewSheet({
+function AtAGlance({
+  moduleCount, readMinutes, noteCount, onViewLive,
+}: {
+  moduleCount: number;
+  readMinutes: number;
+  noteCount: number;
+  onViewLive: () => void;
+}) {
+  const rows: Array<[string, string]> = [
+    ['Modules', String(moduleCount)],
+    ['Est. read', `~${readMinutes} min`],
+    ['Participant notes', String(noteCount)],
+  ];
+  return (
+    <Card variant="plain" className="p-4">
+      <p className="mb-3 text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">At a glance</p>
+      <dl className="space-y-2.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between border-b border-line pb-2.5 last:border-0 last:pb-0">
+            <dt className="text-body-sm text-ink-secondary">{label}</dt>
+            <dd className="font-mono text-body-sm font-semibold text-ink">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <button
+        onClick={onViewLive}
+        className="mt-4 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline"
+      >
+        <EyeIcon width={15} height={15} /> View landing page
+      </button>
+    </Card>
+  );
+}
+
+// Read-only two-pane reader for a non-active build: module list on the left, one
+// clean reading column on the right, with prev/next paging. Activate / delete
+// live in the header. Only non-active builds open here, so deleting never touches
+// the active build (there's always exactly one to fall back on).
+function BuildReader({
   build, buildNumber, backend, onClose, onChanged,
 }: {
   build: Program | null;
   buildNumber: number;
-  backend: Backend;
+  backend: Backend | null;
   onClose: () => void;
   onChanged: () => Promise<void>;
 }) {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sel, setSel] = useState(0);
   const [busy, setBusy] = useState<null | 'activate' | 'delete'>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
-    if (!build) { setModules([]); return; }
-    // Reset the delete confirmation whenever a different build is opened.
+    if (!build || !backend) { setModules([]); return; }
+    // Reset paging + delete confirmation whenever a different build is opened.
+    setSel(0);
     setConfirmingDelete(false);
     let alive = true;
     setLoading(true);
@@ -444,7 +569,7 @@ function BuildPreviewSheet({
   }, [build, backend]);
 
   const activate = async () => {
-    if (!build) return;
+    if (!build || !backend) return;
     setBusy('activate');
     try {
       await backend.api.programActivate({ program_id: build.id });
@@ -459,7 +584,7 @@ function BuildPreviewSheet({
   };
 
   const remove = async () => {
-    if (!build) return;
+    if (!build || !backend) return;
     setBusy('delete');
     try {
       await backend.api.programDelete({ program_id: build.id });
@@ -473,58 +598,158 @@ function BuildPreviewSheet({
     }
   };
 
+  const current = modules[sel];
+  const next = modules[sel + 1];
+  const prev = modules[sel - 1];
+
   return (
     <Sheet
       open={!!build}
       onClose={onClose}
+      bare
+      size="reader"
       title={build ? `Build ${buildNumber}` : ''}
-      footer={build && (
-        confirmingDelete ? (
-          <>
-            <Button size="lg" variant="destructive" loading={busy === 'delete'} onClick={remove}>
-              Delete Build {buildNumber}
-            </Button>
-            <Button size="lg" variant="ghost" disabled={busy !== null} onClick={() => setConfirmingDelete(false)}>
-              Cancel
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button size="lg" loading={busy === 'activate'} disabled={build.status !== 'ready'} onClick={activate}>
-              Make this active
-            </Button>
-            <Button size="lg" variant="destructive" disabled={busy !== null} onClick={() => setConfirmingDelete(true)}>
-              Delete this build
-            </Button>
-          </>
-        )
-      )}
+      panelClassName="flex h-[92vh] flex-col sm:h-[85vh]"
     >
       {build && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-h3 font-semibold text-ink">{build.title}</h3>
-            <p className="text-caption text-ink-secondary">Created {buildWhen(build.created_at)}</p>
-          </div>
-          {confirmingDelete && (
-            <div className="rounded-md border border-error/40 bg-error/5 px-3 py-2">
-              <p className="text-body-sm text-ink">Delete Build {buildNumber}? This can't be undone.</p>
-            </div>
-          )}
-          {loading ? (
-            <Skeleton variant="module-card" />
-          ) : (
-            <div className="space-y-3">
-              {modules.map((m, i) => (
-                <div key={m.id} className="rounded-md border border-line px-3 py-2">
-                  <p className="text-body-sm font-semibold text-ink">{i + 1}. {m.title}</p>
-                  {m.outcome && <p className="mt-1 text-caption text-ink-secondary">{m.outcome}</p>}
-                  {m.detail && <p className="mt-2 whitespace-pre-line text-caption text-ink">{m.detail}</p>}
+        <>
+          {/* Header */}
+          <div className="shrink-0 border-b border-line px-5 py-4 sm:px-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-caption text-ink-secondary">
+                  <span className="rounded-pill bg-primary/10 px-2 py-0.5 font-mono text-data uppercase tracking-[0.06em] text-primary">Build {buildNumber}</span>
+                  <span>
+                    Created {buildWhen(build.created_at)}
+                    {!loading && modules.length > 0 && ` · ${modules.length} module${modules.length === 1 ? '' : 's'}`}
+                  </span>
                 </div>
-              ))}
+                <h2 className="mt-1.5 truncate text-h2 font-semibold text-ink">{build.title}</h2>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {!confirmingDelete && (
+                  <>
+                    <Button size="sm" fullWidth={false} loading={busy === 'activate'} disabled={build.status !== 'ready' || busy !== null} onClick={activate}>
+                      Make active
+                    </Button>
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      aria-label="Delete this build"
+                      className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-error/5 hover:text-error"
+                    >
+                      <TrashIcon width={18} height={18} />
+                    </button>
+                  </>
+                )}
+                <button onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-surface hover:text-ink">
+                  <CloseIcon width={22} height={22} />
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+            {confirmingDelete && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-error/40 bg-error/5 px-3 py-2">
+                <p className="text-body-sm text-ink">Delete Build {buildNumber}? This can't be undone.</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" fullWidth={false} loading={busy === 'delete'} onClick={remove}>Delete</Button>
+                  <Button size="sm" variant="ghost" fullWidth={false} disabled={busy !== null} onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Two panes */}
+          <div className="flex min-h-0 flex-1">
+            {/* Module list (desktop) */}
+            <nav className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface/40 py-3 sm:flex">
+              <p className="px-4 pb-2 text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">
+                Modules · {modules.length ? sel + 1 : 0} of {modules.length}
+              </p>
+              {modules.map((m, i) => {
+                const active = i === sel;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setSel(i)}
+                    aria-current={active}
+                    className={cn('flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition-colors', active ? 'bg-primary/5' : 'hover:bg-surface/70')}
+                  >
+                    <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-pill font-mono text-data', active ? 'bg-primary text-white' : 'bg-primary/10 text-primary')}>{i + 1}</span>
+                    <span className={cn('text-body-sm leading-snug', active ? 'font-semibold text-ink' : 'text-ink-secondary')}>{m.title}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Reading column */}
+            <div className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-10 sm:py-8">
+              {loading ? (
+                <div className="space-y-4"><Skeleton variant="line" className="w-1/3" /><Skeleton variant="line" className="w-2/3" /><Skeleton variant="module-card" /></div>
+              ) : current ? (
+                <article className="mx-auto max-w-2xl">
+                  <Eyebrow className="mb-2">Module {sel + 1}</Eyebrow>
+                  <h3 className="text-h1 font-bold leading-tight text-ink">{current.title}</h3>
+
+                  {current.outcome && (
+                    <div className="mt-4 flex items-start gap-3 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3">
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
+                        <CheckIcon width={15} height={15} />
+                      </span>
+                      <div>
+                        <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-accent">What you'll be able to do</p>
+                        <p className="mt-1 text-body-sm font-medium text-ink">{current.outcome}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {current.detail && <p className="mt-5 whitespace-pre-line text-body leading-relaxed text-ink">{current.detail}</p>}
+
+                  {current.session_flow && (
+                    <div className="mt-6">
+                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">How it runs</p>
+                      <p className="mt-1 whitespace-pre-line text-body-sm leading-relaxed text-ink">{current.session_flow}</p>
+                    </div>
+                  )}
+
+                  {toBullets(current.participant_notes).length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Notes for participants</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {toBullets(current.participant_notes).map((note, i) => (
+                          <li key={i} className="flex gap-2 text-body-sm text-ink">
+                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                            <span>{note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </article>
+              ) : (
+                <p className="text-body-sm text-ink-secondary">This build has no modules.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Footer paging */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
+            <button
+              onClick={() => setSel((s) => Math.max(0, s - 1))}
+              disabled={!prev}
+              className="inline-flex items-center gap-1.5 text-body-sm text-ink-secondary hover:text-ink disabled:opacity-30"
+            >
+              <ArrowLeft width={18} height={18} /> Previous
+            </button>
+            <Button
+              size="md"
+              fullWidth={false}
+              disabled={!next}
+              iconRight={<ArrowRight width={18} height={18} />}
+              onClick={() => setSel((s) => Math.min(modules.length - 1, s + 1))}
+            >
+              {next ? `Next: ${next.title}` : 'Last module'}
+            </Button>
+          </div>
+        </>
       )}
     </Sheet>
   );

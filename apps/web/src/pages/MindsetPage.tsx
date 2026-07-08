@@ -8,7 +8,7 @@ import {
   type MindsetMessage,
 } from '@abundance/shared';
 import { Button, Card, Textarea, TextInput, Eyebrow } from '@/components/ui';
-import { HeartIcon, ArrowRight } from '@/components/ui/icons';
+import { HeartIcon, ArrowRight, ArrowLeft } from '@/components/ui/icons';
 import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
@@ -49,6 +49,13 @@ const SUGGESTED_QUESTIONS = [
   'It feels wrong to charge — is that normal?',
   "I'm scared no one will show up.",
   'The tech is overwhelming me.',
+];
+
+// In-chat follow-up prompts — gentle reframing nudges offered above the composer.
+const CHAT_FOLLOWUPS = [
+  "I don't feel expert enough.",
+  'What if they know more than me?',
+  'Help me reframe this.',
 ];
 
 // "today" / "yesterday" / weekday / "Jun 3" — relative label for reflections.
@@ -208,81 +215,147 @@ export function MindsetPage() {
 
   // ── Chat view ─────────────────────────────────────────────────────────────
   if (mode === 'chat') {
+    // Title the conversation by its opening question, falling back to the saved
+    // conversation title once the thread is persisted.
+    const chatTitle =
+      messages.find((m) => m.role === 'user')?.content
+      ?? conversations.find((c) => c.id === conversationId)?.title
+      ?? 'New conversation';
+
     return (
-      <div className="-mx-5 -mt-4 flex min-h-[calc(100dvh-7rem)] flex-col bg-gradient-to-b from-surface to-bg px-5 pt-6">
-        <div className="mx-auto flex w-full max-w-calm flex-1 flex-col">
-          <div className="mb-3 flex items-center justify-between">
-            <button onClick={closeChat} className="text-body-sm text-ink-secondary hover:text-ink">← Back</button>
+      <div className="flex flex-col bg-bg lg:min-h-0 lg:flex-1">
+        {/* Header — back · title · save */}
+        <header className="flex items-center gap-3 border-b border-line bg-surface-plain px-5 py-3.5 lg:px-8">
+          <div className="flex flex-1 justify-start">
+            <button onClick={closeChat} className="inline-flex items-center gap-1.5 text-body-sm text-ink-secondary hover:text-ink">
+              <ArrowLeft width={18} height={18} /> Back
+            </button>
+          </div>
+          <div className="min-w-0 max-w-[55%] text-center">
+            <p className="font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Mindset conversation</p>
+            <p className="truncate text-body font-semibold text-ink">&ldquo;{chatTitle}&rdquo;</p>
+          </div>
+          <div className="flex flex-1 justify-end">
             {canSave && (
-              <Button size="sm" variant="accent-secondary" fullWidth={false} loading={saving} onClick={saveReflection}>
+              <Button size="sm" variant="secondary" fullWidth={false} loading={saving} onClick={saveReflection}>
                 Save as reflection
               </Button>
             )}
           </div>
+        </header>
 
-          <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+        {/* Thread */}
+        <div className="overflow-y-auto px-5 py-6 lg:min-h-0 lg:flex-1 lg:px-8">
+          <div className="mx-auto flex max-w-3xl flex-col gap-5">
+            <div className="flex justify-center">
+              <span className="rounded-pill bg-surface px-3 py-1 text-caption text-ink-secondary">
+                A private space · just between you and Mindset
+              </span>
+            </div>
+
             {messages.length === 0 && !sending && (
-              <Card variant="plain" className="text-center text-body-sm text-ink-secondary">
-                Say what&apos;s on your mind. I&apos;m here.
-              </Card>
+              <p className="py-8 text-center text-body-sm text-ink-secondary">Say what&apos;s on your mind. I&apos;m here.</p>
             )}
+
             {messages.map((m) => (
-              <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn(
-                  'max-w-[82%] whitespace-pre-wrap rounded-lg px-4 py-2.5 text-body',
-                  m.role === 'user' ? 'bg-primary text-white' : 'border border-line bg-surface-plain text-ink',
-                )}>
-                  {m.content}
+              m.role === 'user' ? (
+                <div key={m.id} className="flex justify-end">
+                  <div className="max-w-[80%] whitespace-pre-wrap rounded-lg bg-primary px-4 py-2.5 text-body text-white">
+                    {m.content}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div key={m.id} className="flex gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-accent text-white">
+                    <HeartIcon width={15} height={15} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-accent">Mindset</p>
+                    <div className="whitespace-pre-wrap rounded-lg border border-line bg-surface-plain px-4 py-3 text-body text-ink shadow-sm">
+                      {m.content}
+                    </div>
+                  </div>
+                </div>
+              )
             ))}
+
             {sending && (
-              <div className="flex justify-start">
-                <div className="rounded-lg border border-line bg-surface-plain px-4 py-1">
+              <div className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-accent text-white">
+                  <HeartIcon width={15} height={15} />
+                </span>
+                <div className="rounded-lg border border-line bg-surface-plain px-4 py-1 shadow-sm">
                   <TypingIndicator />
                 </div>
               </div>
             )}
             <div ref={threadEndRef} />
           </div>
+        </div>
 
-          {saveNotice && (
-            <Card variant="plain" className="mb-3 border-accent/20 bg-success-bg/40 text-center">
-              <p className="text-body-sm text-ink">{saveNotice}</p>
-              <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
-            </Card>
-          )}
+        {/* Composer — pinned to the bottom on desktop; on mobile it flows with
+            room to clear the fixed tab bar. */}
+        <div className="border-t border-line bg-surface-plain px-5 pb-28 pt-4 lg:px-8 lg:pb-4">
+          <div className="mx-auto max-w-3xl">
+            {saveNotice && (
+              <Card variant="plain" className="mb-3 border-accent/20 bg-success-bg/40 text-center">
+                <p className="text-body-sm text-ink">{saveNotice}</p>
+                <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
+              </Card>
+            )}
 
-          {dailyLimit ? (
-            <Card variant="plain" className="mb-3 text-center">
-              <p className="text-body-sm text-ink">{dailyLimit}</p>
-              <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
-            </Card>
-          ) : (
-            <form
-              className="mt-auto flex items-end gap-2 pb-2"
-              onSubmit={(e) => { e.preventDefault(); void sendChat(chatInput); }}
-            >
-              <TextInput
-                className="flex-1"
-                placeholder="Type a message…"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                disabled={sending}
-              />
-              <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim() || sending} iconRight={<ArrowRight width={18} height={18} />}>
-                Send
-              </Button>
-            </form>
-          )}
+            {dailyLimit ? (
+              <Card variant="plain" className="text-center">
+                <p className="text-body-sm text-ink">{dailyLimit}</p>
+                <button onClick={() => navigate('/app/circle')} className="mt-2 text-body-sm font-medium text-accent hover:underline">Go to my circle →</button>
+              </Card>
+            ) : (
+              <>
+                {messages.length > 0 && !sending && (
+                  <div className="mb-3 flex flex-wrap justify-center gap-2">
+                    {CHAT_FOLLOWUPS.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => void sendChat(q)}
+                        className="rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-body-sm text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <form
+                  className="flex items-end gap-2"
+                  onSubmit={(e) => { e.preventDefault(); void sendChat(chatInput); }}
+                >
+                  <TextInput
+                    className="flex-1"
+                    placeholder="Type a message…"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={sending}
+                  />
+                  <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim() || sending} iconRight={<ArrowRight width={18} height={18} />}>
+                    Send
+                  </Button>
+                </form>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
+  // The dashboard spreads into a two-column workspace; the focused states (a live
+  // reflection, the wall picker, a cap notice) stay in a calm reading column.
+  const isDashboard = !limit && !loading && !checkin && !picking;
+
   return (
-    <div className="-mx-5 -mt-4 min-h-[calc(100dvh-7rem)] bg-gradient-to-b from-surface to-bg px-5 pt-6">
-      <div className="mx-auto max-w-calm">
+    // Non-chat surface scrolls inside the shell's full-height main. The dashboard
+    // spreads wide; the focused states stay in a calm reading column.
+    <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className={cn('mx-auto w-full px-5 pb-28 pt-4 lg:px-8 lg:pb-16 lg:pt-12', isDashboard ? 'max-w-[1720px]' : 'max-w-calm')}>
         <Eyebrow className="mb-2 text-accent">Mindset</Eyebrow>
 
         {/* Limit state */}
@@ -339,99 +412,104 @@ export function MindsetPage() {
           <div>
             <h1 className="font-serif text-h1 font-medium text-ink">A little courage, right when you need it.</h1>
 
-            {/* Weekly progress */}
-            <Card variant="plain" className="mt-5 flex items-center justify-between">
-              <span className="text-body text-ink">Check-ins this week</span>
-              <span className="flex items-center gap-2.5">
-                <span className="flex gap-1.5">
-                  {Array.from({ length: WEEKLY_CAP }).map((_, i) => (
-                    <span key={i} className={cn('h-2.5 w-2.5 rounded-pill', i < weekCount ? 'bg-accent' : 'bg-accent/20')} />
-                  ))}
-                </span>
-                <span className="font-mono text-data text-ink-secondary">{weekCount} / {WEEKLY_CAP}</span>
-              </span>
-            </Card>
-
-            {/* Talk it through — open a free-form conversation with the coach */}
-            <Card className="mt-4">
-              <Eyebrow className="text-accent">Talk it through</Eyebrow>
-              <h2 className="mt-2 font-serif text-h2 text-ink">What&apos;s on your mind?</h2>
-              <p className="mt-1 text-body-sm text-ink-secondary">Tell me what&apos;s going on — or start with one of these.</p>
-              <form
-                className="mt-3 flex items-end gap-2"
-                onSubmit={(e) => { e.preventDefault(); if (chatInput.trim()) openNewChat(chatInput.trim()); }}
-              >
-                <TextInput
-                  className="flex-1"
-                  placeholder="Type a message…"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                />
-                <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim()} iconRight={<ArrowRight width={18} height={18} />}>
-                  Send
-                </Button>
-              </form>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {SUGGESTED_QUESTIONS.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => openNewChat(q)}
-                    className="rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-body-sm text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink"
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+              {/* Main — talk it through + the recommended reflection */}
+              <div className="space-y-4">
+                {/* Talk it through — open a free-form conversation with the coach */}
+                <Card className="bg-surface-plain">
+                  <Eyebrow className="text-accent">Talk it through</Eyebrow>
+                  <h2 className="mt-2 font-serif text-h2 text-ink">What&apos;s on your mind?</h2>
+                  <p className="mt-1 text-body-sm text-ink-secondary">Tell me what&apos;s going on — or start with one of these.</p>
+                  <form
+                    className="mt-3 flex items-end gap-2"
+                    onSubmit={(e) => { e.preventDefault(); if (chatInput.trim()) openNewChat(chatInput.trim()); }}
                   >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </Card>
+                    <TextInput
+                      className="flex-1"
+                      placeholder="Type a message…"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                    />
+                    <Button type="submit" size="md" fullWidth={false} disabled={!chatInput.trim()} iconRight={<ArrowRight width={18} height={18} />}>
+                      Send
+                    </Button>
+                  </form>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {SUGGESTED_QUESTIONS.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => openNewChat(q)}
+                        className="rounded-pill border border-line bg-surface-plain px-3 py-1.5 text-body-sm text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </Card>
 
-            {/* Recommended "right now" reflection */}
-            <Card className="mt-4 border-accent/20 bg-success-bg/50">
-              <Eyebrow className="text-accent">Right now</Eyebrow>
-              <h2 className="mt-2 font-serif text-h2 text-ink">&ldquo;{FEATURED[recommended].quote}&rdquo;</h2>
-              <p className="mt-2 text-body text-ink-secondary">{FEATURED[recommended].teaser}</p>
-              <div className="mt-4">
-                <Button variant="accent" fullWidth={false} onClick={() => start(recommended)}>Start reflection</Button>
-              </div>
-              <button onClick={() => setPicking(true)} className="mt-3 text-body-sm font-medium text-accent hover:underline">
-                Choose a different focus →
-              </button>
-            </Card>
-
-            {/* Recent reflections */}
-            {history.length > 0 && (
-              <section className="mt-7">
-                <Eyebrow className="mb-3">Recent reflections</Eyebrow>
-                <div className="space-y-3">
-                  {history.slice(0, 4).map((c) => (
-                    <Card key={c.id} variant="plain">
-                      <p className="truncate text-body font-semibold text-ink">&ldquo;{WALL_LABELS[c.wall_key]}&rdquo;</p>
-                      <p className="mt-0.5 truncate text-caption text-ink-secondary">
-                        Reflected {relativeDay(c.created_at)}{c.user_note ? ` · ${c.user_note}` : ''}
-                      </p>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Resume a past conversation */}
-            {conversations.length > 0 && (
-              <section className="mt-7">
-                <Eyebrow className="mb-3">Your conversations</Eyebrow>
-                <div className="space-y-3">
-                  {conversations.slice(0, 4).map((c) => (
-                    <button key={c.id} onClick={() => void resumeChat(c)} className="block w-full text-left">
-                      <Card variant="plain" className="transition-colors hover:border-accent/40">
-                        <p className="truncate text-body font-semibold text-ink">{c.title ?? 'A conversation'}</p>
-                        <p className="mt-0.5 truncate text-caption text-ink-secondary">
-                          {c.wall_key ? 'Reflection saved · ' : ''}Last message {relativeDay(c.last_message_at)}
-                        </p>
-                      </Card>
+                {/* Recommended "right now" reflection */}
+                <Card className="border-accent/20 bg-success-bg/50">
+                  <Eyebrow className="text-accent">Right now</Eyebrow>
+                  <h2 className="mt-2 font-serif text-h2 text-ink">&ldquo;{FEATURED[recommended].quote}&rdquo;</h2>
+                  <p className="mt-2 text-body text-ink-secondary">{FEATURED[recommended].teaser}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
+                    <Button variant="accent" fullWidth={false} onClick={() => start(recommended)}>Start reflection</Button>
+                    <button onClick={() => setPicking(true)} className="text-body-sm font-medium text-accent hover:underline">
+                      Choose a different focus →
                     </button>
-                  ))}
-                </div>
-              </section>
-            )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Rail — weekly progress, recent reflections, past conversations */}
+              <div className="space-y-4">
+                <Card variant="plain" className="p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-body-sm font-semibold text-ink">Check-ins this week</p>
+                    <span className="font-mono text-data text-ink-secondary">{weekCount} / {WEEKLY_CAP}</span>
+                  </div>
+                  <div className="mt-3 flex gap-1.5">
+                    {Array.from({ length: WEEKLY_CAP }).map((_, i) => (
+                      <span key={i} className={cn('h-1.5 flex-1 rounded-pill', i < weekCount ? 'bg-accent' : 'bg-accent/20')} />
+                    ))}
+                  </div>
+                </Card>
+
+                {history.length > 0 && (
+                  <Card variant="plain" className="p-4">
+                    <Eyebrow className="mb-3">Recent reflections</Eyebrow>
+                    <div className="space-y-2">
+                      {history.slice(0, 4).map((c) => (
+                        <div key={c.id} className="rounded-md border border-line bg-surface/50 px-3 py-2">
+                          <p className="truncate text-body-sm font-semibold text-ink">&ldquo;{WALL_LABELS[c.wall_key]}&rdquo;</p>
+                          <p className="mt-0.5 truncate text-caption text-ink-secondary">
+                            Reflected {relativeDay(c.created_at)}{c.user_note ? ` · ${c.user_note}` : ''}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {conversations.length > 0 && (
+                  <Card variant="plain" className="p-4">
+                    <Eyebrow className="mb-2">Your conversations</Eyebrow>
+                    <div className="divide-y divide-line">
+                      {conversations.slice(0, 4).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => void resumeChat(c)}
+                          className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:opacity-70"
+                        >
+                          <span className="min-w-0 truncate text-body-sm font-medium text-ink">{c.title ?? 'A conversation'}</span>
+                          <ArrowRight width={16} height={16} className="shrink-0 text-ink-secondary" />
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
