@@ -32,6 +32,7 @@ export const TABLES = {
   programs: 'programs',
   modules: 'modules',
   enrollments: 'enrollments',
+  program_views: 'program_views',
   content_sources: 'content_sources',
   marketing_posts: 'marketing_posts',
   sessions: 'sessions',

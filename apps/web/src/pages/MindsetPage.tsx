@@ -494,8 +494,8 @@ export function MindsetPage() {
                 {conversations.length > 0 && (
                   <Card variant="plain" className="p-4">
                     <Eyebrow className="mb-2">Your conversations</Eyebrow>
-                    <div className="divide-y divide-line">
-                      {conversations.slice(0, 4).map((c) => (
+                    <div className="max-h-96 divide-y divide-line overflow-y-auto">
+                      {conversations.map((c) => (
                         <button
                           key={c.id}
                           onClick={() => void resumeChat(c)}

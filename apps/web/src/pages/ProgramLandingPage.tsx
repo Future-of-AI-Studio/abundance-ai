@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -34,6 +34,9 @@ export function ProgramLandingPage() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading');
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [done, setDone] = useState<{ name: string; res: EnrollResponse } | null>(null);
+  // Guard so a view is counted once per program per mount (React 18 double-invokes
+  // effects in dev; a shared /p link shouldn't inflate the creator's view count).
+  const trackedId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!backend || !programId) return;
@@ -43,6 +46,11 @@ export function ProgramLandingPage() {
       .programPublic({ program_id: programId })
       .then((d) => { if (active) { setData(d); setStatus('ready'); } })
       .catch(() => { if (active) setStatus('notfound'); });
+    // Record the visit (non-blocking, best-effort — never affects the page).
+    if (trackedId.current !== programId) {
+      trackedId.current = programId;
+      void backend.api.programViewTrack({ program_id: programId }).catch(() => { /* non-blocking */ });
+    }
     return () => { active = false; };
   }, [backend, programId]);
 

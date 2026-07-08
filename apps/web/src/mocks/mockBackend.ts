@@ -45,6 +45,8 @@ interface MockState {
   messages: MindsetMessage[];
   contentSources: ContentSource[];
   enrollments: Enrollment[];
+  // Raw landing-page views (one row per /p/:id load) — powers Home's view + conversion stats.
+  programViews: Array<{ id: string; program_id: string; creator_id: string; created_at: string }>;
 }
 
 const CHAT_DAILY_CAP = 20;
@@ -75,6 +77,7 @@ function fresh(): MockState {
     messages: [],
     contentSources: [],
     enrollments: [],
+    programViews: [],
   };
 }
 
@@ -231,6 +234,16 @@ export function createMockBackend(): Backend {
           bio: state.profile?.bio ?? null,
         },
       };
+    },
+    async programViewTrack(req) {
+      await delay(120);
+      const p = findBuild(req.program_id)?.program;
+      // Only a sellable build gets counted — mirrors the live function.
+      if (p && p.status === 'ready') {
+        state.programViews.unshift({ id: uid(), program_id: p.id, creator_id: p.user_id, created_at: nowIso() });
+        save();
+      }
+      return { ok: true as const };
     },
     async enrollSession(req) {
       await delay(300);
@@ -437,7 +450,10 @@ export function createMockBackend(): Backend {
       async getStripeConnect() { return state.stripe; },
       async getLatestCheckin() { return state.checkins[0] ?? null; },
       async getCheckins() { return state.checkins; },
-      async getConversations() { return state.conversations; },
+      async getConversations() {
+        // Newest first, mirroring the live query.
+        return [...state.conversations].sort((a, b) => b.last_message_at.localeCompare(a.last_message_at));
+      },
       async getMessages(conversationId) {
         return state.messages.filter((m) => m.conversation_id === conversationId);
       },
@@ -447,6 +463,13 @@ export function createMockBackend(): Backend {
       },
       async getEnrollments() {
         return [...state.enrollments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      },
+      async getProgramStats() {
+        const weekAgo = Date.now() - 7 * 86_400_000;
+        const views_this_week = state.programViews.filter(
+          (v) => new Date(v.created_at).getTime() >= weekAgo,
+        ).length;
+        return { views: state.programViews.length, views_this_week };
       },
       async updateProfile(patch) {
         if (state.profile) state.profile = { ...state.profile, ...patch };

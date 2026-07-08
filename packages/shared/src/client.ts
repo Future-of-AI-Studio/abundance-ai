@@ -16,6 +16,8 @@ import type {
   ProgramDeleteResponse,
   ProgramPublicRequest,
   ProgramPublicResponse,
+  ProgramViewTrackRequest,
+  ProgramViewTrackResponse,
   EnrollSessionRequest,
   EnrollSessionResponse,
   EnrollRequest,
@@ -71,6 +73,8 @@ export interface AbundanceClient {
   programDelete(req: ProgramDeleteRequest): Promise<ProgramDeleteResponse>;
   /** Public landing-page view of a program (no auth) — for prospective buyers. */
   programPublic(req: ProgramPublicRequest): Promise<ProgramPublicResponse>;
+  /** Record a public landing-page view (no auth) — powers the creator's stats. */
+  programViewTrack(req: ProgramViewTrackRequest): Promise<ProgramViewTrackResponse>;
   /** Create the PaymentIntent for an enrollment (no auth) — before payment. */
   enrollSession(req: EnrollSessionRequest): Promise<EnrollSessionResponse>;
   /** Record a buyer's enrollment after payment succeeds (no auth). */
@@ -137,6 +141,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     programActivate: (req) => call('program-activate', req, 'PATCH'),
     programDelete: (req) => call('program-delete', req, 'DELETE'),
     programPublic: (req) => call('program-public', req),
+    programViewTrack: (req) => call('program-view-track', req),
     enrollSession: (req) => call('enroll-session', req),
     enroll: (req) => call('enroll', req),
     marketingGenerate: (req) => call('marketing-generate', req),

@@ -16,6 +16,7 @@ import type {
   MindsetMessage,
   ContentSource,
   Enrollment,
+  ProgramStats,
 } from '@abundance/shared';
 
 export interface AuthUser {
@@ -69,6 +70,8 @@ export interface BackendReads {
   getContentSources(): Promise<ContentSource[]>;
   /** Buyers who enrolled through the creator's program landing page, newest first. */
   getEnrollments(): Promise<Enrollment[]>;
+  /** Aggregated landing-page view counts (total + this week) — powers Home metrics. */
+  getProgramStats(): Promise<ProgramStats>;
   updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category' | 'category_other' | 'bio' | 'avatar_url'>>): Promise<Profile>;
 }
 

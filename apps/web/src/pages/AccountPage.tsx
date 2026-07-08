@@ -52,6 +52,10 @@ export function AccountPage() {
   const [refundResult, setRefundResult] = useState<string | null>(null);
   const [refunding, setRefunding] = useState(false);
 
+  // Sign-out confirmation
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
   const saveProfile = async () => {
     if (!backend) return;
     if (!name.trim()) { toast.error("Your name can't be empty."); return; }
@@ -99,7 +103,11 @@ export function AccountPage() {
     finally { setRefunding(false); }
   };
 
-  const signOut = async () => { await backend?.auth.signOut(); navigate('/'); };
+  const signOut = async () => {
+    setSigningOut(true);
+    try { await backend?.auth.signOut(); navigate('/'); }
+    catch { toast.error("Couldn't sign you out — try again."); setSigningOut(false); }
+  };
 
   const displayName = profile?.first_name?.trim() || 'Friend';
   const pathLabel = journey?.path === 'A' ? 'Live group coaching' : journey?.path === 'B' ? 'Self-paced program' : 'Path not chosen yet';
@@ -269,7 +277,7 @@ export function AccountPage() {
 
       {/* Sign out */}
       <div className="mt-8">
-        <Button variant="ghost" fullWidth={false} onClick={signOut}>Sign out</Button>
+        <Button variant="ghost" fullWidth={false} onClick={() => setSignOutOpen(true)}>Sign out</Button>
       </div>
 
       {/* Edit profile sheet */}
@@ -340,6 +348,23 @@ export function AccountPage() {
         ) : (
           <p className="text-body text-ink-secondary">You&rsquo;re within your 90-day window. We&rsquo;ll process it right away — no questions asked.</p>
         )}
+      </Sheet>
+
+      {/* Sign-out confirm sheet */}
+      <Sheet
+        open={signOutOpen}
+        onClose={() => { if (!signingOut) setSignOutOpen(false); }}
+        title="Sign out?"
+        footer={
+          <>
+            <Button variant="destructive" loading={signingOut} onClick={signOut}>Yes, sign out</Button>
+            <Button variant="ghost" disabled={signingOut} onClick={() => setSignOutOpen(false)}>Stay signed in</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          You&rsquo;ll need to sign back in with your email to pick up where you left off. Your progress is saved.
+        </p>
       </Sheet>
     </div>
   );

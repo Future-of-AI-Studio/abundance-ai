@@ -173,7 +173,6 @@ export function ProgramPage() {
             )}
             <div className="mt-3 flex flex-wrap gap-2">
               <MetaPill>{modules.length} module{modules.length === 1 ? '' : 's'}</MetaPill>
-              <MetaPill>~{totalRead} min read</MetaPill>
               {noteCount > 0 && <MetaPill>{noteCount} participant note{noteCount === 1 ? '' : 's'}</MetaPill>}
             </div>
           </div>
@@ -512,7 +511,6 @@ function AtAGlance({
 }) {
   const rows: Array<[string, string]> = [
     ['Modules', String(moduleCount)],
-    ['Est. read', `~${readMinutes} min`],
     ['Participant notes', String(noteCount)],
   ];
   return (

@@ -87,8 +87,9 @@ export const programUpdateRequestSchema = z.object({
 export const programActivateRequestSchema = z.object({ program_id: z.string().uuid() });
 export const programDeleteRequestSchema = z.object({ program_id: z.string().uuid() });
 
-// ── program-public + enroll (buyer-facing, public) ────────────────────────────
+// ── program-public + view-track + enroll (buyer-facing, public) ───────────────
 export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });
+export const programViewTrackRequestSchema = z.object({ program_id: z.string().uuid() });
 export const enrollSessionRequestSchema = z.object({
   program_id: z.string().uuid(),
   name: z.string().min(1),

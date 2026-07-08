@@ -32,9 +32,11 @@ Deno.serve(async (req) => {
     if (body.modules?.length) {
       for (const m of body.modules) {
         if (m.id) {
+          // Upsert (not update): a client-generated id for a brand-new module
+          // won't exist yet, so an update would no-op and the module would never
+          // persist. Upsert inserts it on first save and updates it thereafter.
           await db.from('modules')
-            .update({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })
-            .eq('id', m.id).eq('program_id', body.program_id);
+            .upsert({ id: m.id, program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes });
         } else {
           await db.from('modules')
             .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes });

@@ -143,8 +143,7 @@ export function createLiveBackend(): Backend {
         const { data } = await supabase
           .from(TABLES.mindset_conversations)
           .select('*')
-          .order('last_message_at', { ascending: false })
-          .limit(20);
+          .order('last_message_at', { ascending: false });
         return data ?? [];
       },
       async getMessages(conversationId) {
@@ -169,6 +168,18 @@ export function createLiveBackend(): Backend {
           .select('*')
           .order('created_at', { ascending: false });
         return data ?? [];
+      },
+      async getProgramStats() {
+        // Two head-only count queries (RLS-scoped to the creator) — no rows shipped.
+        const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+        const [total, week] = await Promise.all([
+          supabase.from(TABLES.program_views).select('*', { count: 'exact', head: true }),
+          supabase
+            .from(TABLES.program_views)
+            .select('*', { count: 'exact', head: true })
+            .gte('created_at', weekAgo),
+        ]);
+        return { views: total.count ?? 0, views_this_week: week.count ?? 0 };
       },
       async updateProfile(patch) {
         const { data: userRes } = await supabase.auth.getUser();

@@ -95,12 +95,6 @@ export function ChoosePathPage() {
             <RailLabel>Setup progress</RailLabel>
             <SetupProgress />
           </Card>
-          <Card variant="plain" className="border border-accent/25 bg-accent/5 p-4">
-            <p className="text-body-sm font-semibold text-ink">Not sure which to pick?</p>
-            <p className="mt-1 text-body-sm text-ink-secondary">
-              Most first-time coaches start with Live Group Coaching — it's the fastest way to earn and get feedback. You can switch later.
-            </p>
-          </Card>
         </>
       }
     />

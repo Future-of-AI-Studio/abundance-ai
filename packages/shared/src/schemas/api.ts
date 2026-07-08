@@ -386,6 +386,25 @@ export const programPublicResponseSchema = z.object({
 });
 export type ProgramPublicResponse = z.infer<typeof programPublicResponseSchema>;
 
+// ── program-view-track (record a public landing-page view) ────────────────────
+// Fired from the buyer-facing /p/:id page on load. Public + service-role (like
+// enroll) so anonymous visitors are counted without opening RLS on the owner.
+export const programViewTrackRequestSchema = z.object({ program_id: z.string().uuid() });
+export type ProgramViewTrackRequest = z.infer<typeof programViewTrackRequestSchema>;
+
+export const programViewTrackResponseSchema = z.object({ ok: z.literal(true) });
+export type ProgramViewTrackResponse = z.infer<typeof programViewTrackResponseSchema>;
+
+// ── program stats (Home dashboard metrics) ────────────────────────────────────
+// Aggregated landing-page view counts for the signed-in creator. Students +
+// revenue are derived client-side from the already-loaded enrollments list, so
+// this read only carries what the client can't cheaply compute itself.
+export const programStatsSchema = z.object({
+  views: z.number().int().nonnegative(),
+  views_this_week: z.number().int().nonnegative(),
+});
+export type ProgramStats = z.infer<typeof programStatsSchema>;
+
 // ── enroll-session (create the PaymentIntent for a program enrollment) ─────────
 export const enrollSessionRequestSchema = z.object({
   program_id: z.string().uuid(),

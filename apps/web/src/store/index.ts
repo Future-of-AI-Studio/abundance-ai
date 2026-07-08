@@ -14,6 +14,7 @@ import type {
   MindsetCheckin,
   ContentSource,
   Enrollment,
+  ProgramStats,
 } from '@abundance/shared';
 
 interface AppState {
@@ -32,6 +33,7 @@ interface AppState {
   latestCheckin: MindsetCheckin | null;
   contentSources: ContentSource[]; // Step 2 draft — auto-saved uploads/recordings
   enrollments: Enrollment[]; // buyers who signed up through the landing page
+  stats: ProgramStats; // landing-page view counts (total + this week) for Home
 
   init: () => Promise<void>;
   hydrate: () => Promise<void>;
@@ -44,6 +46,7 @@ interface AppState {
   refreshProfile: () => Promise<void>;
   refreshContent: () => Promise<void>;
   refreshEnrollments: () => Promise<void>;
+  refreshStats: () => Promise<void>;
   setUser: (u: AuthUser | null) => void;
 }
 
@@ -61,6 +64,7 @@ export const useApp = create<AppState>((set, get) => ({
   latestCheckin: null,
   contentSources: [],
   enrollments: [],
+  stats: { views: 0, views_this_week: 0 },
 
   async init() {
     const backend = await getBackend();
@@ -70,7 +74,7 @@ export const useApp = create<AppState>((set, get) => ({
     backend.auth.onChange((u) => {
       set({ user: u });
       if (u) void get().hydrate();
-      else set({ profile: null, journey: null, program: { program: null, modules: [] }, builds: [], posts: [], session: null, payments: null, latestCheckin: null, contentSources: [], enrollments: [] });
+      else set({ profile: null, journey: null, program: { program: null, modules: [] }, builds: [], posts: [], session: null, payments: null, latestCheckin: null, contentSources: [], enrollments: [], stats: { views: 0, views_this_week: 0 } });
     });
     if (user) await get().hydrate();
     set({ ready: true });
@@ -102,6 +106,7 @@ export const useApp = create<AppState>((set, get) => ({
   async refreshProfile() { const b = get().backend; if (b) set({ profile: await b.reads.getProfile() }); },
   async refreshContent() { const b = get().backend; if (b) set({ contentSources: await b.reads.getContentSources() }); },
   async refreshEnrollments() { const b = get().backend; if (b) set({ enrollments: await b.reads.getEnrollments() }); },
+  async refreshStats() { const b = get().backend; if (b) set({ stats: await b.reads.getProgramStats() }); },
   setUser(user) { set({ user }); },
 }));
 
