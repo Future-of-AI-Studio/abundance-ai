@@ -20,16 +20,25 @@ import { blobToWav } from '@/lib/audio';
 // (the prior builds are kept, up to 6) and makes it active. The user can switch
 // between builds from the Program page.
 
-// What the first-time visitor will get out of this step — shown as an
-// orientation checklist above the input options.
-const LAB_GUIDELINES = [
-  'Clarify your expertise and are naturally gifted to guide',
-  'Identify who your experience is for',
-  'Define the value or transformation they will receive',
-  'Discover the key words for a compelling title and description',
-  'Create the foundation for your first Group Mentoring Experience',
-  'Identify all the ways you can reach out to the first people you would love to invite',
-  'Build the confidence to begin with your first participants',
+// What the first-time visitor should bring to this step — shown as an
+// orientation guide above the input options.
+const SHARE_PROMPTS = [
+  {
+    title: 'What you know deeply and care about',
+    body: 'Clarify the knowledge, experience, and perspectives you are uniquely able to guide.',
+  },
+  {
+    title: 'Who your mentoring program is for',
+    body: 'Describe the people you would most love to help and the transformation and outcomes they will achieve.',
+  },
+  {
+    title: 'Your potential mentoring topics and sessions',
+    body: 'Talk through the ideas you may want to cover, how they could be organized, and what you would like participants to experience or learn.',
+  },
+  {
+    title: 'Your language and marketing ideas',
+    body: 'Share your best ideas, phrases, stories, and keywords for compelling titles, program descriptions, marketing, and social media copy.',
+  },
 ];
 
 // Typed/pasted notes are stored as .txt file sources (see saveNote) — this is how
@@ -81,6 +90,18 @@ function SourcePlayer({ load }: { load: () => Promise<string> }) {
 // Module-count choices offered in the UI. `null` = let the AI decide (3–6); the
 // numbers pin the count exactly. Kept to 3–6, the range the program design supports.
 const MODULE_COUNT_OPTIONS = [null, 3, 4, 5, 6] as const;
+
+// Written-note ceiling — matches the textarea's maxLength; surfaced in the UI so
+// the limit isn't a surprise.
+const MAX_NOTE_CHARS = 20000;
+// Voice limits: each recording auto-stops at 10 min, and total voice across all
+// recordings is capped at 30 min (both enforced, not just displayed).
+const MAX_RECORD_SECONDS = 10 * 60;
+const MAX_TOTAL_RECORD_SECONDS = 30 * 60;
+
+// mm:ss for a whole number of seconds.
+const fmtDuration = (sec: number) =>
+  `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
 export function AddContentPage() {
   const navigate = useNavigate();
@@ -227,7 +248,21 @@ export function AddContentPage() {
   const secondsRef = useRef(0); // authoritative duration for the save (state is stale in onstop)
   const timerRef = useRef<number | null>(null);
 
+  // Total voice already recorded across saved sources — drives the 30-min cap.
+  const recordedSeconds = contentSources.reduce(
+    (sum, s) => sum + (s.kind === 'voice' ? s.duration_sec ?? 0 : 0),
+    0,
+  );
+  const remainingRecordSeconds = Math.max(0, MAX_TOTAL_RECORD_SECONDS - recordedSeconds);
+  const atRecordCap = remainingRecordSeconds <= 0;
+
   const startRecording = async () => {
+    if (atRecordCap) {
+      setError('You\'ve reached the 30-minute recording limit. Remove a recording to add more, or upload a file instead.');
+      return;
+    }
+    // This take can run until the per-recording cap or whatever total time is left.
+    const limit = Math.min(MAX_RECORD_SECONDS, remainingRecordSeconds);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);
@@ -263,7 +298,14 @@ export function AddContentPage() {
       setRecording(true);
       setSeconds(0);
       secondsRef.current = 0;
-      timerRef.current = window.setInterval(() => setSeconds((s) => { secondsRef.current = s + 1; return s + 1; }), 1000);
+      timerRef.current = window.setInterval(() => setSeconds((s) => {
+        const next = s + 1;
+        secondsRef.current = next;
+        // Auto-stop at the per-take / remaining-total limit so the cap is honored
+        // even if the user doesn't tap Stop.
+        if (next >= limit) stopRecording();
+        return next;
+      }), 1000);
     } catch {
       setError('We need mic access to record. Enable it in your browser, or upload a file instead.');
     }
@@ -311,18 +353,63 @@ export function AddContentPage() {
   const main = (
     <>
       <Card variant="plain">
-        <p className="text-body-sm font-semibold text-ink">In this lab, together we&rsquo;ll:</p>
-        <ol className="mt-3 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
-          {LAB_GUIDELINES.map((guideline, i) => (
+        <p className="text-body font-semibold text-ink">What to Share With AbundanceAI</p>
+        <p className="mt-1.5 text-body-sm text-ink-secondary">
+          You can speak your answers, type them directly, or upload notes, documents, presentations, or other materials.
+        </p>
+
+        <p className="mt-5 text-body-sm font-semibold text-ink">As you share, think about:</p>
+        <ol className="mt-3 grid gap-4 sm:grid-cols-2">
+          {SHARE_PROMPTS.map((prompt, i) => (
             <li key={i} className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-primary/10 font-mono text-caption font-semibold text-primary">
                 {i + 1}
               </span>
-              <span className="text-body-sm text-ink-secondary">{guideline}</span>
+              <span>
+                <span className="block text-body-sm font-semibold text-ink">{prompt.title}</span>
+                <span className="mt-0.5 block text-body-sm text-ink-secondary">{prompt.body}</span>
+              </span>
             </li>
           ))}
         </ol>
+
+        <p className="mt-5 text-body-sm font-semibold text-ink">Share everything that feels relevant</p>
+        <p className="mt-1.5 text-body-sm text-ink-secondary">
+          You do not need to organize it perfectly. You can simply do a brain dump about your knowledge, experience,
+          ideal participants, why you care, what makes you unique, and how you want to help. AbundanceAI will structure
+          and organize it for you.
+        </p>
       </Card>
+
+      {!editing && (
+        <Card variant="plain" className="border border-accent/25 bg-accent/5">
+          <p className="text-body font-semibold text-ink">Recommended Mentoring Session Format</p>
+          <p className="mt-1.5 text-body-sm text-ink-secondary">
+            Most online group mentoring sessions work well at 75&ndash;90 minutes.
+          </p>
+
+          <p className="mt-4 text-body-sm font-semibold text-ink">We recommend:</p>
+          <ul className="mt-2 flex flex-col gap-2">
+            <li className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-pill bg-accent" />
+              <span className="text-body-sm text-ink-secondary">
+                20&ndash;40 minutes to share your knowledge, ideas, stories, or framework
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-pill bg-accent" />
+              <span className="text-body-sm text-ink-secondary">
+                The remaining time for participant discussion, exercises, personal guidance, and Q&amp;A
+              </span>
+            </li>
+          </ul>
+
+          <p className="mt-4 text-body-sm text-ink-secondary">
+            This creates a balance between sharing your expertise and giving participants the opportunity to engage,
+            apply what they are learning, and receive support.
+          </p>
+        </Card>
+      )}
 
       <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Add your material</p>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -344,7 +431,7 @@ export function AddContentPage() {
         >
           <PencilIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">Write or paste it</span>
-          <span className="text-caption text-ink-secondary">Type your knowledge directly</span>
+          <span className="text-caption text-ink-secondary">Type directly · up to {MAX_NOTE_CHARS.toLocaleString()} characters</span>
         </button>
 
         {/* Record */}
@@ -362,8 +449,12 @@ export function AddContentPage() {
               <span className="h-2 w-2 animate-dot-pulse rounded-pill bg-error" />
               {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
             </span>
+          ) : atRecordCap ? (
+            <span className="text-caption text-error">30 min recording limit reached</span>
           ) : (
-            <span className="text-caption text-ink-secondary">Tap to start</span>
+            <span className="text-caption text-ink-secondary">
+              Tap to start · 10 min each, {fmtDuration(remainingRecordSeconds)} of 30 min left
+            </span>
           )}
         </button>
       </div>
@@ -501,11 +592,14 @@ export function AddContentPage() {
           autoFocus
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
-          maxLength={20000}
+          maxLength={MAX_NOTE_CHARS}
           rows={10}
           placeholder="Start typing, or paste from anywhere…"
           className="mt-3 w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
         />
+        <p className={cn('mt-1.5 text-right text-caption', noteText.length >= MAX_NOTE_CHARS ? 'text-error' : 'text-ink-secondary')}>
+          {noteText.length.toLocaleString()} / {MAX_NOTE_CHARS.toLocaleString()} characters
+        </p>
       </Sheet>
 
       <Sheet
@@ -550,9 +644,22 @@ export function AddContentPage() {
   ) : (
     <Card variant="plain" className="border border-accent/25 bg-accent/5 p-4">
       <RailLabel>How this works</RailLabel>
-      <p className="text-body-sm text-ink-secondary">
-        Add anything you've got — a file, notes, or just talk it out. Messy is fine; I'll find the structure and shape it into modules.
-      </p>
+      <div className="space-y-4">
+        <div>
+          <p className="text-body-sm font-semibold text-ink">1. Share your ideas and materials</p>
+          <p className="mt-1 text-body-sm text-ink-secondary">
+            Speak, type, upload, or bring in content from another AI — and pick how many sessions to create, or let
+            AbundanceAI recommend. No need to organize first; it structures everything for you.
+          </p>
+        </div>
+        <div>
+          <p className="text-body-sm font-semibold text-ink">2. Build your mentoring program</p>
+          <p className="mt-1 text-body-sm text-ink-secondary">
+            Select Build and AbundanceAI creates your sessions. Review, edit, or make another version — your previous
+            builds stay available to compare and pick from.
+          </p>
+        </div>
+      </div>
     </Card>
   );
 

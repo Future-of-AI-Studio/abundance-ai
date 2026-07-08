@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { isStepComplete } from '@abundance/shared';
 import { Button, Card, Badge } from '@/components/ui';
 import { ShieldIcon, ArrowRight, UsersIcon, CheckIcon } from '@/components/ui/icons';
-import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { StepLayout, RailLabel } from '@/components/StepLayout';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { PriceEditor } from '@/components/PriceEditor';
@@ -16,6 +15,60 @@ const NEXT_STEPS: Array<{ title: string; detail: string }> = [
   { title: 'They enroll & pay', detail: 'Checkout is handled for you, securely.' },
   { title: 'You get paid', detail: 'Payouts land in your connected account.' },
 ];
+
+// What connecting Stripe actually involves. We use Stripe Connect, so tapping
+// "Connect Stripe" hands the user off to Stripe's own hosted onboarding — these
+// are the screens they'll walk through there before returning to AbundanceAI.
+const STRIPE_STEPS: Array<{ title: string; detail: string }> = [
+  {
+    title: 'Head to Stripe',
+    detail: "Tap Connect Stripe and we'll hand you to Stripe's secure setup. Nothing new to create here — Stripe runs it.",
+  },
+  {
+    title: 'Tell Stripe about you',
+    detail: 'Enter your name, email, country, and business type. Most mentors choose “Individual.”',
+  },
+  {
+    title: 'Verify your identity',
+    detail: 'Add your date of birth, address, and a government ID or tax number so Stripe can confirm it’s really you.',
+  },
+  {
+    title: 'Add where you get paid',
+    detail: 'Connect the bank account or debit card where your payouts should land.',
+  },
+  {
+    title: 'Review and finish',
+    detail: 'Submit your details. Stripe brings you back here, verified and ready to accept payments.',
+  },
+];
+
+// The Stripe onboarding walkthrough, shown in place of the old video.
+function StripeSetupGuide() {
+  return (
+    <Card variant="plain">
+      <div className="flex items-center gap-2">
+        <ShieldIcon width={18} height={18} className="text-accent" />
+        <p className="text-body-sm font-semibold text-ink">What setting up Stripe looks like</p>
+      </div>
+      <p className="mt-1 text-body-sm text-ink-secondary">
+        About 5 minutes, all on Stripe’s secure site. You can pause and pick up where you left off.
+      </p>
+      <ol className="mt-4 space-y-4">
+        {STRIPE_STEPS.map((s, i) => (
+          <li key={s.title} className="flex gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-primary/10 font-mono text-caption font-semibold text-primary">
+              {i + 1}
+            </span>
+            <div className="min-w-0">
+              <p className="text-body-sm font-semibold text-ink">{s.title}</p>
+              <p className="mt-0.5 text-body-sm text-ink-secondary">{s.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
 
 // The right-rail "what happens next" checklist, shared by both states.
 function WhatHappensNext() {
@@ -113,7 +166,7 @@ export function GetPaidPage() {
               </p>
             </Card>
 
-            <VideoPlayer poster="" label="Watch the walkthrough" />
+            <StripeSetupGuide />
 
             <Button size="lg" loading={connecting} onClick={connect}>Connect Stripe</Button>
 

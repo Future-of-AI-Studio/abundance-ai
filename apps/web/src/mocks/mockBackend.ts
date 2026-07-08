@@ -281,7 +281,7 @@ export function createMockBackend(): Backend {
       const targetCount = platforms.length + (req.include_email ? 1 : 0);
       const count = ({ 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 } as Record<number, number>)[targetCount] ?? 2;
       const fresh = MOCK.posts(activeBuild().program?.title ?? 'Your program', platforms, req.include_email, count).map((p) => ({
-        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, phase, ...p,
+        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, favorited: false, phase, ...p,
       }));
       // Replace only this phase's posts (mirrors the live backend).
       state.posts = [...state.posts.filter((p) => p.phase !== phase), ...fresh];
@@ -295,6 +295,7 @@ export function createMockBackend(): Backend {
       if (req.caption !== undefined) post.caption = req.caption;
       if (req.hashtags !== undefined) post.hashtags = req.hashtags;
       if (req.posted !== undefined) post.posted = req.posted;
+      if (req.favorited !== undefined) post.favorited = req.favorited;
       save();
       return { post };
     },

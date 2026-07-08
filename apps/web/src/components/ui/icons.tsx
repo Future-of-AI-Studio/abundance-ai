@@ -12,6 +12,7 @@ const base = (p: I) => ({
 export const HomeIcon = (p: I) => (<svg {...base(p)}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /></svg>);
 export const ProgramIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 9v11" /></svg>);
 export const HeartIcon = (p: I) => (<svg {...base(p)}><path d="M12 20s-7-4.35-9.5-8.5C1 8.5 2.5 5.5 6 5.5c2 0 3 1.2 4 2.5 1-1.3 2-2.5 4-2.5 3.5 0 5 3 3.5 6C19 15.65 12 20 12 20Z" /></svg>);
+export const StarIcon = (p: I) => (<svg {...base(p)}><path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 3.5Z" /></svg>);
 export const CircleTabIcon = (p: I) => (<svg {...base(p)}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /></svg>);
 export const ArrowRight = (p: I) => (<svg {...base(p)}><path d="M5 12h14M13 6l6 6-6 6" /></svg>);
 export const ArrowLeft = (p: I) => (<svg {...base(p)}><path d="M19 12H5M11 6l-6 6 6 6" /></svg>);

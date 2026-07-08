@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { MarketingPost, Platform, MarketingPhase } from '@abundance/shared';
 import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget } from '@abundance/shared';
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
-import { CopyIcon, CheckIcon, SparkleIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
+import { CopyIcon, CheckIcon, SparkleIcon, StarIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
 import { StepLayout } from '@/components/StepLayout';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -23,6 +23,15 @@ const TARGET_ICON = { ...PLATFORM_ICON, email: MailIcon } as const;
 const TARGET_LABEL = { facebook: 'Facebook', instagram: 'Instagram', x: 'X', linkedin: 'LinkedIn', email: 'Email' } as const;
 const PHASE_ORDER: MarketingPhase[] = ['launch', 'ongoing', 'evergreen'];
 const PHASE_SEGMENTS = PHASE_ORDER.map((v) => ({ value: v, label: PHASE_LABELS[v] }));
+
+// The copy formats AbundanceAI can draft — shown in the "How it works" guide.
+const MARKETING_FORMATS = [
+  'Program titles',
+  'Program descriptions',
+  'Invitations and outreach messages',
+  'Social media posts',
+  'Other promotional copy',
+];
 
 // [09] Marketing Kit — pick the platforms you want, then AI writes a post tailored
 // to each (Facebook / Instagram / X / LinkedIn), plus an optional email.
@@ -154,6 +163,30 @@ export function MarketingKitPage() {
             Not on social? See other ways to share →
           </button>
 
+          {/* How it works — orients first-timers to what the kit produces. */}
+          <Card variant="plain" className="border border-accent/25 bg-accent/5">
+            <p className="text-body-sm font-semibold text-ink">How it works</p>
+            <p className="mt-1.5 text-body-sm text-ink-secondary">
+              Once you are happy with your mentoring program, AbundanceAI will help you create the marketing copy to
+              share it with the world.
+            </p>
+            <p className="mt-3 text-body-sm text-ink-secondary">
+              Choose the marketing and social media formats you would like, and receive multiple options for:
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {MARKETING_FORMATS.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-body-sm text-ink">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-pill bg-accent" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-body-sm text-ink-secondary">
+              Star your favorites with the <StarIcon width={14} height={14} className="inline align-[-2px] text-primary" /> icon
+              and create additional versions until it feels like you.
+            </p>
+          </Card>
+
           <Button
             size="lg"
             iconRight={<ArrowRight width={20} height={20} />}
@@ -231,6 +264,10 @@ function PostCard({ post }: { post: MarketingPost }) {
     if (backend) { await backend.api.marketingUpdate({ id: post.id, posted: !post.posted }); await refreshMarketing(); }
   };
 
+  const toggleFavorite = async () => {
+    if (backend) { await backend.api.marketingUpdate({ id: post.id, favorited: !post.favorited }); await refreshMarketing(); }
+  };
+
   // Mobile: hand to the OS share sheet. Desktop: open the per-platform menu.
   const share = async () => {
     if (canNativeShare(shareText)) {
@@ -259,10 +296,23 @@ function PostCard({ post }: { post: MarketingPost }) {
   };
 
   return (
-    <Card variant="plain">
+    <Card variant="plain" className={cn(post.favorited && 'border-primary/40 bg-primary/[0.03]')}>
       <div className="mb-2 flex items-center gap-1.5 text-caption font-medium text-ink-secondary">
         {PlatformIcon && <PlatformIcon width={14} height={14} />}
         {platformLabel}
+        <button
+          type="button"
+          onClick={toggleFavorite}
+          aria-pressed={post.favorited}
+          aria-label={post.favorited ? 'Remove from favorites' : 'Add to favorites'}
+          title={post.favorited ? 'Favorited' : 'Add to favorites'}
+          className={cn(
+            'ml-auto transition-colors',
+            post.favorited ? 'text-primary' : 'text-ink-secondary/50 hover:text-primary',
+          )}
+        >
+          <StarIcon width={18} height={18} fill={post.favorited ? 'currentColor' : 'none'} />
+        </button>
       </div>
       {editing ? (
         <textarea

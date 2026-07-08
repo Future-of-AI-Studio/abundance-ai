@@ -64,7 +64,17 @@ const STEPS: Step[] = [
   {
     Icon: CardIcon,
     title: 'Set up payment',
-    lead: 'Connect how you want to get paid so participants can join your program.',
+    lead:
+      'Connect how you want to get paid so participants can join your program. Select Connect Stripe and Stripe’s secure setup (about 5 minutes) will walk you through:',
+    bullets: [
+      'Head to Stripe — we hand you off to Stripe’s secure site; nothing new to create here',
+      'Tell Stripe about you — your name, email, country, and business type (most mentors choose “Individual”)',
+      'Verify your identity — your date of birth, address, and a government ID or tax number',
+      'Add where you get paid — the bank account or debit card where payouts should land',
+      'Review and finish — submit your details and Stripe brings you back, verified and ready',
+    ],
+    outro:
+      'Payouts go straight to your own connected account. AbundanceAI never holds your money.',
   },
 ];
 
@@ -141,6 +151,33 @@ export function HelpPage() {
               This creates a balance between sharing your expertise and giving participants the
               opportunity to engage, apply what they are learning, and receive support.
             </p>
+          </Card>
+
+          <Card variant="plain" className="border border-accent/25 bg-accent/5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-accent/15 text-accent">
+                <WandSparklesIcon width={20} height={20} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <Eyebrow className="text-accent">Pro tip</Eyebrow>
+                <h3 className="mt-1 text-h3 font-semibold text-ink">Bring along what your AI already knows about you</h3>
+                <p className="mt-2 text-body-sm text-ink-secondary">
+                  If you already use ChatGPT, Claude, Microsoft Copilot, Gemini, or another AI assistant, you can ask it
+                  to help you gather your ideas, knowledge, stories, experience, and previous work.
+                </p>
+                <p className="mt-2 text-body-sm text-ink-secondary">
+                  Then bring anything useful it generates into AbundanceAI by pasting the text or uploading the document.
+                </p>
+                <p className="mt-2 text-body-sm text-ink-secondary">
+                  Your existing AI may already know a great deal about you. AbundanceAI will use that material, along with
+                  everything else you share, to structure and create your mentoring program.
+                </p>
+                <p className="mt-2 text-body-sm text-ink-secondary">
+                  You do not need any previous AI experience. You can simply speak, type, or upload what you already have,
+                  and AbundanceAI will guide you from there.
+                </p>
+              </div>
+            </div>
           </Card>
 
           <Card variant="plain" className="text-center">

@@ -145,6 +145,7 @@ export const marketingPostSchema = z.object({
   caption: z.string(),
   hashtags: z.array(z.string()).default([]),
   posted: z.boolean().default(false),
+  favorited: z.boolean().default(false), // user starred this as a keeper
   created_at: timestamp,
 });
 export type MarketingPost = z.infer<typeof marketingPostSchema>;

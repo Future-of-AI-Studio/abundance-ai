@@ -192,6 +192,7 @@ export const marketingUpdateRequestSchema = z.object({
   caption: z.string().min(1, "A post can't be empty.").optional(),
   hashtags: z.array(z.string()).optional(),
   posted: z.boolean().optional(),
+  favorited: z.boolean().optional(),
 });
 export type MarketingUpdateRequest = z.infer<typeof marketingUpdateRequestSchema>;
 
