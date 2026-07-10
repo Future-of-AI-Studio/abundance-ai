@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { Spinner } from './Spinner';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'accent' | 'accent-secondary';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'accent' | 'accent-secondary' | 'orange';
 type Size = 'lg' | 'md' | 'sm';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,6 +21,8 @@ const VARIANT: Record<Variant, string> = {
   destructive: 'bg-transparent text-error border border-error/50 hover:bg-error/5',
   accent: 'bg-accent text-white hover:bg-accent/90 active:bg-accent disabled:hover:bg-accent',
   'accent-secondary': 'bg-surface-plain text-accent border border-accent/50 hover:border-accent hover:bg-accent/5',
+  // Warm orange that pops as the complement of the lp-teal panels (auth / checkout).
+  orange: 'bg-lp-orange text-white hover:bg-lp-orange/90 active:bg-lp-orange disabled:hover:bg-lp-orange',
 };
 const SIZE: Record<Size, string> = {
   lg: 'h-[52px] px-6 text-body',

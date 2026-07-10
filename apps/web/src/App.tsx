@@ -16,6 +16,7 @@ import { ChoosePathPage } from '@/pages/ChoosePathPage';
 import { AddContentPage } from '@/pages/AddContentPage';
 import { BuildingPage } from '@/pages/BuildingPage';
 import { ProgramPage } from '@/pages/ProgramPage';
+import { LandingStudioPage } from '@/pages/LandingStudioPage';
 import { MarketingKitPage } from '@/pages/MarketingKitPage';
 import { LiveSessionsPage } from '@/pages/LiveSessionsPage';
 import { GetPaidPage } from '@/pages/GetPaidPage';
@@ -48,6 +49,8 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="program" element={<ProgramPage />} />
+          {/* Landing Studio — customize the public /p/:id page's look & copy. */}
+          <Route path="landing" element={<LandingStudioPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="mindset" element={<MindsetPage />} />
           <Route path="circle" element={<CirclePage />} />

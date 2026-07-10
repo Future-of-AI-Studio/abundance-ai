@@ -72,7 +72,7 @@ export interface BackendReads {
   getEnrollments(): Promise<Enrollment[]>;
   /** Aggregated landing-page view counts (total + this week) — powers Home metrics. */
   getProgramStats(): Promise<ProgramStats>;
-  updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category' | 'category_other' | 'bio' | 'avatar_url'>>): Promise<Profile>;
+  updateProfile(patch: Partial<Pick<Profile, 'first_name' | 'category' | 'category_other' | 'bio' | 'avatar_url' | 'landing_page'>>): Promise<Profile>;
 }
 
 /** Content upload (signed URL issued by the Edge Function, bytes PUT by the client). */

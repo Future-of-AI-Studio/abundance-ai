@@ -34,6 +34,8 @@ export const HeartHandshakeIcon = (p: I) => (<svg {...base(p)}><path d="M12 20s-
 export const CalendarIcon = (p: I) => (<svg {...base(p)}><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></svg>);
 export const VideoIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></svg>);
 export const ChatIcon = (p: I) => (<svg {...base(p)}><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-5.1A7.5 7.5 0 1 1 21 11.5Z" /></svg>);
+export const GlobeIcon = (p: I) => (<svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3c2.5 2.3 4 5.5 4 9s-1.5 6.7-4 9c-2.5-2.3-4-5.5-4-9s1.5-6.7 4-9Z" /></svg>);
+export const PaletteIcon = (p: I) => (<svg {...base(p)}><path d="M12 21a9 9 0 1 1 9-9c0 1.9-1.4 3.2-3.2 3.2h-1.9a2.1 2.1 0 0 0-1.6 3.5c.4.4.6.9.6 1.4A1.9 1.9 0 0 1 13 21h-1Z" /><circle cx="7.8" cy="12.2" r=".6" /><circle cx="9.4" cy="8" r=".6" /><circle cx="13.6" cy="6.8" r=".6" /><circle cx="17" cy="9.4" r=".6" /></svg>);
 export const PencilIcon = (p: I) => (<svg {...base(p)}><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" /><path d="M14.5 7.5l3 3" /></svg>);
 export const CardIcon = (p: I) => (<svg {...base(p)}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></svg>);
 export const HelpIcon = (p: I) => (<svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3" /><path d="M12 17h.01" /></svg>);

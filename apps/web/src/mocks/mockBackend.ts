@@ -120,7 +120,7 @@ export function createMockBackend(): Backend {
   function bootstrapUser(email: string, firstName: string, category: Category = 'other', categoryOther: string | null = null) {
     const id = uid();
     state.user = { id, email };
-    state.profile = { id, first_name: firstName, email, avatar_url: null, category, category_other: category === 'other' ? categoryOther : null, bio: null, paid_at: nowIso(), created_at: nowIso() };
+    state.profile = { id, first_name: firstName, email, avatar_url: null, category, category_other: category === 'other' ? categoryOther : null, bio: null, landing_page: null, paid_at: nowIso(), created_at: nowIso() };
     state.journey = { user_id: id, path: null, current_step: null, completed_steps: [], updated_at: nowIso() };
     state.session = { user_id: id, platform: 'google_meet', meet_link: null, updated_at: nowIso() };
     state.stripe = { user_id: id, connected: false, account_id: null, checklist: { bank: false, id: false, email: true }, updated_at: nowIso() };
@@ -232,6 +232,7 @@ export function createMockBackend(): Backend {
           avatar_url: state.profile?.avatar_url ?? null,
           email: state.profile?.email ?? 'hello@abundance.ai',
           bio: state.profile?.bio ?? null,
+          landing_page: state.profile?.landing_page ?? null,
         },
       };
     },

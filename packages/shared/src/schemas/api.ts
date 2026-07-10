@@ -12,6 +12,7 @@ import {
   circleMeetupSchema,
   testimonialSchema,
   journeyStepSchema,
+  landingPageSettingsSchema,
 } from './entities.js';
 import {
   channelSchema,
@@ -383,6 +384,8 @@ export const programPublicResponseSchema = z.object({
     email: z.string().email(),
     // Creator's self-written intro for "Meet your guide"; null → generated blurb.
     bio: z.string().nullable(),
+    // Landing page appearance/copy customization; null = default look.
+    landing_page: landingPageSettingsSchema.nullable(),
   }),
 });
 export type ProgramPublicResponse = z.infer<typeof programPublicResponseSchema>;

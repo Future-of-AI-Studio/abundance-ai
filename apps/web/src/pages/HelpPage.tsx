@@ -11,6 +11,7 @@ import {
   CardIcon,
   UsersIcon,
   UserIcon,
+  WandSparklesIcon,
 } from '@/components/ui/icons';
 
 // [Help] A help-center landing page: search, browse-by-topic tiles, and the
@@ -58,6 +59,17 @@ const FAQS: Faq[] = [
   },
 ];
 
+// Pro-tip callout: bring material your existing AI assistant already has.
+const PRO_TIP = {
+  title: 'Bring along what your AI already knows about you',
+  paragraphs: [
+    'If you already use ChatGPT, Claude, Microsoft Copilot, Gemini, or another AI assistant, you can ask it to help you gather your ideas, knowledge, stories, experience, and previous work.',
+    'Then bring anything useful it generates into AbundanceAI by pasting the text or uploading the document.',
+    'Your existing AI may already know a great deal about you. AbundanceAI will use that material, along with everything else you share, to structure and create your mentoring program.',
+    'You do not need any previous AI experience. You can simply speak, type, or upload what you already have, and AbundanceAI will guide you from there.',
+  ],
+};
+
 // The recommended split of a session's time, rendered as two labelled bars.
 const SESSION_SPLIT = [
   { label: 'Share your knowledge or framework', range: '20–40 min', pct: 40 },
@@ -77,12 +89,14 @@ export function HelpPage() {
     () => (q ? TOPICS.filter((t) => (t.title + ' ' + t.blurb).toLowerCase().includes(q)) : TOPICS),
     [q],
   );
+  const showProTip =
+    !q || (PRO_TIP.title + ' ' + PRO_TIP.paragraphs.join(' ')).toLowerCase().includes(q);
 
   return (
     <div>
       {/* Hero — centred search over the whole help center */}
       <div className="mx-auto max-w-2xl text-center">
-        <Eyebrow className="text-accent">Help center</Eyebrow>
+        <Eyebrow className="text-accent">Guidance</Eyebrow>
         <h1 className="mt-2 font-serif text-h1 font-medium text-ink">How can we help?</h1>
         <p className="mx-auto mt-2 max-w-md text-body text-ink-secondary">
           Search our guides, or browse a topic below to get the most out of AbundanceAI.
@@ -115,7 +129,7 @@ export function HelpPage() {
           <p className="text-body-sm text-ink-secondary">No topics match “{query}”.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {topics.map(({ Icon, title, blurb, count }) => (
+            {topics.map(({ Icon, title, blurb }) => (
               <button
                 key={title}
                 type="button"
@@ -135,6 +149,28 @@ export function HelpPage() {
           </div>
         )}
       </section>
+
+      {/* Pro tip — bring material from the AI assistant they already use */}
+      {showProTip && (
+        <section className="mt-10">
+          <Card variant="plain" className="border border-accent/25 bg-accent/5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                <WandSparklesIcon width={20} height={20} />
+              </span>
+              <div className="min-w-0">
+                <Eyebrow className="text-accent">Pro tip</Eyebrow>
+                <h2 className="mt-1 font-serif text-h2 text-ink">{PRO_TIP.title}</h2>
+                <div className="mt-3 max-w-3xl space-y-3">
+                  {PRO_TIP.paragraphs.map((p, i) => (
+                    <p key={i} className="text-body-sm leading-relaxed text-ink-secondary">{p}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </section>
+      )}
 
       {/* Popular questions + session-format rail */}
       <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">

@@ -392,12 +392,12 @@ function ModuleCard({
                     </div>
                   )}
                   {notes.length > 0 && (
-                    <div>
-                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Notes for participants</p>
+                    <div className="rounded-md bg-primary/5 px-3 py-2">
+                      <p className="text-caption font-semibold uppercase tracking-wide text-primary">Notes for participants</p>
                       <ul className="mt-1 space-y-1">
                         {notes.map((note, i) => (
-                          <li key={i} className="flex gap-2 text-body-sm text-ink">
-                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                          <li key={i} className="flex gap-2 text-caption text-ink-secondary">
+                            <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
                             <span>{note}</span>
                           </li>
                         ))}
@@ -502,7 +502,7 @@ function BuildsRail({
 }
 
 function AtAGlance({
-  moduleCount, readMinutes, noteCount, onViewLive,
+  moduleCount, noteCount, onViewLive,
 }: {
   moduleCount: number;
   readMinutes: number;
@@ -709,12 +709,12 @@ function BuildReader({
                   )}
 
                   {toBullets(current.participant_notes).length > 0 && (
-                    <div className="mt-6">
-                      <p className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">Notes for participants</p>
-                      <ul className="mt-2 space-y-1.5">
+                    <div className="mt-6 rounded-md bg-primary/5 px-3 py-2">
+                      <p className="text-caption font-semibold uppercase tracking-wide text-primary">Notes for participants</p>
+                      <ul className="mt-1 space-y-1">
                         {toBullets(current.participant_notes).map((note, i) => (
-                          <li key={i} className="flex gap-2 text-body-sm text-ink">
-                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                          <li key={i} className="flex gap-2 text-caption text-ink-secondary">
+                            <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
                             <span>{note}</span>
                           </li>
                         ))}

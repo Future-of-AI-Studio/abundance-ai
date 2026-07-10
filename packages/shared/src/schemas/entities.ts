@@ -38,6 +38,44 @@ export const journeyStepSchema = z.enum([
 ]);
 export type JourneyStep = z.infer<typeof journeyStepSchema>;
 
+// ── landing page customization ───────────────────────────────────────────────
+// Creator-chosen appearance & copy for their public program landing page,
+// stored as one jsonb blob on profiles (null = untouched defaults). Every field
+// has a default so a partial/legacy blob still parses.
+export const landingThemeIdSchema = z.enum(['warm', 'sage', 'sky', 'dusk', 'mono']);
+export type LandingThemeId = z.infer<typeof landingThemeIdSchema>;
+
+// Constrained button/accent swatches (named, not free hex) so pages stay
+// tasteful and button text stays legible. The hex values live in the web app.
+export const landingBrandColorSchema = z.enum([
+  'clay', 'amber', 'forest', 'pine', 'teal', 'ocean',
+  'blue', 'indigo', 'violet', 'plum', 'rose', 'slate',
+]);
+export type LandingBrandColor = z.infer<typeof landingBrandColorSchema>;
+
+export const landingPageSettingsSchema = z.object({
+  theme: landingThemeIdSchema.default('warm'), // color palette preset
+  background: z.enum(['solid', 'gradient']).default('solid'), // page background style
+  heading_font: z.enum(['serif', 'sans']).default('serif'), // display headings
+  corners: z.enum(['soft', 'sharp']).default('soft'), // card/button roundness
+  brand_color: landingBrandColorSchema.nullable().default(null), // button/accent override; null → theme's own
+  eyebrow: z.string().max(60).nullable().default(null), // hero badge; null → "Live group program"
+  tagline: z.string().max(200).nullable().default(null), // hero subtitle; null → first module outcome
+  cta_label: z.string().max(40).nullable().default(null), // enroll button; null → "Enroll now"
+  // Section headings; null → the built-in copy.
+  guide_heading: z.string().max(60).nullable().default(null), // "Meet your guide"
+  inside_eyebrow: z.string().max(60).nullable().default(null), // "A look inside the program"
+  inside_heading: z.string().max(80).nullable().default(null), // "What you'll work through."
+  closing_heading: z.string().max(80).nullable().default(null), // "Join us now."
+  // "What's included" bullets shown next to the price (empty = hidden).
+  included: z.array(z.string().max(100)).max(8).default([]),
+  // Social links shown in the guide card (handle or full URL; empty = hidden).
+  social_instagram: z.string().max(200).nullable().default(null),
+  social_linkedin: z.string().max(200).nullable().default(null),
+  social_website: z.string().max(200).nullable().default(null),
+});
+export type LandingPageSettings = z.infer<typeof landingPageSettingsSchema>;
+
 // ── profiles ────────────────────────────────────────────────────────────────
 export const profileSchema = z.object({
   id: uuid, // = auth.uid()
@@ -51,6 +89,8 @@ export const profileSchema = z.object({
   // Creator's self-written intro, shown as "Meet your guide" on the public
   // landing page. Null until they write one (landing falls back to a blurb).
   bio: z.string().nullable(),
+  // Landing page appearance/copy customization; null = default look.
+  landing_page: landingPageSettingsSchema.nullable(),
   paid_at: timestamp.nullable(), // null = has not paid; set when a Stripe order is paid
   created_at: timestamp,
 });

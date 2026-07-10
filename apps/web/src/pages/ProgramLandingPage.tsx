@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { Category, ProgramPublicResponse, EnrollResponse } from '@abundance/shared';
 import { Button, TextInput, Avatar, Sheet, Spinner } from '@/components/ui';
 import { Logo } from '@/layouts/PublicLayout';
-import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon } from '@/components/ui/icons';
+import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { formatPrice } from '@/lib/money';
 import { env } from '@/lib/env';
+import { resolveLanding, landingBackground, landingRadii, externalHref } from '@/lib/landingTheme';
 
 // [Public] Program landing page (/p/:programId) — the page a creator shares so
 // prospective students can preview the program, learn about the guide, and enroll.
@@ -78,7 +79,7 @@ export function ProgramLandingPage() {
 
   return (
     <>
-      <Landing data={data} onEnroll={() => setEnrollOpen(true)} />
+      <LandingView data={data} onEnroll={() => setEnrollOpen(true)} />
       <EnrollSheet
         open={enrollOpen}
         onClose={() => setEnrollOpen(false)}
@@ -89,20 +90,44 @@ export function ProgramLandingPage() {
   );
 }
 
-function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: () => void }) {
+// The themed page body. Exported so the Landing Studio (/app/landing) can render
+// a live preview of the exact same markup with draft settings injected.
+// Palette colors are inline styles (runtime values); layout stays Tailwind.
+export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: () => void }) {
   const { program, modules, creator } = data;
+  const { settings, palette: t } = resolveLanding(creator.landing_page);
+  const headingFont = settings.heading_font === 'sans' ? 'font-sans' : 'font-serif';
+  const radii = landingRadii(settings.corners);
+  const eyebrow = settings.eyebrow?.trim() || 'Live group program';
+  const ctaLabel = settings.cta_label?.trim() || 'Enroll now';
+  const guideHeading = settings.guide_heading?.trim() || 'Meet your guide';
+  const insideEyebrow = settings.inside_eyebrow?.trim() || 'A look inside the program';
+  const insideHeading = settings.inside_heading?.trim() || "What you'll work through.";
+  const closingHeading = settings.closing_heading?.trim() || 'Join us now.';
   const price = formatPrice(program.price_cents);
-  const subtitle = modules[0]?.outcome
-    ? modules[0].outcome
-    : `A step-by-step program from ${creator.first_name}, built to move you forward.`;
+  const subtitle = settings.tagline?.trim()
+    || modules[0]?.outcome
+    || `A step-by-step program from ${creator.first_name}, built to move you forward.`;
+  const btnStyle = { backgroundColor: t.primary, color: t.onPrimary, borderRadius: radii.button };
+  const included = settings.included.map((s) => s.trim()).filter(Boolean);
+  const socials = [
+    { label: 'Instagram', value: settings.social_instagram, Icon: InstagramIcon },
+    { label: 'LinkedIn', value: settings.social_linkedin, Icon: LinkedInIcon },
+    { label: 'Website', value: settings.social_website, Icon: GlobeIcon },
+  ].filter((s): s is typeof s & { value: string } => !!s.value?.trim());
 
   return (
-    <div className="min-h-[100dvh] bg-bg">
-      {/* Header */}
-      <header className="border-b border-line bg-bg/95 backdrop-blur">
+    <div className="min-h-[100dvh]" style={{ background: landingBackground(t, settings.background), color: t.ink }}>
+      {/* Header — logo drawn inline (not <Logo/>) so it recolors with the theme. */}
+      <header className="border-b" style={{ borderColor: t.line }}>
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 lg:px-8 py-4">
-          <Logo to="/" />
-          <span className="inline-flex items-center gap-1.5 text-caption text-ink-secondary">
+          <Link to="/" className="inline-flex items-center gap-2 font-semibold" style={{ color: t.ink }}>
+            <span className="flex h-7 w-7 items-center justify-center rounded-pill" style={btnStyle}>
+              <span className="font-mono text-data">A</span>
+            </span>
+            <span className="text-h3">AbundanceAI</span>
+          </Link>
+          <span className="inline-flex items-center gap-1.5 text-caption" style={{ color: t.inkSoft }}>
             <ShieldIcon width={16} height={16} /> Secure checkout
           </span>
         </div>
@@ -112,62 +137,98 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
       <section className="mx-auto max-w-[1200px] px-6 lg:px-8 pt-10 lg:pt-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="font-mono text-data uppercase tracking-wide text-accent">Live group program</p>
-            <h1 className="mt-3 font-serif text-display leading-tight text-ink-deep">{program.title}</h1>
-            <p className="mt-4 max-w-md text-body text-ink-secondary">{subtitle}</p>
+            <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.accent }}>{eyebrow}</p>
+            <h1 className={`mt-3 text-display leading-tight ${headingFont}`} style={{ color: t.inkDeep }}>{program.title}</h1>
+            <p className="mt-4 max-w-md text-body" style={{ color: t.inkSoft }}>{subtitle}</p>
 
             <div className="mt-6 flex items-center gap-3">
               <Avatar name={creator.first_name} src={creator.avatar_url} size={44} className="bg-accent/20 text-accent" />
-              <p className="text-body-sm text-ink">
+              <p className="text-body-sm" style={{ color: t.ink }}>
                 with <span className="font-semibold">{creator.first_name}</span>
               </p>
             </div>
 
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              <span className="font-serif text-display text-primary">{price}</span>
+              <span className={`text-display ${headingFont}`} style={{ color: t.primary }}>{price}</span>
               <div className="w-full max-w-[220px]">
-                <Button size="lg" iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>Enroll now</Button>
+                <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel}</Button>
               </div>
             </div>
+
+            {/* What's included — the creator's own bullets (hidden when empty). */}
+            {included.length > 0 && (
+              <div className="mt-7">
+                <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.accent }}>What's included</p>
+                <ul className="mt-3 space-y-2">
+                  {included.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-body-sm" style={{ color: t.ink }}>
+                      <CheckIcon width={16} height={16} className="mt-0.5 shrink-0" style={{ color: t.accent }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Meet your guide — the creator's intro, front and center in the hero. */}
-          <div className="relative rounded-xl bg-gradient-to-br from-accent/15 via-primary/10 to-surface p-8">
-            <p className="font-mono text-data uppercase tracking-wide text-primary">Meet your guide</p>
+          <div
+            className="relative rounded-xl p-8"
+            style={{ background: `linear-gradient(135deg, ${t.heroFrom}, ${t.heroVia}, ${t.heroTo})`, borderRadius: radii.card }}
+          >
+            <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.primary }}>{guideHeading}</p>
             <div className="mt-4 flex items-center gap-5">
-              <Avatar name={creator.first_name} src={creator.avatar_url} size={112} className="shadow-md ring-4 ring-surface-plain bg-accent/20 text-accent" />
+              <Avatar name={creator.first_name} src={creator.avatar_url} size={112} className="shadow-md bg-accent/20 text-accent" />
               <div>
-                <h2 className="font-serif text-h2 leading-tight text-ink-deep">{creator.first_name}</h2>
-                <p className="text-body-sm text-ink-secondary">{CREATOR_ROLE[creator.category]}</p>
+                <h2 className={`text-h2 leading-tight ${headingFont}`} style={{ color: t.inkDeep }}>{creator.first_name}</h2>
+                <p className="text-body-sm" style={{ color: t.inkSoft }}>{CREATOR_ROLE[creator.category]}</p>
               </div>
             </div>
             {creator.bio?.trim() ? (
-              <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed text-ink-secondary">{creator.bio}</p>
+              <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed" style={{ color: t.inkSoft }}>{creator.bio}</p>
             ) : (
-              <p className="mt-4 text-body-sm leading-relaxed text-ink-secondary">
+              <p className="mt-4 text-body-sm leading-relaxed" style={{ color: t.inkSoft }}>
                 {creator.first_name} built this program from years of real work with real people — {modules.length} focused
                 modules you can start today, unhurried and practical, made for people finally ready to begin.
               </p>
             )}
-            <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm text-ink-secondary">
+            <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm" style={{ color: t.inkSoft }}>
               <MailIcon width={16} height={16} /> Questions before you enroll?{' '}
-              <a href={`mailto:${creator.email}`} className="font-medium text-primary hover:underline">{creator.email}</a>
+              <a href={`mailto:${creator.email}`} className="font-medium hover:underline" style={{ color: t.primary }}>{creator.email}</a>
             </p>
+            {/* Social links — only the ones the creator filled in. */}
+            {socials.length > 0 && (
+              <p className="mt-3 flex items-center gap-3">
+                {socials.map(({ label, value, Icon }) => (
+                  <a
+                    key={label}
+                    href={externalHref(value)}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={label}
+                    className="transition-opacity hover:opacity-70"
+                    style={{ color: t.primary }}
+                  >
+                    <Icon width={18} height={18} />
+                  </a>
+                ))}
+              </p>
+            )}
           </div>
         </div>
       </section>
 
       {/* A look inside */}
       <section className="mx-auto max-w-[1200px] px-6 lg:px-8 py-14">
-        <p className="font-mono text-data uppercase tracking-wide text-accent">A look inside the program</p>
-        <h2 className="mt-2 font-serif text-h1 text-ink-deep">What you'll work through.</h2>
+        <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.accent }}>{insideEyebrow}</p>
+        <h2 className={`mt-2 text-h1 ${headingFont}`} style={{ color: t.inkDeep }}>{insideHeading}</h2>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((m, i) => (
-            <div key={m.idx} className="rounded-lg border border-line bg-surface-plain p-5">
-              <span className="font-mono text-data text-accent">{String(i + 1).padStart(2, '0')}</span>
-              <h3 className="mt-1 text-h3 font-semibold text-ink">{m.title}</h3>
-              {m.outcome && <p className="mt-1.5 text-body-sm text-ink-secondary">{m.outcome}</p>}
+            <div key={m.idx} className="rounded-lg border p-5" style={{ backgroundColor: t.surface, borderColor: t.line, borderRadius: radii.card }}>
+              <span className="font-mono text-data" style={{ color: t.accent }}>{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="mt-1 text-h3 font-semibold" style={{ color: t.ink }}>{m.title}</h3>
+              {m.outcome && <p className="mt-1.5 text-body-sm" style={{ color: t.inkSoft }}>{m.outcome}</p>}
             </div>
           ))}
         </div>
@@ -175,18 +236,15 @@ function Landing({ data, onEnroll }: { data: ProgramPublicResponse; onEnroll: ()
 
       {/* Final CTA */}
       <section className="mx-auto max-w-[1200px] px-6 lg:px-8 py-16 text-center">
-        <h2 className="mx-auto max-w-xl font-serif text-h1 text-ink-deep">Ready when you are.</h2>
-        <p className="mx-auto mt-3 max-w-md text-body text-ink-secondary">
-          Join now while there's still room. If it's not for you, the 90-day guarantee has you covered.
-        </p>
+        <h2 className={`mx-auto max-w-xl text-h1 ${headingFont}`} style={{ color: t.inkDeep }}>{closingHeading}</h2>
         <div className="mx-auto mt-6 max-w-[280px]">
-          <Button size="lg" iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>Enroll for {price}</Button>
+          <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel} · {price}</Button>
         </div>
       </section>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-2 px-6 lg:px-8 py-6 text-caption text-ink-secondary sm:flex-row">
-          <span className="inline-flex items-center gap-1.5"><SparkleIcon width={14} height={14} className="text-accent" /> Powered by AbundanceAI</span>
+      <footer className="border-t" style={{ borderColor: t.line }}>
+        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-2 px-6 lg:px-8 py-6 text-caption sm:flex-row" style={{ color: t.inkSoft }}>
+          <span className="inline-flex items-center gap-1.5"><SparkleIcon width={14} height={14} style={{ color: t.accent }} /> Powered by AbundanceAI</span>
           <span>Secure checkout · Your details are shared only with {creator.first_name}</span>
         </div>
       </footer>

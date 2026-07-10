@@ -21,48 +21,41 @@ const INCLUDED = [
 
 function ValuePanel() {
   return (
-    <aside className="relative hidden flex-col justify-between gap-8 bg-surface p-8 md:flex lg:p-10">
+    <aside className="relative hidden flex-col justify-between gap-8 bg-lp-teal p-8 text-white md:flex lg:p-10">
       <div>
-        <Eyebrow className="text-accent">One step away</Eyebrow>
-        <h1 className="mt-3 font-serif text-h1 leading-tight text-ink-deep lg:text-display">
+        <Eyebrow className="text-white/80">One step away</Eyebrow>
+        <h1 className="mt-3 font-serif text-h1 leading-tight text-white lg:text-display">
           You're one step from your program.
         </h1>
 
-        <div className="mt-8 flex items-baseline justify-between border-b border-line pb-5">
+        <div className="mt-8 flex items-baseline justify-between border-b border-white/20 pb-5">
           <div>
-            <p className="text-h3 font-semibold text-ink">AbundanceAI</p>
-            <p className="text-body-sm text-ink-secondary">Everything below, today</p>
+            <p className="text-h3 font-semibold text-white">AbundanceAI</p>
+            <p className="text-body-sm text-white/80">Everything below, today</p>
           </div>
-          <span className="font-serif text-display text-primary">$25</span>
+          <span className="font-serif text-display text-white">$25</span>
         </div>
 
         <ul className="mt-5 space-y-3">
           {INCLUDED.map((i) => (
-            <li key={i} className="flex items-start gap-3 text-body-sm text-ink">
-              <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-accent" />
+            <li key={i} className="flex items-start gap-3 text-body-sm text-white/90">
+              <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-white" />
               {i}
             </li>
           ))}
         </ul>
 
-        <div className="mt-7 flex items-start gap-3 rounded-lg border border-success-border bg-success-bg px-4 py-3">
-          <ShieldIcon width={22} height={22} className="mt-0.5 shrink-0 text-success" />
-          <div>
-            <p className="text-body-sm font-semibold text-success">90-day money-back guarantee</p>
-            <p className="text-caption text-success/80">No hard feelings. One tap to refund.</p>
-          </div>
-        </div>
       </div>
 
-      <figure className="border-t border-line pt-6">
-        <blockquote className="font-serif text-body italic text-ink">
+      <figure className="border-t border-white/20 pt-6">
+        <blockquote className="font-serif text-body italic text-white">
           “I'd been ‘going to' do this for five years. I had a program by Sunday night.”
         </blockquote>
         <figcaption className="mt-3 flex items-center gap-2.5">
-          <Avatar name="Maya R." size={32} className="bg-accent/20 text-accent" />
-          <span className="text-body-sm text-ink">
+          <Avatar name="Maya R." size={32} className="bg-white/15 text-white" />
+          <span className="text-body-sm text-white">
             <span className="font-semibold">Maya R.</span>
-            <span className="text-ink-secondary"> · Breathwork coach</span>
+            <span className="text-white/80"> · Breathwork coach</span>
           </span>
         </figcaption>
       </figure>
@@ -130,7 +123,7 @@ function StripeForm({ paymentIntentId, onPaid }: { paymentIntentId: string; onPa
         <PaymentElement onChange={(e) => setComplete(e.complete)} />
       </div>
       {error && <p className="text-caption text-error">{error}</p>}
-      <Button size="lg" loading={loading} disabled={!complete} onClick={pay} iconLeft={<LockIcon width={18} height={18} />}>
+      <Button variant="orange" size="lg" loading={loading} disabled={!complete} onClick={pay} iconLeft={<LockIcon width={18} height={18} />}>
         {loading ? 'Processing…' : 'Pay $25'}
       </Button>
     </div>
@@ -160,6 +153,7 @@ function MockForm({ onPaid }: { onPaid: (piId: string) => void }) {
       </div>
       <p className="text-caption text-ink-secondary">Demo mode — live Stripe card fields render here in production.</p>
       <Button
+        variant="orange"
         size="lg"
         loading={loading}
         iconLeft={<LockIcon width={18} height={18} />}
@@ -285,7 +279,7 @@ export function CheckoutPage() {
               {error && <p className="text-caption text-error">{error}</p>}
 
               {!emailValid ? (
-                <Button size="lg" disabled iconLeft={<LockIcon width={18} height={18} />}>Pay $25</Button>
+                <Button variant="orange" size="lg" disabled iconLeft={<LockIcon width={18} height={18} />}>Pay $25</Button>
               ) : useStripeFlow && clientSecret && stripePromise ? (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'flat' } }}>
                   <StripeForm paymentIntentId={piId} onPaid={onPaid} />

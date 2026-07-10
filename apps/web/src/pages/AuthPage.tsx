@@ -383,6 +383,7 @@ export function AuthPage() {
 
             <Button
               type="submit"
+              variant="orange"
               size="lg"
               loading={submitting}
               iconRight={<ArrowRight width={18} height={18} />}
