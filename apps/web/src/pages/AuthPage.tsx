@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { CATEGORY_OPTIONS, CATEGORY_VALUES, type Category } from '@abundance/shared';
@@ -74,6 +74,8 @@ export function AuthPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const backend = useApp((s) => s.backend);
+  const ready = useApp((s) => s.ready);
+  const user = useApp((s) => s.user);
 
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'signin' ? 'signin' : 'signup');
   const [showPw, setShowPw] = useState(false);
@@ -153,6 +155,10 @@ export function AuthPage() {
       }
     }
   });
+
+  // Already signed in (e.g. opened /auth in a new tab) → straight into the app.
+  // AppShell forwards unpaid accounts on to /checkout.
+  if (ready && user) return <Navigate to="/app" replace />;
 
   return (
     <div className="dots-warm flex min-h-[100dvh] items-center justify-center px-4 py-8">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { Avatar } from '@/components/ui';
 import {
@@ -15,6 +15,7 @@ import {
   ArrowRight,
   CheckIcon,
 } from '@/components/ui/icons';
+import { useApp } from '@/store';
 
 // [01] Landing — bright, airy, video-first front door (AbundanceAI Landing design).
 // White canvas, Playfair display + Inter body, gradient text/buttons, organic
@@ -89,6 +90,8 @@ function VideoPanel({ className, captionTone = 'dark' }: { className?: string; c
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const ready = useApp((s) => s.ready);
+  const user = useApp((s) => s.user);
   const [scrolled, setScrolled] = useState(false);
   const start = () => navigate('/auth');
 
@@ -98,6 +101,10 @@ export function LandingPage() {
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Returning signed-in user hitting the marketing page (e.g. a fresh tab) →
+  // drop straight into the app. AppShell forwards unpaid accounts to /checkout.
+  if (ready && user) return <Navigate to="/app" replace />;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-lp-canvas font-sans text-lp-ink antialiased [scroll-behavior:smooth]">
