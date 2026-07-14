@@ -182,6 +182,7 @@ export const marketingPostSchema = z.object({
   channel: channelSchema,
   platform: platformSchema.nullable(), // which social network this is tailored for; null for email
   phase: marketingPhaseSchema, // launch stage this content is for
+  round: z.number().int().default(1), // generation round within its phase; rounds are append-only
   caption: z.string(),
   hashtags: z.array(z.string()).default([]),
   posted: z.boolean().default(false),

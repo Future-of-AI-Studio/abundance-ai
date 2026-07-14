@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MarketingPost, Platform, MarketingPhase } from '@abundance/shared';
-import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget } from '@abundance/shared';
+import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget, MARKETING_ROUNDS_PER_MONTH, marketingRoundsUsedThisMonth, AbundanceApiError } from '@abundance/shared';
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
 import { CopyIcon, CheckIcon, SparkleIcon, StarIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
 import { StepLayout } from '@/components/StepLayout';
@@ -60,8 +60,14 @@ export function MarketingKitPage() {
       await backend.api.marketingGenerate({ platforms, include_email: selected.has('email'), phase });
       await refreshMarketing();
       setTab(platforms[0] ?? 'email');
-    } catch {
-      setFailed(true);
+    } catch (e) {
+      // At the monthly round cap the existing library is intact — a toast beats
+      // the "couldn't write your posts" retry card.
+      if (e instanceof AbundanceApiError && e.code === 'marketing_limit') {
+        toast.error(e.message);
+      } else {
+        setFailed(true);
+      }
     } finally {
       setGenerating(false);
     }
@@ -103,17 +109,39 @@ export function MarketingKitPage() {
     );
   }
 
-  // The kit is a per-phase library — only show the stage currently selected.
+  // The stage picker only shapes what gets WRITTEN next; `phasePosts` exists just
+  // to word the generate button. The library below always shows every saved post
+  // across all stages, so generating for one stage or platform never hides the rest.
   const phasePosts = posts.filter((p) => p.phase === phase);
-  const platformTabs = ALL_PLATFORMS.filter((p) => phasePosts.some((post) => post.platform === p));
-  const hasEmail = phasePosts.some((p) => p.channel === 'email');
+  const platformTabs = ALL_PLATFORMS.filter((p) => posts.some((post) => post.platform === p));
+  const hasEmail = posts.some((p) => p.channel === 'email');
   const tabSegments: { value: Platform | 'email'; label: string }[] = [
     ...platformTabs.map((p) => ({ value: p, label: PLATFORM_LABELS[p] })),
     ...(hasEmail ? [{ value: 'email' as const, label: 'Email' }] : []),
   ];
   const activeTab = tabSegments.some((s) => s.value === tab) ? tab : (tabSegments[0]?.value ?? 'facebook');
-  const visible = phasePosts.filter((p) => (activeTab === 'email' ? p.channel === 'email' : p.platform === activeTab));
+  const visible = posts.filter((p) => (activeTab === 'email' ? p.channel === 'email' : p.platform === activeTab));
   const perTarget = postsPerTarget(selected.size);
+
+  // Generation is append-only — every round stays. Group the tab's posts by
+  // (stage, round), newest batch first, each labelled once there's more than one.
+  type RoundGroup = { phase: MarketingPhase; round: number; when: string; posts: MarketingPost[] };
+  const groups: RoundGroup[] = [];
+  for (const p of visible) {
+    const round = p.round ?? 1;
+    const g = groups.find((x) => x.phase === p.phase && x.round === round);
+    if (g) {
+      g.posts.push(p);
+      if (p.created_at < g.when) g.when = p.created_at;
+    } else {
+      groups.push({ phase: p.phase, round, when: p.created_at, posts: [p] });
+    }
+  }
+  groups.sort((a, b) => (a.when < b.when ? 1 : -1));
+  const roundsUsed = marketingRoundsUsedThisMonth(posts);
+  const atRoundLimit = roundsUsed >= MARKETING_ROUNDS_PER_MONTH;
+  const groupDate = (g: RoundGroup) =>
+    new Date(g.when).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   return (
     <StepLayout back backTo="/app/program" eyebrow="Marketing kit" title="Pick your platforms — we'll write for each.">
@@ -149,14 +177,19 @@ export function MarketingKitPage() {
             <SegmentedControl<MarketingPhase> segments={PHASE_SEGMENTS} value={phase} onChange={setPhase} />
 
             <p className="text-caption text-ink-secondary">
-              {selected.size === 0
-                ? 'Pick at least one place to share.'
-                : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks.`}
+              {atRoundLimit
+                ? `You've used all ${MARKETING_ROUNDS_PER_MONTH} rounds for this month — new rounds unlock next month. Everything below is still yours to edit and share.`
+                : selected.size === 0
+                  ? 'Pick at least one place to share.'
+                  : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks. Earlier rounds always stay saved.`}
             </p>
 
-            <Button size="lg" loading={generating} disabled={selected.size === 0} onClick={generate}>
-              {phasePosts.length ? `Regenerate ${PHASE_LABELS[phase].toLowerCase()} content` : `Generate ${PHASE_LABELS[phase].toLowerCase()} content`}
+            <Button size="lg" loading={generating} disabled={selected.size === 0 || atRoundLimit} onClick={generate}>
+              {phasePosts.length ? `Write more ${PHASE_LABELS[phase].toLowerCase()} content` : `Generate ${PHASE_LABELS[phase].toLowerCase()} content`}
             </Button>
+            <p className="text-center text-caption text-ink-secondary">
+              {roundsUsed} of {MARKETING_ROUNDS_PER_MONTH} rounds used this month
+            </p>
           </Card>
 
           <button onClick={() => navigate('/app/circle')} className="text-body-sm font-medium text-primary">
@@ -203,27 +236,35 @@ export function MarketingKitPage() {
           </Button>
         </div>
 
-        {/* Preview column — posts for the selected stage */}
+        {/* Library column — everything ever generated, across all stages */}
         <div className="min-w-0 space-y-3">
-          {generating && phasePosts.length === 0 ? (
+          {generating && posts.length === 0 ? (
             [0, 1, 2].map((i) => <Skeleton key={i} variant="post-card" />)
           ) : failed ? (
             <Card variant="plain" className="text-center">
               <p className="text-body text-ink">Couldn't write your posts just now.</p>
               <div className="mx-auto mt-4 max-w-xs"><Button onClick={generate}>Try again</Button></div>
             </Card>
-          ) : phasePosts.length === 0 ? (
+          ) : posts.length === 0 ? (
             <Card variant="plain" className="py-12 text-center">
               <p className="text-body-sm text-ink-secondary">
-                No {PHASE_LABELS[phase].toLowerCase()} content yet — pick your platforms and generate.
+                No content yet — pick your platforms and generate.
               </p>
             </Card>
           ) : (
             <>
               <SegmentedControl<Platform | 'email'> segments={tabSegments} value={activeTab} onChange={setTab} />
-              <div className="mt-3 space-y-3">
-                {visible.map((p) => <PostCard key={p.id} post={p} />)}
-              </div>
+              {groups.map((g) => (
+                <div key={`${g.phase}-${g.round}`} className="mt-3 space-y-3">
+                  {groups.length > 1 && (
+                    <p className="flex items-baseline gap-2 pt-1 text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">
+                      {PHASE_LABELS[g.phase]} · Round {g.round}
+                      <span className="normal-case tracking-normal">· {groupDate(g)}</span>
+                    </p>
+                  )}
+                  {g.posts.map((p) => <PostCard key={p.id} post={p} />)}
+                </div>
+              ))}
             </>
           )}
         </div>

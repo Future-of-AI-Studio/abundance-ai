@@ -100,6 +100,29 @@ export function postsPerTarget(targetCount: number): number {
   return table[targetCount] ?? 2;
 }
 
+// Marketing generation is append-only and capped: at most this many rounds per
+// user per calendar month (UTC), counted across all phases.
+export const MARKETING_ROUNDS_PER_MONTH = 8;
+
+/**
+ * How many generation rounds this month's posts represent — distinct
+ * (phase, round) pairs among posts created in the current UTC month. The
+ * client-side mirror of the check marketing-generate enforces server-side.
+ */
+export function marketingRoundsUsedThisMonth(
+  posts: Array<{ phase: string; round?: number; created_at: string }>,
+  now: Date = new Date(),
+): number {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const rounds = new Set<string>();
+  for (const p of posts) {
+    const d = new Date(p.created_at);
+    if (d.getUTCFullYear() === y && d.getUTCMonth() === m) rounds.add(`${p.phase}:${p.round ?? 1}`);
+  }
+  return rounds.size;
+}
+
 // sessions.platform — the video-conferencing tool the live group meets on.
 // 'other' accepts any https link (Webex, Whereby, a personal room, etc.).
 export const meetingPlatformSchema = z.enum(['google_meet', 'zoom', 'teams', 'other']);

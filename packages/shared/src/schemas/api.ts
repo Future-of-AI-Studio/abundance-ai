@@ -91,10 +91,10 @@ export type ContentUploadResponse = z.infer<typeof contentUploadResponseSchema>;
 
 // ── program-build ─────────────────────────────────────────────────────────────
 // `module_count` is optional: when the expert picks a number in the UI it's honored
-// exactly (constrained to the 3–6 the program design supports); omitted = AI decides.
+// exactly (constrained to the 1–6 the program design supports); omitted = AI decides.
 export const programBuildRequestSchema = z.object({
   path: pathSchema.optional(),
-  module_count: z.number().int().min(3).max(6).optional(),
+  module_count: z.number().int().min(1).max(6).optional(),
 });
 export type ProgramBuildRequest = z.infer<typeof programBuildRequestSchema>;
 

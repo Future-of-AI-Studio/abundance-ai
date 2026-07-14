@@ -24,7 +24,7 @@ import { useApp } from '@/store';
 
 const STEPS = [
   { no: '01', tone: 'warm', Icon: MicIcon, title: 'Share your knowledge', line: 'Upload your notes or just talk. Messy is fine — the AI listens.' },
-  { no: '02', tone: 'warm', Icon: SparkleIcon, title: 'Build it with AI', line: 'A structured 3–6 module program appears in minutes. Yours to shape.' },
+  { no: '02', tone: 'warm', Icon: SparkleIcon, title: 'Build it with AI', line: 'A structured 1–6 module program appears in minutes. Yours to shape.' },
   { no: '03', tone: 'cool', Icon: HeartHandshakeIcon, title: 'Launch with courage', line: 'Marketing written for you, plus coaching at every wall.' },
   { no: '04', tone: 'cool', Icon: UsersIcon, title: 'Grow together', line: 'A matched circle and weekly expert talks keep you going.' },
 ] as const;
@@ -55,7 +55,7 @@ const VOICES = [
 ];
 
 const INCLUDES = [
-  'Your 3–6 module program, built by AI',
+  'Your 1–6 module program, built by AI',
   'Social posts written and ready',
   'Mindset coaching at every step',
   'A peer circle & weekly expert talks',

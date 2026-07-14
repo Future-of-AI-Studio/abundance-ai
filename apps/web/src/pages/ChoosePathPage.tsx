@@ -17,7 +17,7 @@ const OPTIONS: Array<{
     value: 'A',
     title: 'Live Group Coaching',
     promise: 'Show up live and coach a small group in real time.',
-    bullets: ['3–6 live sessions', 'Real-time feedback', 'Highest income potential'],
+    bullets: ['1–6 live sessions', 'Real-time feedback', 'Highest income potential'],
     bestFor: 'Best for people who light up in conversation.',
   },
 ];

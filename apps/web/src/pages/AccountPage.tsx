@@ -47,6 +47,12 @@ export function AccountPage() {
   const [productEmails, setProductEmails] = useState(false);
   const [cadence, setCadence] = useState<Cadence>('balanced');
 
+  // Change-password sheet
+  const [pwOpen, setPwOpen] = useState(false);
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [savingPw, setSavingPw] = useState(false);
+
   // Refund flow
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundResult, setRefundResult] = useState<string | null>(null);
@@ -93,6 +99,26 @@ export function AccountPage() {
     }
     catch { toast.error("Couldn't upload that photo — try again."); }
     finally { setUploadingAvatar(false); }
+  };
+
+  const savePassword = async () => {
+    if (!backend) return;
+    if (newPw.length < 8) { toast.error('Your new password needs at least 8 characters.'); return; }
+    if (newPw !== confirmPw) { toast.error("Those passwords don't match."); return; }
+    setSavingPw(true);
+    try {
+      await backend.auth.updatePassword(newPw);
+      toast.success('Password updated');
+      setPwOpen(false);
+      setNewPw('');
+      setConfirmPw('');
+    } catch (e) {
+      // Supabase's messages here are user-readable (e.g. "New password should be
+      // different from the old password.") — show them rather than a generic error.
+      toast.error(e instanceof Error && e.message ? e.message : "Couldn't update your password — try again.");
+    } finally {
+      setSavingPw(false);
+    }
   };
 
   const requestRefund = async () => {
@@ -249,7 +275,7 @@ export function AccountPage() {
             <Eyebrow className="mb-3">Account &amp; security</Eyebrow>
             <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-plain shadow-sm">
               <NavRow icon={<CardIcon width={20} height={20} />} label="Payment & billing" onClick={() => toast.info('Billing portal is coming soon.')} />
-              <NavRow icon={<LockIcon width={20} height={20} />} label="Password & security" onClick={() => toast.info('Password & security settings are coming soon.')} />
+              <NavRow icon={<LockIcon width={20} height={20} />} label="Password & security" onClick={() => { setNewPw(''); setConfirmPw(''); setPwOpen(true); }} />
               <NavRow icon={<HelpIcon width={20} height={20} />} label="Help & contact us" onClick={() => toast.info('Reach us anytime at hello@abundance.ai')} />
             </div>
           </section>
@@ -323,6 +349,38 @@ export function AccountPage() {
             helperText={`Shown publicly on your landing page · ${bio.trim().length}/600`}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
+          />
+        </div>
+      </Sheet>
+
+      {/* Change-password sheet */}
+      <Sheet
+        open={pwOpen}
+        onClose={() => { if (!savingPw) setPwOpen(false); }}
+        title="Change your password"
+        footer={
+          <>
+            <Button loading={savingPw} onClick={savePassword}>Update password</Button>
+            <Button variant="ghost" disabled={savingPw} onClick={() => setPwOpen(false)}>Cancel</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-body-sm text-ink-secondary">
+            You&rsquo;ll stay signed in here — use the new password the next time you sign in.
+          </p>
+          <TextInput
+            label="New password"
+            type="password"
+            helperText="At least 8 characters."
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+          />
+          <TextInput
+            label="Confirm new password"
+            type="password"
+            value={confirmPw}
+            onChange={(e) => setConfirmPw(e.target.value)}
           />
         </div>
       </Sheet>

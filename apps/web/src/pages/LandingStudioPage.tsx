@@ -108,9 +108,9 @@ export function LandingStudioPage() {
       {/* Header — sticky on desktop so Save stays reachable from deep in the controls. */}
       <div className="flex flex-wrap items-end justify-between gap-3 lg:sticky lg:top-0 lg:z-20 lg:-mx-2 lg:bg-bg/95 lg:px-2 lg:py-3 lg:backdrop-blur">
         <div>
-          <h1 className="font-serif text-h1 font-medium text-ink">Your landing page</h1>
+          <h1 className="font-serif text-h1 font-medium text-ink">Your program page</h1>
           <p className="mt-1.5 text-body text-ink-secondary">
-            Make the page buyers see yours — colors, style, and the words that greet them.
+            Make the page participants see yours — colors, style, and the words that greet them.
           </p>
         </div>
         <div className="flex items-center gap-2">

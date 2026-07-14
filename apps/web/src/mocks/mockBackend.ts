@@ -21,7 +21,7 @@ import type {
   AbundanceClient,
   Category,
 } from '@abundance/shared';
-import { AbundanceApiError } from '@abundance/shared';
+import { AbundanceApiError, MARKETING_ROUNDS_PER_MONTH, marketingRoundsUsedThisMonth } from '@abundance/shared';
 import { MOCK } from './mockData';
 
 const KEY = 'abundance_mock_state_v1';
@@ -149,9 +149,9 @@ export function createMockBackend(): Backend {
     },
     async programBuild(req) {
       await delay(2600); // narrated loader has time to breathe
-      // We retain up to 6 builds — at the cap the user must delete one first.
+      // We retain up to 6 builds — at the cap, no further builds can be created.
       if (state.programs.length >= 6) {
-        throw new AbundanceApiError('build_limit', "You've reached the limit of 6 builds. Delete one to make room for a new one.");
+        throw new AbundanceApiError('build_limit', "You've reached the limit of 6 builds. Keep refining by editing your saved builds.");
       }
       const programId = uid();
       const built = MOCK.buildProgram(req.path);
@@ -279,13 +279,17 @@ export function createMockBackend(): Backend {
       await delay(1800);
       const platforms = req.platforms ?? ['facebook', 'instagram', 'x', 'linkedin'];
       const phase = req.phase ?? 'launch';
+      // Append-only rounds with a monthly cap (mirrors the live backend).
+      if (marketingRoundsUsedThisMonth(state.posts) >= MARKETING_ROUNDS_PER_MONTH) {
+        throw new AbundanceApiError('marketing_limit', "You've used all 8 marketing rounds for this month. New rounds unlock at the start of next month — your saved content is still yours to edit and share.");
+      }
+      const round = Math.max(0, ...state.posts.filter((p) => p.phase === phase).map((p) => p.round ?? 1)) + 1;
       const targetCount = platforms.length + (req.include_email ? 1 : 0);
       const count = ({ 1: 5, 2: 3, 3: 3, 4: 2, 5: 2 } as Record<number, number>)[targetCount] ?? 2;
       const fresh = MOCK.posts(activeBuild().program?.title ?? 'Your program', platforms, req.include_email, count).map((p) => ({
-        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, favorited: false, phase, ...p,
+        id: uid(), user_id: state.user!.id, created_at: nowIso(), posted: false, favorited: false, phase, round, ...p,
       }));
-      // Replace only this phase's posts (mirrors the live backend).
-      state.posts = [...state.posts.filter((p) => p.phase !== phase), ...fresh];
+      state.posts = [...state.posts, ...fresh];
       save();
       return { posts: state.posts };
     },
@@ -431,6 +435,9 @@ export function createMockBackend(): Backend {
       },
       async signInWithMagicLink() {
         await delay(300);
+      },
+      async updatePassword() {
+        await delay(400);
       },
       async signOut() {
         await delay(150);

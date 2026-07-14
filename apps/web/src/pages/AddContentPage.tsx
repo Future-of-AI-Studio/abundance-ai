@@ -87,9 +87,9 @@ function SourcePlayer({ load }: { load: () => Promise<string> }) {
   );
 }
 
-// Module-count choices offered in the UI. `null` = let the AI decide (3–6); the
-// numbers pin the count exactly. Kept to 3–6, the range the program design supports.
-const MODULE_COUNT_OPTIONS = [null, 3, 4, 5, 6] as const;
+// Module-count choices offered in the UI. `null` = let the AI decide (1–6); the
+// numbers pin the count exactly. Kept to 1–6, the range the program design supports.
+const MODULE_COUNT_OPTIONS = [null, 1, 2, 3, 4, 5, 6] as const;
 
 // Written-note ceiling — matches the textarea's maxLength; surfaced in the UI so
 // the limit isn't a surprise.
@@ -114,14 +114,14 @@ export function AddContentPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmRebuild, setConfirmRebuild] = useState(false);
   const [building, setBuilding] = useState(false);
-  // How many modules to generate. null = Auto (AI picks 3–6); a number pins it.
+  // How many modules to generate. null = Auto (AI picks 1–6); a number pins it.
   const [moduleCount, setModuleCount] = useState<number | null>(null);
 
   // Once a program has been built, this visit is an edit — re-running build
   // creates a new build (keeping prior ones) and makes it active.
   const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
-  // We retain up to 6 builds. At the cap, rebuilding is blocked until the user
-  // deletes a build from the Program page to make room.
+  // We retain up to 6 builds. At the cap, rebuilding is blocked — builds can't be
+  // deleted, so from here the user refines by editing their saved builds instead.
   const atBuildLimit = editing && builds.length >= 6;
 
   // On an edit, preselect the current program's module count so the choice reflects
@@ -130,7 +130,7 @@ export function AddContentPage() {
   useEffect(() => {
     if (didInitCount.current) return;
     const n = program.modules.length;
-    if (editing && n >= 3 && n <= 6) {
+    if (editing && n >= 1 && n <= 6) {
       setModuleCount(n);
       didInitCount.current = true;
     }
@@ -526,7 +526,7 @@ export function AddContentPage() {
         </p>
       )}
 
-      {/* How many modules — Auto lets the AI pick 3–6; a number pins it exactly. */}
+      {/* How many modules — Auto lets the AI pick 1–6; a number pins it exactly. */}
       <div className="mt-6">
         <p className="text-body-sm font-semibold text-ink">How many modules?</p>
         <p className="text-caption text-ink-secondary">Pick a number, or let me choose the best fit for your material.</p>
@@ -556,7 +556,7 @@ export function AddContentPage() {
       {atBuildLimit && (
         <Card variant="plain" className="mt-6 border-l-2 border-l-error bg-error/5">
           <p className="text-body-sm text-ink">
-            You've reached the limit of 6 builds. Delete one from your Program page to make room for a new one.
+            You've reached the limit of 6 builds. You can keep refining your program by editing any of your saved builds on your Program page.
           </p>
         </Card>
       )}
@@ -570,7 +570,7 @@ export function AddContentPage() {
           iconLeft={editing && !atBuildLimit ? <SparkleIcon width={18} height={18} /> : undefined}
           onClick={atBuildLimit ? () => navigate('/app/program') : editing ? () => setConfirmRebuild(true) : build}
         >
-          {atBuildLimit ? 'Manage builds to free space' : editing ? 'Rebuild my program' : 'Build my program'}
+          {atBuildLimit ? 'Review your builds' : editing ? 'Rebuild my program' : 'Build my program'}
         </Button>
       </div>
 

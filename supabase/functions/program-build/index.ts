@@ -1,7 +1,7 @@
 // program-build — turn the user's raw content_sources into structured modules via
-// Gemini (Vertex). The expert can pick an exact module count in the UI (3-6); when
+// Gemini (Vertex). The expert can pick an exact module count in the UI (1-6); when
 // set it becomes a hard rule in the prompt plus a verify/repair pass, otherwise the
-// AI picks 3-6. Sets programs.status building → ready / failed so the frontend's
+// AI picks 1-6. Sets programs.status building → ready / failed so the frontend's
 // narrated loader + retry work. Output is validated by the shared schema.
 import { handleOptions } from '../_shared/cors.ts';
 import { json, errorResponse, handleThrown } from '../_shared/response.ts';
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
     }
 
-    // We retain up to 6 builds. At the cap, the user must delete one to make room
+    // We retain up to 6 builds. At the cap, no further builds can be created
     // (checked before we deactivate the current build, so a rejected build leaves
     // the active one untouched).
     const { count: buildCount } = await db
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     if ((buildCount ?? 0) >= 6) {
       return errorResponse(
         'build_limit',
-        "You've reached the limit of 6 builds. Delete one to make room for a new one.",
+        "You've reached the limit of 6 builds. Keep refining by editing your saved builds.",
         400,
       );
     }

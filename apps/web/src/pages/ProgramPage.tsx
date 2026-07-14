@@ -535,9 +535,9 @@ function AtAGlance({
 }
 
 // Read-only two-pane reader for a non-active build: module list on the left, one
-// clean reading column on the right, with prev/next paging. Activate / delete
-// live in the header. Only non-active builds open here, so deleting never touches
-// the active build (there's always exactly one to fall back on).
+// clean reading column on the right, with prev/next paging. "Make active" lives
+// in the header. Builds can't be deleted — every build is kept so earlier
+// versions always remain available for comparison.
 function BuildReader({
   build, buildNumber, backend, onClose, onChanged,
 }: {
@@ -550,14 +550,12 @@ function BuildReader({
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(false);
   const [sel, setSel] = useState(0);
-  const [busy, setBusy] = useState<null | 'activate' | 'delete'>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!build || !backend) { setModules([]); return; }
-    // Reset paging + delete confirmation whenever a different build is opened.
+    // Reset paging whenever a different build is opened.
     setSel(0);
-    setConfirmingDelete(false);
     let alive = true;
     setLoading(true);
     void backend.reads.getProgramModules(build.id).then((m) => {
@@ -568,7 +566,7 @@ function BuildReader({
 
   const activate = async () => {
     if (!build || !backend) return;
-    setBusy('activate');
+    setBusy(true);
     try {
       await backend.api.programActivate({ program_id: build.id });
       await onChanged();
@@ -577,22 +575,7 @@ function BuildReader({
     } catch {
       toast.error("Couldn't switch to that build — try again");
     } finally {
-      setBusy(null);
-    }
-  };
-
-  const remove = async () => {
-    if (!build || !backend) return;
-    setBusy('delete');
-    try {
-      await backend.api.programDelete({ program_id: build.id });
-      await onChanged();
-      toast.success('Build deleted.');
-      onClose();
-    } catch {
-      toast.error("Couldn't delete that build — try again");
-    } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
@@ -625,34 +608,14 @@ function BuildReader({
                 <h2 className="mt-1.5 truncate text-h2 font-semibold text-ink">{build.title}</h2>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                {!confirmingDelete && (
-                  <>
-                    <Button size="sm" fullWidth={false} loading={busy === 'activate'} disabled={build.status !== 'ready' || busy !== null} onClick={activate}>
-                      Make active
-                    </Button>
-                    <button
-                      onClick={() => setConfirmingDelete(true)}
-                      aria-label="Delete this build"
-                      className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-error/5 hover:text-error"
-                    >
-                      <TrashIcon width={18} height={18} />
-                    </button>
-                  </>
-                )}
+                <Button size="sm" fullWidth={false} loading={busy} disabled={build.status !== 'ready' || busy} onClick={activate}>
+                  Make active
+                </Button>
                 <button onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary hover:bg-surface hover:text-ink">
                   <CloseIcon width={22} height={22} />
                 </button>
               </div>
             </div>
-            {confirmingDelete && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-error/40 bg-error/5 px-3 py-2">
-                <p className="text-body-sm text-ink">Delete Build {buildNumber}? This can't be undone.</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="destructive" fullWidth={false} loading={busy === 'delete'} onClick={remove}>Delete</Button>
-                  <Button size="sm" variant="ghost" fullWidth={false} disabled={busy !== null} onClick={() => setConfirmingDelete(false)}>Cancel</Button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Two panes */}

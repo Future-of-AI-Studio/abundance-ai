@@ -19,11 +19,11 @@ export function programBuildPrompt(
   // When the expert picked a specific number in the UI, that overrides the default
   // and becomes a hard, non-negotiable rule. When they left it on Auto, the count is
   // NOT pre-chosen — let the material decide how many modules the transformation
-  // genuinely needs, within a 3–6 bound. Never pad to hit a number or trim below what
+  // genuinely needs, within a 1–6 bound. Never pad to hit a number or trim below what
   // the content calls for.
   const moduleRule = moduleCount
     ? `Rules: Produce EXACTLY ${moduleCount} module(s) — never more, never fewer. The expert explicitly requested this. The ${moduleCount} modules together form one coherent transformation, each building on the last.`
-    : 'Rules: Use as many modules as the material genuinely needs to form one coherent transformation — never a fixed or arbitrary number. Let the content decide the count, with a minimum of 3 and a maximum of 6. Do not pad with filler modules to reach a number, and do not compress distinct stages to shrink it. Each module builds on the last.';
+    : 'Rules: Use as many modules as the material genuinely needs to form one coherent transformation — never a fixed or arbitrary number. Let the content decide the count, with a minimum of 1 and a maximum of 6. Do not pad with filler modules to reach a number, and do not compress distinct stages to shrink it. Each module builds on the last.';
   const system = [
     'You are a curriculum architect for everyday experts turning their knowledge into a sellable, premium program.',
     `Design a ${format} program from the raw, messy material the expert provides.`,

@@ -43,6 +43,8 @@ export interface BackendAuth {
   }): Promise<{ user: AuthUser | null; needsConfirmation: boolean }>;
   signInWithPassword(args: { email: string; password: string }): Promise<AuthUser>;
   signInWithMagicLink(email: string): Promise<void>;
+  /** Set a new password for the signed-in user. */
+  updatePassword(newPassword: string): Promise<void>;
   signOut(): Promise<void>;
 }
 

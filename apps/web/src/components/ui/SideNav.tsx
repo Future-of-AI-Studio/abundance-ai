@@ -8,7 +8,7 @@ import { HomeIcon, ProgramIcon, PaletteIcon, UsersIcon, HeartIcon, CircleTabIcon
 const TABS = [
   { to: '/app', label: 'Home', Icon: HomeIcon, end: true },
   { to: '/app/program', label: 'Program', Icon: ProgramIcon, end: false },
-  { to: '/app/landing', label: 'Landing Page', Icon: PaletteIcon, end: false },
+  { to: '/app/landing', label: 'Program Page', Icon: PaletteIcon, end: false },
   { to: '/app/students', label: 'Participants', Icon: UsersIcon, end: false },
   { to: '/app/mindset', label: 'Mindset', Icon: HeartIcon, end: false },
   { to: '/app/circle', label: 'Peer Community', Icon: CircleTabIcon, end: false },
