@@ -655,7 +655,7 @@ export function HelpPage() {
           )}
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-6">
+        {/* <aside className="space-y-4 lg:sticky lg:top-6">
           <Card variant="plain" className="border border-accent/25 bg-accent/5">
             <Eyebrow className="text-accent">Still stuck?</Eyebrow>
             <p className="mt-2 text-body-sm text-ink-secondary">
@@ -665,7 +665,7 @@ export function HelpPage() {
               Contact support
             </Button>
           </Card>
-        </aside>
+        </aside> */}
       </div>
 
       {/* Video guides — three walkthroughs (placeholders until recorded) */}
