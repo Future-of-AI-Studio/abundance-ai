@@ -59,5 +59,5 @@ export function BuildingPage() {
     );
   }
 
-  return <NarratedLoader steps={STEPS} subline="Hang tight — this is the good part." />;
+  return <NarratedLoader steps={STEPS} subline="Hang tight - this is the good part." />;
 }

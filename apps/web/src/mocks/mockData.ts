@@ -12,38 +12,38 @@ export const MOCK = {
           title: 'Own Your Expertise',
           outcome: 'You can state, in one sentence, the transformation you create.',
           detail:
-            'This opening module turns years of experience into one clear promise. You start by telling your origin story — the real one, not the polished version — and pull out the moments where you actually changed something for a client. Those moments hold the transformation you sell.\n\nFrom there you map the full client journey: where people are when they find you, what they struggle with in their own words, and where they end up after working with you. You write it in plain language until a stranger could repeat it back.\n\nYou finish with a one-sentence transformation statement and test it on one real person. That sentence becomes the spine of every module, sales page and post that follows.',
+            'This opening module turns years of experience into one clear promise. You start by telling your origin story - the real one, not the polished version - and pull out the moments where you actually changed something for a client. Those moments hold the transformation you sell.\n\nFrom there you map the full client journey: where people are when they find you, what they struggle with in their own words, and where they end up after working with you. You write it in plain language until a stranger could repeat it back.\n\nYou finish with a one-sentence transformation statement and test it on one real person. That sentence becomes the spine of every module, sales page and post that follows.',
           session_flow: liveFlow('Share your origin story. Map the client journey start to finish. Draft the one-sentence transformation statement together. Name their first win before closing.'),
-          notes: 'Keep two or three client stories ready — people freeze when asked for their transformation cold, and a concrete example thaws the room.',
-          participant_notes: 'Come with one real client story you can tell out loud.\nJot down where your clients start and where they end up.\nDon\'t polish it — the honest version is the useful one.\nBe ready to test your transformation statement on one real person this week.',
+          notes: 'Keep two or three client stories ready - people freeze when asked for their transformation cold, and a concrete example thaws the room.',
+          participant_notes: 'Come with one real client story you can tell out loud.\nJot down where your clients start and where they end up.\nDon\'t polish it - the honest version is the useful one.\nBe ready to test your transformation statement on one real person this week.',
         },
         {
           title: 'Package the Method',
           outcome: 'You can walk any client through your signature method.',
           detail:
-            'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through, in the order you actually do it — including the small judgment calls you make without thinking. That hidden knowledge is the value.\n\nThen you group the steps into three to five named stages. A named method feels ownable and repeatable, and it gives clients a map of where they are and what comes next.\n\nThe module ends with a live walkthrough: one real case taken through the full method, narrated stage by stage. You leave with your method written down, named, and tested once end to end.',
+            'Here you turn what you do instinctively into a method someone else can follow. You list every step you take a client through, in the order you actually do it - including the small judgment calls you make without thinking. That hidden knowledge is the value.\n\nThen you group the steps into three to five named stages. A named method feels ownable and repeatable, and it gives clients a map of where they are and what comes next.\n\nThe module ends with a live walkthrough: one real case taken through the full method, narrated stage by stage. You leave with your method written down, named, and tested once end to end.',
           session_flow: 'Teach the framework. Run it live on a real case. Group and name the stages together. Assign a small, doable action for the week.',
           notes: 'Experts skip steps that feel obvious to them. Slow down and ask "what do you check before you do that?" until the invisible steps surface.',
-          participant_notes: 'Bring the transformation statement from module one.\nList every step you take a client through, even the obvious ones.\nHave a real case ready to run your method against.\nNote the judgment calls you make without thinking — those are the gold.',
+          participant_notes: 'Bring the transformation statement from module one.\nList every step you take a client through, even the obvious ones.\nHave a real case ready to run your method against.\nNote the judgment calls you make without thinking - those are the gold.',
         },
         {
           title: 'Show Up & Be Seen',
           outcome: 'You can talk about your work without shrinking.',
           detail:
-            'Being good in private is not enough — this module gets you comfortable being visible. You take the transformation statement from module one and turn it into a short, natural way of talking about your work that does not feel like a pitch.\n\nYou practice out loud, because confidence lives in reps, not in wordsmithing. You rehearse the awkward questions too — "what do you charge?", "why you?" — until they stop being scary.\n\nThe module closes with one real act of visibility: a post, a short lesson, a message to your list. Done together, so the first time is never alone.',
+            'Being good in private is not enough - this module gets you comfortable being visible. You take the transformation statement from module one and turn it into a short, natural way of talking about your work that does not feel like a pitch.\n\nYou practice out loud, because confidence lives in reps, not in wordsmithing. You rehearse the awkward questions too - "what do you charge?", "why you?" - until they stop being scary.\n\nThe module closes with one real act of visibility: a post, a short lesson, a message to your list. Done together, so the first time is never alone.',
           session_flow: path === 'B'
             ? 'Record a short lesson on your method. Practice your message until it sounds like you. Rehearse the awkward questions. Publish one piece before moving on.'
             : 'Practice your message out loud with the group. Handle the awkward questions in pairs. Post once, together, before the session ends.',
-          notes: 'The first public post is the biggest wall for most learners — make it small, make it live in the room, and celebrate it out loud.',
-          participant_notes: 'Draft a short, natural way to describe your work that isn\'t a pitch.\nPractice saying it out loud before the session — reps build confidence.\nThink through the awkward questions ("what do you charge?", "why you?").\nBe ready to publish one small piece by the end of the module.',
+          notes: 'The first public post is the biggest wall for most learners - make it small, make it live in the room, and celebrate it out loud.',
+          participant_notes: 'Draft a short, natural way to describe your work that isn\'t a pitch.\nPractice saying it out loud before the session - reps build confidence.\nThink through the awkward questions ("what do you charge?", "why you?").\nBe ready to publish one small piece by the end of the module.',
         },
         {
           title: 'Keep Them Moving',
           outcome: 'You can sustain client momentum without burning out.',
           detail:
-            'The final module is about momentum — your clients\' and your own. You learn a simple review rhythm: wins first, then walls. Starting with wins shows clients their own progress, which is what keeps them engaged and referring.\n\nThen you practice coaching through a sticking point without taking it over: ask, reflect, and let them find the next step. That keeps you from carrying every client on your back, which is how helpers burn out.\n\nYou close by writing your own sustainability plan — how many clients you take, when you review, what you say no to — so the program you built this month is one you still enjoy running next year.',
+            'The final module is about momentum - your clients\' and your own. You learn a simple review rhythm: wins first, then walls. Starting with wins shows clients their own progress, which is what keeps them engaged and referring.\n\nThen you practice coaching through a sticking point without taking it over: ask, reflect, and let them find the next step. That keeps you from carrying every client on your back, which is how helpers burn out.\n\nYou close by writing your own sustainability plan - how many clients you take, when you review, what you say no to - so the program you built this month is one you still enjoy running next year.',
           session_flow: 'Review wins and walls. Teach the review rhythm and why wins come first. Coach one sticking point live, hands off. Set the next commitment out loud.',
-          notes: 'Keep the live coaching demo genuinely hands-off — the room learns more from watching you hold back than from watching you solve it.',
+          notes: 'Keep the live coaching demo genuinely hands-off - the room learns more from watching you hold back than from watching you solve it.',
           participant_notes: 'Think of a recent win and a current wall before you arrive.\nBe ready to be coached on one real sticking point.\nDecide how many clients you can realistically hold at once.\nWrite down your next commitment and say it out loud.',
         },
       ],
@@ -69,7 +69,7 @@ export const MOCK = {
       for (let i = 0; i < count; i++) posts.push({ channel: 'social', platform: p, caption: label(i) + c.caption, hashtags: c.hashtags });
     }
     if (includeEmail) {
-      for (let i = 0; i < count; i++) posts.push({ channel: 'email', platform: null, caption: `Subject: ${label(i)}It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions — I read every one.`, hashtags: [] });
+      for (let i = 0; i < count; i++) posts.push({ channel: 'email', platform: null, caption: `Subject: ${label(i)}It's finally here\n\nI've been quietly building "${programTitle}" for you. Here's what's inside, and how to start. Reply if you have questions - I read every one.`, hashtags: [] });
     }
     return posts;
   },
@@ -78,15 +78,15 @@ export const MOCK = {
     const map: Record<string, { prompt: string; reflection: string }> = {
       'who-am-i-to-teach': {
         prompt: 'Wondering "who am I to teach?"',
-        reflection: 'That feeling is a sign you take this seriously — not a sign you should stop. You already know things that would change someone\'s week. You don\'t need to be the world\'s expert, just one step ahead of the person you\'re helping. Start there. You\'ve earned this.',
+        reflection: 'That feeling is a sign you take this seriously - not a sign you should stop. You already know things that would change someone\'s week. You don\'t need to be the world\'s expert, just one step ahead of the person you\'re helping. Start there. You\'ve earned this.',
       },
       'charging-money': {
         prompt: "You're uncomfortable charging money for your help.",
-        reflection: 'Charging is not taking — it makes your work sustainable so you can keep showing up. People who pay value the work more, not less. Pick a number that feels almost too easy, and raise it as your confidence grows. You\'ve earned this.',
+        reflection: 'Charging is not taking - it makes your work sustainable so you can keep showing up. People who pay value the work more, not less. Pick a number that feels almost too easy, and raise it as your confidence grows. You\'ve earned this.',
       },
       'fear-of-being-seen': {
         prompt: "You're afraid of being seen.",
-        reflection: 'Being seen feels risky because it matters to you. You don\'t have to be loud — just honest, to the few people who need what you know. Say one true thing today. The right people lean in. You\'ve earned this.',
+        reflection: 'Being seen feels risky because it matters to you. You don\'t have to be loud - just honest, to the few people who need what you know. Say one true thing today. The right people lean in. You\'ve earned this.',
       },
     };
     return map[wallKey] ?? {
@@ -100,15 +100,15 @@ export const MOCK = {
   chatReply(userMessage: string, turnIndex: number): string {
     const replies = [
       "Thank you for trusting me with that. What feels heaviest about it right now?",
-      "That makes complete sense — a lot of people feel exactly this at your stage. What would 'a good day' with this look like instead?",
+      "That makes complete sense - a lot of people feel exactly this at your stage. What would 'a good day' with this look like instead?",
       "You're being honest, and that's the brave part. What's one small thing you could try this week?",
-      "I hear you. None of this means you're not ready — it means you care. What first drew you to this work?",
+      "I hear you. None of this means you're not ready - it means you care. What first drew you to this work?",
       "That's worth sitting with. Remember: you only need to be a step ahead of the person you're helping. Who is that person for you?",
     ];
     const base = replies[turnIndex % replies.length] ?? "I'm right here with you.";
     const snippet = userMessage.trim().slice(0, 60);
     return turnIndex === 0 && snippet
-      ? `"${snippet}${userMessage.length > 60 ? '…' : ''}" — I'm really glad you said that out loud. ${base}`
+      ? `"${snippet}${userMessage.length > 60 ? '…' : ''}" - I'm really glad you said that out loud. ${base}`
       : base;
   },
 
@@ -139,14 +139,14 @@ export const MOCK = {
       meetups: [
         {
           id: 'm1',
-          title: 'Peer Support Circle — drop in & share where you are',
+          title: 'Peer Support Circle - drop in & share where you are',
           starts_at: new Date(Date.now() + 2 * 86400000).toISOString(),
           host_name: 'Laquelle',
           join_url: 'https://meet.google.com/circle-meetup-001',
         },
         {
           id: 'm2',
-          title: 'Show & Tell — bring one thing you made this week',
+          title: 'Show & Tell - bring one thing you made this week',
           starts_at: new Date(Date.now() + 6 * 86400000).toISOString(),
           host_name: 'Laquelle',
           join_url: 'https://meet.google.com/circle-meetup-002',

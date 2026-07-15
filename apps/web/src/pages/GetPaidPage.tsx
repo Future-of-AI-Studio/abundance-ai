@@ -22,7 +22,7 @@ const NEXT_STEPS: Array<{ title: string; detail: string }> = [
 const STRIPE_STEPS: Array<{ title: string; detail: string }> = [
   {
     title: 'Head to Stripe',
-    detail: "Tap Connect Stripe and we'll hand you to Stripe's secure setup. Nothing new to create here — Stripe runs it.",
+    detail: "Tap Connect Stripe and we'll hand you to Stripe's secure setup. Nothing new to create here - Stripe runs it.",
   },
   {
     title: 'Tell Stripe about you',
@@ -105,7 +105,7 @@ export function GetPaidPage() {
       await refreshProgram();
       toast.success('Price updated.');
     } catch {
-      toast.error("Couldn't save that price — try again.");
+      toast.error("Couldn't save that price - try again.");
     }
   };
 
@@ -118,7 +118,7 @@ export function GetPaidPage() {
         title="Let's get you ready to receive payment."
         main={
           <Card variant="plain" className="text-center">
-            <p className="text-body text-ink-secondary">This unlocks once your program's ready — no rush, you're not selling yet.</p>
+            <p className="text-body text-ink-secondary">This unlocks once your program's ready - no rush, you're not selling yet.</p>
             <div className="mx-auto mt-4 max-w-xs"><Button onClick={() => navigate('/app/program')}>Build your program</Button></div>
           </Card>
         }
@@ -142,9 +142,9 @@ export function GetPaidPage() {
       }
       await backend.api.journeyUpdate({ complete_step: 'payments' });
       await Promise.all([refreshPayments(), refreshJourney()]);
-      toast.success("You're ready to sell — share your program link.");
+      toast.success("You're ready to sell - share your program link.");
     } catch {
-      toast.error('Something went wrong — please try again.');
+      toast.error('Something went wrong - please try again.');
     } finally {
       setConnecting(false);
     }
@@ -161,7 +161,7 @@ export function GetPaidPage() {
           <>
             <Card variant="plain">
               <p className="text-body text-ink">
-                Connect your payment account to accept payments from your clients. Payouts go straight to you —
+                Connect your payment account to accept payments from your clients. Payouts go straight to you -
                 AbundanceAI never holds your money.
               </p>
             </Card>
@@ -180,7 +180,7 @@ export function GetPaidPage() {
             <Card variant="plain" className="border-l-2 border-l-success bg-success-bg">
               <h2 className="text-h3 font-semibold text-ink">You're ready to sell.</h2>
               <p className="mt-1 text-body-sm text-ink-secondary">
-                Set your price, then post the link anywhere — social, your bio, a DM. Anyone who opens it can preview your
+                Set your price, then post the link anywhere - social, your bio, a DM. Anyone who opens it can preview your
                 program and enroll.
               </p>
               <div className="mt-4 rounded-md border border-line bg-surface-plain px-4 py-3">
@@ -217,7 +217,7 @@ export function GetPaidPage() {
                 <ShieldIcon width={18} height={18} className="text-accent" />
                 <p className="text-body-sm font-semibold text-ink">Safe by design</p>
               </div>
-              <p className="mt-2 text-body-sm text-ink-secondary">Payouts go straight to your own account — AbundanceAI never holds your money.</p>
+              <p className="mt-2 text-body-sm text-ink-secondary">Payouts go straight to your own account - AbundanceAI never holds your money.</p>
             </Card>
           )}
         </>

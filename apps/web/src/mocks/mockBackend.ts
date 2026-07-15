@@ -281,7 +281,7 @@ export function createMockBackend(): Backend {
       const phase = req.phase ?? 'launch';
       // Append-only rounds with a monthly cap (mirrors the live backend).
       if (marketingRoundsUsedThisMonth(state.posts) >= MARKETING_ROUNDS_PER_MONTH) {
-        throw new AbundanceApiError('marketing_limit', "You've used all 8 marketing rounds for this month. New rounds unlock at the start of next month — your saved content is still yours to edit and share.");
+        throw new AbundanceApiError('marketing_limit', "You've used all 8 marketing rounds for this month. New rounds unlock at the start of next month - your saved content is still yours to edit and share.");
       }
       const round = Math.max(0, ...state.posts.filter((p) => p.phase === phase).map((p) => p.round ?? 1)) + 1;
       const targetCount = platforms.length + (req.include_email ? 1 : 0);
@@ -342,7 +342,7 @@ export function createMockBackend(): Backend {
         (m) => m.role === 'user' && new Date(m.created_at).getTime() >= startOfTodayMs(),
       ).length;
       if (usedToday >= CHAT_DAILY_CAP) {
-        return { status: 'limit', message: "Let's pick this up tomorrow — you've done a lot of reflecting today. Your circle is here in the meantime →" };
+        return { status: 'limit', message: "Let's pick this up tomorrow - you've done a lot of reflecting today. Your circle is here in the meantime →" };
       }
 
       let convId = req.conversation_id;
@@ -397,7 +397,7 @@ export function createMockBackend(): Backend {
     },
     async refundRequest() {
       await delay(300);
-      return { within_window: true, status: 'requested', days_remaining: 76, message: "Done — your refund is on its way. No hard feelings, and you're always welcome back." };
+      return { within_window: true, status: 'requested', days_remaining: 76, message: "Done - your refund is on its way. No hard feelings, and you're always welcome back." };
     },
     async journeyUpdate(req) {
       await delay(120);

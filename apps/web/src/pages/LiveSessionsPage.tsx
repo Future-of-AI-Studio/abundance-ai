@@ -51,7 +51,7 @@ export function LiveSessionsPage() {
             <Card variant="plain">
               <p className="text-body text-ink">For a self-paced course, you'll record each module on your own time. A few tips:</p>
               <ul className="mt-3 space-y-2 text-body-sm text-ink-secondary">
-                <li>• Use your phone — good light beats fancy gear.</li>
+                <li>• Use your phone - good light beats fancy gear.</li>
                 <li>• One module per video. Keep it under 10 minutes.</li>
                 <li>• Talk like you're helping one friend.</li>
               </ul>
@@ -170,7 +170,7 @@ export function LiveSessionsPage() {
           <Card variant="plain" className="border border-accent/25 bg-accent/5 p-4">
             <p className="text-body-sm font-semibold text-ink">No link yet? That's fine.</p>
             <p className="mt-1 text-body-sm text-ink-secondary">
-              You can skip this and add your meeting link later from the Program page — nothing else is blocked.
+              You can skip this and add your meeting link later from the Program page - nothing else is blocked.
             </p>
           </Card>
         </>

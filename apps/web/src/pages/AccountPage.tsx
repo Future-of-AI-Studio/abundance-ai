@@ -79,7 +79,7 @@ export function AccountPage() {
       toast.success('Saved');
       setEditOpen(false);
     }
-    catch { toast.error("Couldn't save — try again."); }
+    catch { toast.error("Couldn't save - try again."); }
     finally { setSavingName(false); }
   };
 
@@ -97,7 +97,7 @@ export function AccountPage() {
       await refreshProfile();
       toast.success('Photo updated');
     }
-    catch { toast.error("Couldn't upload that photo — try again."); }
+    catch { toast.error("Couldn't upload that photo - try again."); }
     finally { setUploadingAvatar(false); }
   };
 
@@ -115,7 +115,7 @@ export function AccountPage() {
     } catch (e) {
       // Supabase's messages here are user-readable (e.g. "New password should be
       // different from the old password.") — show them rather than a generic error.
-      toast.error(e instanceof Error && e.message ? e.message : "Couldn't update your password — try again.");
+      toast.error(e instanceof Error && e.message ? e.message : "Couldn't update your password - try again.");
     } finally {
       setSavingPw(false);
     }
@@ -125,14 +125,14 @@ export function AccountPage() {
     if (!backend) return;
     setRefunding(true);
     try { const res = await backend.api.refundRequest(); setRefundResult(res.message); }
-    catch { setRefundResult('Something went wrong — please reach out to us directly.'); }
+    catch { setRefundResult('Something went wrong - please reach out to us directly.'); }
     finally { setRefunding(false); }
   };
 
   const signOut = async () => {
     setSigningOut(true);
     try { await backend?.auth.signOut(); navigate('/'); }
-    catch { toast.error("Couldn't sign you out — try again."); setSigningOut(false); }
+    catch { toast.error("Couldn't sign you out - try again."); setSigningOut(false); }
   };
 
   const displayName = profile?.first_name?.trim() || 'Friend';
@@ -206,7 +206,7 @@ export function AccountPage() {
             <p className="whitespace-pre-line text-body-sm leading-relaxed text-ink-secondary">{profile.bio}</p>
           ) : (
             <p className="text-body-sm italic text-ink-secondary">
-              No bio yet — add one so buyers meet the real you in “Meet your guide.”
+              No bio yet - add one so buyers meet the real you in “Meet your guide.”
             </p>
           )}
         </div>
@@ -289,7 +289,7 @@ export function AccountPage() {
                 <p className="text-body font-semibold text-ink">90-day money-back guarantee</p>
               </div>
               <p className="mt-2.5 text-body-sm text-ink-secondary">
-                You&rsquo;re on day {dayOfGuarantee} of 90. If this isn&rsquo;t right for you, you can request a full refund — no questions, no friction.
+                You&rsquo;re on day {dayOfGuarantee} of 90. If this isn&rsquo;t right for you, you can request a full refund - no questions, no friction.
               </p>
               <div className="mt-4">
                 <Button variant="accent-secondary" fullWidth={false} onClick={() => { setRefundResult(null); setRefundOpen(true); }}>
@@ -345,7 +345,7 @@ export function AccountPage() {
             label="Bio"
             rows={5}
             maxLength={600}
-            placeholder="A few sentences about who you are and who you help — this is your “Meet your guide” intro on your program's landing page."
+            placeholder="A few sentences about who you are and who you help - this is your “Meet your guide” intro on your program's landing page."
             helperText={`Shown publicly on your landing page · ${bio.trim().length}/600`}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
@@ -367,7 +367,7 @@ export function AccountPage() {
       >
         <div className="space-y-3">
           <p className="text-body-sm text-ink-secondary">
-            You&rsquo;ll stay signed in here — use the new password the next time you sign in.
+            You&rsquo;ll stay signed in here - use the new password the next time you sign in.
           </p>
           <TextInput
             label="New password"
@@ -404,7 +404,7 @@ export function AccountPage() {
         {refundResult ? (
           <p className="text-body text-ink">{refundResult}</p>
         ) : (
-          <p className="text-body text-ink-secondary">You&rsquo;re within your 90-day window. We&rsquo;ll process it right away — no questions asked.</p>
+          <p className="text-body text-ink-secondary">You&rsquo;re within your 90-day window. We&rsquo;ll process it right away - no questions asked.</p>
         )}
       </Sheet>
 

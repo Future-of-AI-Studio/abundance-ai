@@ -236,7 +236,7 @@ const GUIDES: Guide[] = [
         bullets: [
           'Each time you generate marketing content, you create a new round.',
           'You can create up to eight rounds each month.',
-          'Every round stays saved — new content never replaces your earlier rounds or edits.',
+          'Every round stays saved - new content never replaces your earlier rounds or edits.',
           'Each round gives you new wording and approaches to consider.',
           'Compare the different versions and keep your favorite lines from each.',
           'Combine and edit the strongest ideas until the copy feels natural and compelling.',
@@ -658,7 +658,7 @@ export function HelpPage() {
           <Card variant="plain" className="border border-accent/25 bg-accent/5">
             <Eyebrow className="text-accent">Still stuck?</Eyebrow>
             <p className="mt-2 text-body-sm text-ink-secondary">
-              Reach out any time — we usually reply within a day.
+              Reach out any time - we usually reply within a day.
             </p>
             <Button className="mt-4" iconLeft={<ChatIcon width={18} height={18} />}>
               Contact support

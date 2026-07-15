@@ -77,7 +77,7 @@ export function LandingStudioPage() {
       await refreshProfile();
       toast.success('Landing page updated');
     }
-    catch { toast.error("Couldn't save — try again."); }
+    catch { toast.error("Couldn't save - try again."); }
     finally { setSaving(false); }
   };
 
@@ -111,7 +111,7 @@ export function LandingStudioPage() {
         <div>
           <h1 className="font-serif text-h1 font-medium text-ink">Your program page</h1>
           <p className="mt-1.5 text-body text-ink-secondary">
-            Make the page participants see yours — colors, style, and the words that greet them.
+            Make the page participants see yours - colors, style, and the words that greet them.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function LandingStudioPage() {
                 rows={3}
                 maxLength={200}
                 placeholder="A step-by-step program built to move you forward."
-                helperText="One sentence under the title — leave blank to use your first module's outcome"
+                helperText="One sentence under the title - leave blank to use your first module's outcome"
                 value={draft.tagline ?? ''}
                 onChange={(e) => set('tagline', e.target.value)}
               />
@@ -248,7 +248,7 @@ export function LandingStudioPage() {
               <Textarea
                 label="Bullet list"
                 rows={5}
-                placeholder={'8 live group sessions\n90-day money-back guarantee\nSmall group — 12 spots'}
+                placeholder={'8 live group sessions\n90-day money-back guarantee\nSmall group - 12 spots'}
                 helperText={`One per line, up to 8 · shown under the price · ${draft.included.length}/8`}
                 value={includedText}
                 onChange={(e) => onIncludedChange(e.target.value)}
@@ -278,7 +278,7 @@ export function LandingStudioPage() {
                 label="Website"
                 placeholder="yourwebsite.com"
                 maxLength={200}
-                helperText="Shown as icons in your guide card — leave blank to hide"
+                helperText="Shown as icons in your guide card - leave blank to hide"
                 value={draft.social_website ?? ''}
                 onChange={(e) => set('social_website', e.target.value)}
               />

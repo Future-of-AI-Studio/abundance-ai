@@ -113,6 +113,6 @@ export const useApp = create<AppState>((set, get) => ({
 /** Convenience hook to grab the resolved backend (after init). */
 export function useBackend(): Backend {
   const b = useApp((s) => s.backend);
-  if (!b) throw new Error('Backend not initialized — call useApp.init() in App.');
+  if (!b) throw new Error('Backend not initialized - call useApp.init() in App.');
   return b;
 }

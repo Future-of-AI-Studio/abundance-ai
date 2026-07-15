@@ -101,7 +101,7 @@ export function HomePage() {
     },
     {
       label: 'Conversion',
-      value: conversion === null ? '—' : `${conversion.toFixed(1)}%`,
+      value: conversion === null ? '-' : `${conversion.toFixed(1)}%`,
       hint: 'view → enroll',
     },
   ];
@@ -194,7 +194,7 @@ export function HomePage() {
         <div className="dots-cream rounded-xl bg-primary p-6 shadow-md transition-shadow hover:shadow-lg">
           <p className="mb-3 font-mono text-eyebrow uppercase tracking-[0.12em] text-white/80">Your next step</p>
           <h2 className="font-serif text-h2 leading-snug text-white">
-            {next.done ? "You're all set — revisit anything, anytime." : next.label}
+            {next.done ? "You're all set - revisit anything, anytime." : next.label}
           </h2>
           <span className="mt-5 inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 text-body-sm font-semibold text-primary">
             {next.done ? 'Review your journey' : 'Continue'}
@@ -245,7 +245,7 @@ export function HomePage() {
                 {enrollCount > 0 ? 'Keep sharing to grow your program.' : 'Share your link to get your first students.'}
               </h3>
               <p className="mt-1.5 text-body-sm text-ink-secondary">
-                Post it anywhere — social, your bio, a DM. Anyone who opens it can preview your program and enroll.
+                Post it anywhere - social, your bio, a DM. Anyone who opens it can preview your program and enroll.
               </p>
               <ShareProgramLink programId={program.program.id} className="mt-4" />
             </section>
@@ -345,7 +345,7 @@ export function HomePage() {
                 <p className="font-mono text-eyebrow uppercase tracking-[0.1em] text-accent">A quiet check-in</p>
               </div>
               <p className="text-body-sm text-ink">
-                Putting your work out there brings up a lot — and that's normal. Got two minutes to take a breath with us?
+                Putting your work out there brings up a lot - and that's normal. Got two minutes to take a breath with us?
               </p>
               <button
                 onClick={() => navigate('/app/mindset')}

@@ -129,7 +129,7 @@ function SetupProgress() {
               {state === 'current' && <span className="h-1.5 w-1.5 rounded-pill bg-primary" />}
             </span>
             <span className={cn('text-body-sm', state === 'current' ? 'font-semibold text-primary' : state === 'upcoming' ? 'text-ink-secondary' : 'text-ink')}>
-              {s.trailLabel}{state === 'current' && ' — choosing now'}
+              {s.trailLabel}{state === 'current' && ' - choosing now'}
             </span>
           </li>
         );

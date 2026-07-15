@@ -189,7 +189,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
               <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed" style={{ color: t.cardInkSoft }}>{creator.bio}</p>
             ) : (
               <p className="mt-4 text-body-sm leading-relaxed" style={{ color: t.cardInkSoft }}>
-                {creator.first_name} built this program from years of real work with real people — {modules.length} focused
+                {creator.first_name} built this program from years of real work with real people - {modules.length} focused
                 modules you can start today, unhurried and practical, made for people finally ready to begin.
               </p>
             )}
@@ -397,7 +397,7 @@ function StripePay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: b
     setError(null);
     const { error: err, paymentIntent } = await stripe.confirmPayment({ elements, redirect: 'if_required' });
     if (err) {
-      setError("That card didn't go through. Try another — you won't be charged twice.");
+      setError("That card didn't go through. Try another - you won't be charged twice.");
       setLoading(false);
       return;
     }
@@ -433,7 +433,7 @@ function MockPay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: boo
           <input className={`${fieldBase} h-12 rounded-none border-0`} placeholder="CVC" disabled />
         </div>
       </div>
-      <p className="text-caption text-ink-secondary">Demo mode — live Stripe card fields render here in production.</p>
+      <p className="text-caption text-ink-secondary">Demo mode - live Stripe card fields render here in production.</p>
       <Button
         size="lg"
         loading={loading || busy}

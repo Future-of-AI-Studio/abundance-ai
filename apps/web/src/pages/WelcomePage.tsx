@@ -76,9 +76,9 @@ export function WelcomePage() {
       navigate('/app', { replace: true });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
-      if (/already/i.test(msg)) setError('email', { message: "That email's already in use — sign in instead." });
+      if (/already/i.test(msg)) setError('email', { message: "That email's already in use - sign in instead." });
       else if (/payment_required|paid order/i.test(msg)) setError('email', { message: "We couldn't find your payment for this email." });
-      else toast.error('Network hiccup — give it another try.');
+      else toast.error('Network hiccup - give it another try.');
       setSubmitting(false);
     }
   });

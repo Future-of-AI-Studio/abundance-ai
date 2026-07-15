@@ -117,7 +117,7 @@ export function AuthPage() {
 
   const onGoogle = () => {
     // OAuth isn't wired into the backend seam yet — keep the entry point honest.
-    toast.info('Google sign-in is coming soon — continue with email for now.');
+    toast.info('Google sign-in is coming soon - continue with email for now.');
   };
 
   const onSubmit = handleSubmit(async (data) => {
@@ -146,12 +146,12 @@ export function AuthPage() {
       setSubmitting(false);
       const msg = e instanceof Error ? e.message : '';
       if (/already/i.test(msg)) {
-        setError('email', { message: "That email's already in use — sign in instead." });
+        setError('email', { message: "That email's already in use - sign in instead." });
         switchMode('signin');
       } else if (mode === 'signin') {
         setError('password', { message: "That email and password don't match." });
       } else {
-        toast.error('Network hiccup — give it another try.');
+        toast.error('Network hiccup - give it another try.');
       }
     }
   });

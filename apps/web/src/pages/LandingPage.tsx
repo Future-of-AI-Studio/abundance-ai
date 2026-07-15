@@ -23,7 +23,7 @@ import { useApp } from '@/store';
 // Palette is the namespaced lp-* token set — does not touch the app design system.
 
 const STEPS = [
-  { no: '01', tone: 'warm', Icon: MicIcon, title: 'Share your knowledge', line: 'Upload your notes or just talk. Messy is fine — the AI listens.' },
+  { no: '01', tone: 'warm', Icon: MicIcon, title: 'Share your knowledge', line: 'Upload your notes or just talk. Messy is fine - the AI listens.' },
   { no: '02', tone: 'warm', Icon: SparkleIcon, title: 'Build it with AI', line: 'A structured 1–6 module program appears in minutes. Yours to shape.' },
   { no: '03', tone: 'cool', Icon: HeartHandshakeIcon, title: 'Launch with courage', line: 'Marketing written for you, plus coaching at every wall.' },
   { no: '04', tone: 'cool', Icon: UsersIcon, title: 'Grow together', line: 'A matched circle and weekly expert talks keep you going.' },
@@ -36,15 +36,15 @@ const EVEN_IF = [
 ];
 
 const PERSONAS = [
-  { tag: 'The master hobbyist', Icon: TargetIcon, grad: 'from-[#FCE0B8] to-lp-orange', name: 'Fly fisherman, 30 years', tagColor: 'text-lp-orange', line: 'Three decades of expertise — and never made a dollar from it. Until now.' },
-  { tag: 'The expert healer', Icon: HeartIcon, grad: 'from-[#BFE9D7] to-lp-teal', name: 'Breathwork practitioner', tagColor: 'text-lp-teal', line: 'Fabulously gifted, surviving on 1-on-1s. Ready to scale — just didn’t know how.' },
-  { tag: 'The professional', Icon: ShieldIcon, grad: 'from-[#CFE4F8] to-lp-blue', name: 'Divorce attorney', tagColor: 'text-lp-blue', line: 'Knows her stuff cold — but has never packaged her expertise into a program.' },
-  { tag: 'The upgrader', Icon: SparkleIcon, grad: 'from-[#FBE0A8] to-lp-gold', name: 'Stalled online presence', tagColor: 'text-lp-orange', line: 'Outdated and underperforming — ready to use AI to refresh and relaunch.' },
+  { tag: 'The master hobbyist', Icon: TargetIcon, grad: 'from-[#FCE0B8] to-lp-orange', name: 'Fly fisherman, 30 years', tagColor: 'text-lp-orange', line: 'Three decades of expertise - and never made a dollar from it. Until now.' },
+  { tag: 'The expert healer', Icon: HeartIcon, grad: 'from-[#BFE9D7] to-lp-teal', name: 'Breathwork practitioner', tagColor: 'text-lp-teal', line: 'Fabulously gifted, surviving on 1-on-1s. Ready to scale - just didn’t know how.' },
+  { tag: 'The professional', Icon: ShieldIcon, grad: 'from-[#CFE4F8] to-lp-blue', name: 'Divorce attorney', tagColor: 'text-lp-blue', line: 'Knows her stuff cold - but has never packaged her expertise into a program.' },
+  { tag: 'The upgrader', Icon: SparkleIcon, grad: 'from-[#FBE0A8] to-lp-gold', name: 'Stalled online presence', tagColor: 'text-lp-orange', line: 'Outdated and underperforming - ready to use AI to refresh and relaunch.' },
 ] as const;
 
 const PILLARS = [
   { Icon: WandSparklesIcon, iconColor: 'text-lp-orange', bar: 'from-lp-orange to-lp-gold', title: 'AI Builder', line: 'Paint-by-numbers guidance through building, marketing, and launching. The AI does the heavy lifting.' },
-  { Icon: HeartIcon, iconColor: 'text-lp-teal', bar: 'from-lp-teal to-lp-green', title: 'Mindset Support', line: 'Proactive coaching that gets ahead of your fears — patient, always there, never judging.' },
+  { Icon: HeartIcon, iconColor: 'text-lp-teal', bar: 'from-lp-teal to-lp-green', title: 'Mindset Support', line: 'Proactive coaching that gets ahead of your fears - patient, always there, never judging.' },
   { Icon: UsersIcon, iconColor: 'text-lp-blue', bar: 'from-lp-blue to-[#69A0E8]', title: 'Peer Circles', line: 'A matched group of 3–5 people on the same path, plus weekly expert talks. Never alone.' },
 ] as const;
 
@@ -151,7 +151,7 @@ export function LandingPage() {
                 See how it works
               </a>
             </div>
-            <p className="text-caption text-lp-ink-3">Nothing to lose — 90-day money-back guarantee.</p>
+            <p className="text-caption text-lp-ink-3">Nothing to lose - 90-day money-back guarantee.</p>
           </div>
 
           {/* video panel */}
@@ -218,7 +218,7 @@ export function LandingPage() {
           <div className="mb-[52px] max-w-[760px]">
             <Eyebrow tone="teal" className="mb-4">You’ll see yourself here</Eyebrow>
             <h2 className="font-display text-[clamp(30px,4.6vw,50px)] font-semibold leading-[1.06]">
-              Real people, real gifts — <span className="lp-grad-text italic">finally</span> getting out into the world.
+              Real people, real gifts - <span className="lp-grad-text italic">finally</span> getting out into the world.
             </h2>
           </div>
 
@@ -304,7 +304,7 @@ export function LandingPage() {
             All of it for <span className="lp-grad-text">$25.</span>
           </h2>
           <p className="mx-auto mb-[34px] max-w-[42ch] text-[clamp(16px,2vw,19px)] leading-snug text-lp-ink-2">
-            So small it removes all hesitation — and backed by a 90-day money-back guarantee. Build something you’re proud of, or you don’t pay.
+            So small it removes all hesitation - and backed by a 90-day money-back guarantee. Build something you’re proud of, or you don’t pay.
           </p>
 
           <div className="mx-auto mb-[38px] grid max-w-[560px] gap-x-9 gap-y-3.5 text-left sm:grid-cols-2">

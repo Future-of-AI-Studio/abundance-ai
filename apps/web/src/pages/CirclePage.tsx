@@ -32,7 +32,7 @@ export function CirclePage() {
         // Don't fail silently into the empty state — surface it so a broken
         // request is visible instead of looking like "no circle yet".
         console.error('[CirclePage] circleGet failed', e);
-        toast.error("We couldn't load your circle just now — try again in a moment.");
+        toast.error("We couldn't load your circle just now - try again in a moment.");
       } finally {
         setLoading(false);
       }
@@ -40,7 +40,7 @@ export function CirclePage() {
   }, [backend]);
 
   const openExternal = (url: string | null, name: string) => {
-    if (!url) { toast.error(`We couldn't open ${name} — make sure it's installed, or copy the link.`); return; }
+    if (!url) { toast.error(`We couldn't open ${name} - make sure it's installed, or copy the link.`); return; }
     window.open(url, '_blank', 'noopener');
   };
 
@@ -81,7 +81,7 @@ export function CirclePage() {
       )}
       {recommending && (
         <p className="mt-1.5 text-body text-ink-secondary">
-          A few people at a similar stage. No pressure to commit — say hi, or meet them at the next circle meetup.
+          A few people at a similar stage. No pressure to commit - say hi, or meet them at the next circle meetup.
         </p>
       )}
 
@@ -138,7 +138,7 @@ export function CirclePage() {
             <UsersIcon width={18} height={18} className="text-ink-secondary" />
             <h2 className="text-body font-semibold text-ink">More drop-in meetups</h2>
           </div>
-          <p className="mt-1 text-caption text-ink-secondary">Open rooms you can join anytime — no commitment.</p>
+          <p className="mt-1 text-caption text-ink-secondary">Open rooms you can join anytime - no commitment.</p>
           <div className="mt-3 space-y-3">
             {meetups.slice(1).map((mu) => (
               <div key={mu.id} className="flex items-center gap-4 rounded-lg border border-line bg-surface-plain p-4 shadow-sm">

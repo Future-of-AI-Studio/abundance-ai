@@ -31,10 +31,10 @@ const WALL_LABELS: Record<WallKey, string> = {
 // Warm invitation copy for the dashboard's "right now" card — the teaser shown
 // before a reflection begins (the reflection itself is generated on start).
 const FEATURED: Record<WallKey, { quote: string; teaser: string }> = {
-  'who-am-i-to-teach': { quote: 'Who am I to teach this?', teaser: "Your students aren't looking for the world's expert — just someone a step ahead. That's you." },
+  'who-am-i-to-teach': { quote: 'Who am I to teach this?', teaser: "Your students aren't looking for the world's expert - just someone a step ahead. That's you." },
   'fear-of-being-seen': { quote: 'What if nobody shows up?', teaser: "You don't need a crowd. You need the right few. Let's look at who your first students really are." },
-  'charging-money': { quote: 'It feels wrong to charge.', teaser: "Charging isn't taking — it's what lets you keep showing up for the people you help." },
-  'tech-overwhelm': { quote: 'The tech overwhelms me.', teaser: "You don't have to learn all of it. Just the next small step — and we'll take it together." },
+  'charging-money': { quote: 'It feels wrong to charge.', teaser: "Charging isn't taking - it's what lets you keep showing up for the people you help." },
+  'tech-overwhelm': { quote: 'The tech overwhelms me.', teaser: "You don't have to learn all of it. Just the next small step - and we'll take it together." },
   'staying-consistent': { quote: "What if I can't keep it up?", teaser: "Consistency isn't intensity. Let's find a rhythm that fits the life you already have." },
   'comparing-myself': { quote: "Everyone's ahead of me.", teaser: "Their chapter 20 isn't your chapter 2. Let's come back to your own pace." },
 };
@@ -46,7 +46,7 @@ const WEEKLY_CAP = 3;
 // the FEATURED walls so the chat starts somewhere true.
 const SUGGESTED_QUESTIONS = [
   'Who am I to teach this?',
-  'It feels wrong to charge — is that normal?',
+  'It feels wrong to charge - is that normal?',
   "I'm scared no one will show up.",
   'The tech is overwhelming me.',
 ];
@@ -382,7 +382,7 @@ export function MindsetPage() {
             <Card><VideoPlayer poster="" label="A word from Ruby" /></Card>
 
             <Card variant="plain">
-              <Textarea label="How does that land?" placeholder="Optional — a line for yourself." value={note} onChange={(e) => setNote(e.target.value)} />
+              <Textarea label="How does that land?" placeholder="Optional - a line for yourself." value={note} onChange={(e) => setNote(e.target.value)} />
             </Card>
 
             {showTestimonial && <TestimonialCapture onDone={() => setShowTestimonial(false)} />}
@@ -419,7 +419,7 @@ export function MindsetPage() {
                 <Card className="bg-surface-plain">
                   <Eyebrow className="text-accent">Talk it through</Eyebrow>
                   <h2 className="mt-2 font-serif text-h2 text-ink">What&apos;s on your mind?</h2>
-                  <p className="mt-1 text-body-sm text-ink-secondary">Tell me what&apos;s going on — or start with one of these.</p>
+                  <p className="mt-1 text-body-sm text-ink-secondary">Tell me what&apos;s going on - or start with one of these.</p>
                   <form
                     className="mt-3 flex items-end gap-2"
                     onSubmit={(e) => { e.preventDefault(); if (chatInput.trim()) openNewChat(chatInput.trim()); }}
@@ -533,7 +533,7 @@ function TestimonialCapture({ onDone }: { onDone: () => void }) {
   const [permission, setPermission] = useState(false);
   const [done, setDone] = useState(false);
 
-  if (done) return <Card className="text-center text-body-sm text-success">Thank you — that means a lot. 🌱</Card>;
+  if (done) return <Card className="text-center text-body-sm text-success">Thank you - that means a lot. 🌱</Card>;
 
   return (
     <Card className="border-accent/30 bg-success-bg/40">

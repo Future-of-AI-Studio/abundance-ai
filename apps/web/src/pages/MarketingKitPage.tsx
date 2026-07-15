@@ -144,7 +144,7 @@ export function MarketingKitPage() {
     new Date(g.when).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   return (
-    <StepLayout back backTo="/app/program" eyebrow="Marketing kit" title="Pick your platforms — we'll write for each.">
+    <StepLayout back backTo="/app/program" eyebrow="Marketing kit" title="Pick your platforms - we'll write for each.">
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start xl:gap-8">
         {/* Picker column */}
         <div className="space-y-4">
@@ -178,10 +178,10 @@ export function MarketingKitPage() {
 
             <p className="text-caption text-ink-secondary">
               {atRoundLimit
-                ? `You've used all ${MARKETING_ROUNDS_PER_MONTH} rounds for this month — new rounds unlock next month. Everything below is still yours to edit and share.`
+                ? `You've used all ${MARKETING_ROUNDS_PER_MONTH} rounds for this month - new rounds unlock next month. Everything below is still yours to edit and share.`
                 : selected.size === 0
                   ? 'Pick at least one place to share.'
-                  : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected — ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks. Earlier rounds always stay saved.`}
+                  : `We'll write ${perTarget} ${perTarget === 1 ? 'post' : 'posts'} for each of the ${selected.size} selected - ${PHASE_LABELS[phase].toLowerCase()} content you can post over the coming weeks. Earlier rounds always stay saved.`}
             </p>
 
             <Button size="lg" loading={generating} disabled={selected.size === 0 || atRoundLimit} onClick={generate}>
@@ -248,7 +248,7 @@ export function MarketingKitPage() {
           ) : posts.length === 0 ? (
             <Card variant="plain" className="py-12 text-center">
               <p className="text-body-sm text-ink-secondary">
-                No content yet — pick your platforms and generate.
+                No content yet - pick your platforms and generate.
               </p>
             </Card>
           ) : (
@@ -325,13 +325,13 @@ function PostCard({ post }: { post: MarketingPost }) {
       // FB & LinkedIn can't prefill the caption — copy it so the user can paste.
       if (platform === 'facebook' || platform === 'linkedin') {
         await navigator.clipboard.writeText(shareText);
-        toast.success('Caption copied — paste it into your post');
+        toast.success('Caption copied - paste it into your post');
       }
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       // Instagram has no web composer — copy and let the user paste in the app.
       await navigator.clipboard.writeText(shareText);
-      toast.success('Caption copied — open Instagram and paste');
+      toast.success('Caption copied - open Instagram and paste');
     }
     await markShared();
   };

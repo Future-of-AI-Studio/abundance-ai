@@ -70,7 +70,7 @@ export function StudentsPage() {
       <EmptyState
         icon={<UsersIcon width={30} height={30} />}
         headline="Your students will show up here"
-        subline="Build your program first — then share its link and watch enrollments roll in."
+        subline="Build your program first - then share its link and watch enrollments roll in."
         action={<Button size="lg" onClick={() => navigate('/app/program')}>Go to my program</Button>}
       />
     );
@@ -87,7 +87,7 @@ export function StudentsPage() {
       await refreshProgram();
       toast.success('Price updated.');
     } catch {
-      toast.error("Couldn't save that price — try again.");
+      toast.error("Couldn't save that price - try again.");
     }
   };
 
@@ -144,7 +144,7 @@ export function StudentsPage() {
         </Card>
       ) : enrollments.length === 0 ? (
         <Card variant="plain" className="text-center">
-          <p className="text-body text-ink">No students yet — but the door's open.</p>
+          <p className="text-body text-ink">No students yet - but the door's open.</p>
           <p className="mt-1 text-body-sm text-ink-secondary">Share your link above. The moment someone enrolls, they'll appear here with their contact details.</p>
         </Card>
       ) : filtered.length === 0 ? (

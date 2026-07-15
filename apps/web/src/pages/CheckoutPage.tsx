@@ -104,7 +104,7 @@ function StripeForm({ paymentIntentId, onPaid }: { paymentIntentId: string; onPa
       redirect: 'if_required',
     });
     if (err) {
-      setError("That card didn't go through. Try another — you won't be charged twice.");
+      setError("That card didn't go through. Try another - you won't be charged twice.");
       setLoading(false);
       return;
     }
@@ -151,7 +151,7 @@ function MockForm({ onPaid }: { onPaid: (piId: string) => void }) {
         <p className="mb-1.5 text-body-sm font-medium text-ink">Name on card</p>
         <input className={`${fieldBase} h-12`} placeholder="Full name" disabled />
       </div>
-      <p className="text-caption text-ink-secondary">Demo mode — live Stripe card fields render here in production.</p>
+      <p className="text-caption text-ink-secondary">Demo mode - live Stripe card fields render here in production.</p>
       <Button
         variant="orange"
         size="lg"

@@ -21,7 +21,7 @@ export function ShareProgramLink({ programId, className }: { programId: string; 
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error('Copy didn\'t work — select the link and copy it.');
+      toast.error('Copy didn\'t work - select the link and copy it.');
     }
   };
 

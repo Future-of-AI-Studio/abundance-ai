@@ -63,7 +63,7 @@ export function ProgramPage() {
     try {
       await backend.api.programUpdate({ program_id: programId, title });
       await refreshProgram();
-    } catch { toast.error("Couldn't save that edit — tap to retry"); }
+    } catch { toast.error("Couldn't save that edit - tap to retry"); }
   };
 
   const persist = async (next: LocalModule[]) => {
@@ -76,7 +76,7 @@ export function ProgramPage() {
         modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })),
       });
       await refreshProgram();
-    } catch { toast.error("Couldn't save that edit — tap to retry"); }
+    } catch { toast.error("Couldn't save that edit - tap to retry"); }
   };
 
   const move = (i: number, dir: -1 | 1) => {
@@ -333,7 +333,7 @@ function ModuleCard({
               <textarea
                 value={m.detail}
                 onChange={(e) => onChange({ detail: e.target.value })}
-                placeholder="The full module — what it covers, what's taught, and the exercise they complete"
+                placeholder="The full module - what it covers, what's taught, and the exercise they complete"
                 rows={6}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
@@ -347,7 +347,7 @@ function ModuleCard({
               <textarea
                 value={m.notes}
                 onChange={(e) => onChange({ notes: e.target.value })}
-                placeholder="Notes for you — prep, sticking points, delivery tips (optional)"
+                placeholder="Notes for you - prep, sticking points, delivery tips (optional)"
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
@@ -355,11 +355,11 @@ function ModuleCard({
                 <textarea
                   value={m.participant_notes}
                   onChange={(e) => onChange({ participant_notes: e.target.value })}
-                  placeholder={'Notes for participants — one bullet per line\ne.g. Bring a recent client story\nPractice your message out loud'}
+                  placeholder={'Notes for participants - one bullet per line\ne.g. Bring a recent client story\nPractice your message out loud'}
                   rows={4}
                   className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
                 />
-                <p className="mt-1 text-caption text-ink-secondary">One note per line — each becomes a bullet your participants see.</p>
+                <p className="mt-1 text-caption text-ink-secondary">One note per line - each becomes a bullet your participants see.</p>
               </div>
               <Button size="sm" fullWidth={false} iconLeft={<CheckIcon width={15} height={15} />} onClick={() => { setEditing(false); onCommit(); }}>
                 Save
@@ -573,7 +573,7 @@ function BuildReader({
       toast.success('Switched to this build.');
       onClose();
     } catch {
-      toast.error("Couldn't switch to that build — try again");
+      toast.error("Couldn't switch to that build - try again");
     } finally {
       setBusy(false);
     }

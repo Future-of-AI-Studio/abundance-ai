@@ -82,7 +82,7 @@ function SourcePlayer({ load }: { load: () => Promise<string> }) {
       className="mt-1 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline disabled:opacity-50"
     >
       {loading ? <Spinner size={12} /> : <PlayIcon width={14} height={14} />}
-      {loading ? 'Loading…' : failed ? 'Unavailable — tap to retry' : 'Play'}
+      {loading ? 'Loading…' : failed ? 'Unavailable - tap to retry' : 'Play'}
     </button>
   );
 }
@@ -151,7 +151,7 @@ export function AddContentPage() {
     setError(null);
     for (const file of Array.from(files)) {
       if (file.size > MAX_UPLOAD_BYTES) {
-        setError("That file's a bit big (max 50 MB). Try a smaller one — or just record instead.");
+        setError("That file's a bit big (max 50 MB). Try a smaller one - or just record instead.");
         continue;
       }
       if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
@@ -164,7 +164,7 @@ export function AddContentPage() {
         await backend.storage.upload(file, 'file');
         await refreshContent();
       } catch {
-        setError('Upload failed — give it another try.');
+        setError('Upload failed - give it another try.');
       } finally {
         setBusy(false);
         setSavingLabel(null);
@@ -206,7 +206,7 @@ export function AddContentPage() {
       setEditingNoteId(s.id);
       setWriteOpen(true);
     } catch {
-      setError("Couldn't open that note — give it another try.");
+      setError("Couldn't open that note - give it another try.");
     } finally {
       setOpeningNoteId(null);
     }
@@ -232,7 +232,7 @@ export function AddContentPage() {
       setNoteText('');
       setEditingNoteId(null);
     } catch {
-      setError("Couldn't save that note — give it another try.");
+      setError("Couldn't save that note - give it another try.");
       setWriteOpen(true);
     } finally {
       setBusy(false);
@@ -287,7 +287,7 @@ export function AddContentPage() {
           await backend.storage.upload(file, 'voice', secondsRef.current);
           await refreshContent();
         } catch {
-          setError('Couldn\'t save that recording — give it another try.');
+          setError('Couldn\'t save that recording - give it another try.');
         } finally {
           setBusy(false);
           setSavingLabel(null);
@@ -324,7 +324,7 @@ export function AddContentPage() {
       await backend.storage.remove(id);
       await refreshContent();
     } catch {
-      toast.error("Couldn't remove that — tap to retry");
+      toast.error("Couldn't remove that - tap to retry");
     } finally {
       setRemovingId(null);
     }
@@ -443,7 +443,7 @@ export function AddContentPage() {
           )}
         >
           <MicIcon width={28} height={28} className="text-primary" />
-          <span className="text-body font-medium text-ink">{recording ? 'Stop recording' : 'Just talk — I\'ll listen'}</span>
+          <span className="text-body font-medium text-ink">{recording ? 'Stop recording' : 'Just talk - I\'ll listen'}</span>
           {recording ? (
             <span className="flex items-center gap-2 font-mono text-data text-primary">
               <span className="h-2 w-2 animate-dot-pulse rounded-pill bg-error" />
@@ -480,7 +480,7 @@ export function AddContentPage() {
         <>
           <div className="mt-6 flex items-center justify-between">
             <p className="text-caption text-ink-secondary">
-              {editing ? 'Your sources' : 'Draft saved — pick up any time.'}
+              {editing ? 'Your sources' : 'Draft saved - pick up any time.'}
             </p>
             <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
           </div>
@@ -522,7 +522,7 @@ export function AddContentPage() {
         </>
       ) : (
         <p className="mt-6 text-center text-body-sm text-ink-secondary">
-          Nothing to prepare — add one thing and we'll take it from there.
+          Nothing to prepare - add one thing and we'll take it from there.
         </p>
       )}
 
@@ -586,7 +586,7 @@ export function AddContentPage() {
         }
       >
         <p className="text-body-sm text-ink-secondary">
-          Notes, an outline, a story you always tell clients — paste or type anything. Messy is fine; I'll find the structure.
+          Notes, an outline, a story you always tell clients - paste or type anything. Messy is fine; I'll find the structure.
         </p>
         <textarea
           autoFocus
@@ -614,7 +614,7 @@ export function AddContentPage() {
         }
       >
         <p className="text-body text-ink-secondary">
-          We'll create a new build from your current sources and make it active. Your current build stays saved — you can
+          We'll create a new build from your current sources and make it active. Your current build stays saved - you can
           switch back to it anytime from the Program page. Up to 6 builds are kept.
         </p>
       </Sheet>
@@ -626,7 +626,7 @@ export function AddContentPage() {
       <Card variant="plain" className="border border-primary/25 bg-primary/5 p-4">
         <RailLabel>What rebuilding does</RailLabel>
         <p className="text-body-sm text-ink-secondary">
-          Creates a new build from these sources and makes it active. Your current build stays saved — switch back anytime from the Program page.
+          Creates a new build from these sources and makes it active. Your current build stays saved - switch back anytime from the Program page.
         </p>
       </Card>
       {builds.length > 0 && (
@@ -648,14 +648,14 @@ export function AddContentPage() {
         <div>
           <p className="text-body-sm font-semibold text-ink">1. Share your ideas and materials</p>
           <p className="mt-1 text-body-sm text-ink-secondary">
-            Speak, type, upload, or bring in content from another AI — and pick how many sessions to create, or let
+            Speak, type, upload, or bring in content from another AI - and pick how many sessions to create, or let
             AbundanceAI recommend. No need to organize first; it structures everything for you.
           </p>
         </div>
         <div>
           <p className="text-body-sm font-semibold text-ink">2. Build your mentoring program</p>
           <p className="mt-1 text-body-sm text-ink-secondary">
-            Select Build and AbundanceAI creates your sessions. Review, edit, or make another version — your previous
+            Select Build and AbundanceAI creates your sessions. Review, edit, or make another version - your previous
             builds stay available to compare and pick from.
           </p>
         </div>
