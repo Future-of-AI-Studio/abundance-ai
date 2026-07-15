@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button, Card, Eyebrow } from '@/components/ui';
+import { Card, Eyebrow } from '@/components/ui';
 import {
   SearchIcon,
   PlusIcon,
   MinusIcon,
-  ChatIcon,
   MicIcon,
   PencilIcon,
   MegaphoneIcon,
