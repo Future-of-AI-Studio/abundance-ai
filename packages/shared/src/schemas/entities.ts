@@ -149,6 +149,8 @@ export const moduleSchema = z.object({
   program_id: uuid,
   idx: z.number().int().nonnegative(),
   title: z.string().min(1),
+  // Short blurb under the title (capped at 160 chars at the API boundary).
+  description: z.string().default(''),
   outcome: z.string(),
   detail: z.string().default(''),
   session_flow: z.string(),

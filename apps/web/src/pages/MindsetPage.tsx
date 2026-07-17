@@ -45,10 +45,10 @@ const WEEKLY_CAP = 3;
 // Tappable conversation openers — common things people arrive with. Seeded from
 // the FEATURED walls so the chat starts somewhere true.
 const SUGGESTED_QUESTIONS = [
-  'Who am I to teach this?',
-  'It feels wrong to charge - is that normal?',
-  "I'm scared no one will show up.",
-  'The tech is overwhelming me.',
+  'I really don’t like promoting myself.',
+  'What if no one signs up?',
+  "How do I know I’m qualified to guide others?",
+  'What if I don’t do a good job and embarrass myself.',
 ];
 
 // In-chat follow-up prompts — gentle reframing nudges offered above the composer.

@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Module, Program } from '@abundance/shared';
 import { Button, Badge, Card, Eyebrow, EmptyState, Sheet, Skeleton } from '@/components/ui';
-import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, CheckIcon, ArrowRight, ArrowLeft, SparkleIcon, ChevronDown, EyeIcon, CloseIcon } from '@/components/ui/icons';
+import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, PencilIcon, CheckIcon, ArrowRight, ArrowLeft, SparkleIcon, ChevronDown, EyeIcon, CloseIcon } from '@/components/ui/icons';
 import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
 import type { Backend } from '@/lib/backend';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
-type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'outcome' | 'detail' | 'session_flow' | 'notes' | 'participant_notes'>;
+type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'description' | 'outcome' | 'detail' | 'session_flow' | 'notes' | 'participant_notes'>;
+
+// Program size cap — mirrors the shared programUpdate schema and the AI build
+// rule (builds produce 3-6 modules).
+const MAX_MODULES = 6;
 
 // "Notes for Participants" is stored as one string, one bullet per line.
 const toBullets = (text: string) => text.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -37,10 +41,11 @@ export function ProgramPage() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [continuing, setContinuing] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
     setTitle(program.program?.title ?? '');
-    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '', participant_notes: m.participant_notes ?? '' })));
+    setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, description: m.description ?? '', outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '', participant_notes: m.participant_notes ?? '' })));
   }, [program]);
 
   if (!ready) return <div className="space-y-4"><Skeleton variant="line" className="w-1/2" />{[0, 1, 2].map((i) => <Skeleton key={i} variant="module-card" />)}</div>;
@@ -66,17 +71,21 @@ export function ProgramPage() {
     } catch { toast.error("Couldn't save that edit - tap to retry"); }
   };
 
-  const persist = async (next: LocalModule[]) => {
+  const persist = async (next: LocalModule[], removeIds?: string[]) => {
     if (!backend) return;
     const reindexed = next.map((m, i) => ({ ...m, idx: i }));
     setModules(reindexed);
     try {
       await backend.api.programUpdate({
         program_id: programId,
-        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })),
+        modules: reindexed.map((m) => ({ id: m.id, idx: m.idx, title: m.title, description: m.description, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes })),
+        ...(removeIds?.length ? { remove_module_ids: removeIds } : {}),
       });
       await refreshProgram();
-    } catch { toast.error("Couldn't save that edit - tap to retry"); }
+    } catch {
+      toast.error("Couldn't save that edit - tap to retry");
+      await refreshProgram();
+    }
   };
 
   const move = (i: number, dir: -1 | 1) => {
@@ -106,13 +115,22 @@ export function ProgramPage() {
     void persist(modules);
   };
 
-  const remove = (id: string) => {
+  const askRemove = (id: string) => {
     if (modules.length <= 1) { toast.info('Keep at least one module.'); return; }
-    void persist(modules.filter((m) => m.id !== id));
+    setConfirmRemoveId(id);
   };
 
+  const confirmRemove = () => {
+    if (!confirmRemoveId) return;
+    void persist(modules.filter((m) => m.id !== confirmRemoveId), [confirmRemoveId]);
+    setConfirmRemoveId(null);
+  };
+
+  const atMax = modules.length >= MAX_MODULES;
+
   const add = () => {
-    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', outcome: '', detail: '', session_flow: '', notes: '', participant_notes: '' };
+    if (atMax) { toast.info(`Programs max out at ${MAX_MODULES} modules.`); return; }
+    const newModule: LocalModule = { id: crypto.randomUUID(), idx: modules.length, title: 'New module', description: '', outcome: '', detail: '', session_flow: '', notes: '', participant_notes: '' };
     void persist([...modules, newModule]);
   };
 
@@ -179,7 +197,12 @@ export function ProgramPage() {
 
           <div className="mb-3 flex items-center justify-between">
             <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Modules</p>
-            <button onClick={add} className="inline-flex items-center gap-1.5 rounded-pill border border-dashed border-line-strong px-3 py-1.5 text-body-sm font-medium text-primary hover:bg-primary/5">
+            <button
+              onClick={add}
+              disabled={atMax}
+              title={atMax ? `Programs max out at ${MAX_MODULES} modules.` : undefined}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-dashed border-line-strong px-3 py-1.5 text-body-sm font-medium text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            >
               <PlusIcon width={16} height={16} /> Add module
             </button>
           </div>
@@ -194,7 +217,7 @@ export function ProgramPage() {
                 isLast={i === modules.length - 1}
                 isDragging={dragIndex === i}
                 onMove={(dir) => move(i, dir)}
-                onRemove={() => remove(m.id)}
+                onRemove={() => askRemove(m.id)}
                 onChange={(patch) => editModule(m.id, patch)}
                 onCommit={() => persist(modules)}
                 onDragStart={() => onDragStart(i)}
@@ -252,6 +275,24 @@ export function ProgramPage() {
         onClose={() => setPreviewId(null)}
         onChanged={async () => { await refreshProgram(); await refreshBuilds(); }}
       />
+
+      {/* Delete-module confirm sheet */}
+      <Sheet
+        open={confirmRemoveId !== null}
+        onClose={() => setConfirmRemoveId(null)}
+        title="Delete this module?"
+        footer={
+          <>
+            <Button variant="destructive" onClick={confirmRemove}>Yes, delete it</Button>
+            <Button variant="ghost" onClick={() => setConfirmRemoveId(null)}>Keep it</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          &ldquo;{modules.find((m) => m.id === confirmRemoveId)?.title}&rdquo; and everything in it
+          will be removed from this build. This can&rsquo;t be undone.
+        </p>
+      </Sheet>
     </div>
   );
 }
@@ -367,15 +408,19 @@ function ModuleCard({
             </div>
           ) : (
             <div>
-              <button onClick={() => setEditing(true)} className="w-full text-left">
+              <button
+                onClick={() => hasDetail && setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                className={cn('w-full text-left', !hasDetail && 'cursor-default')}
+              >
                 <h3 className="text-h3 font-semibold text-ink">{m.title}</h3>
+                {m.outcome && (
+                  <div className="mt-2 flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0 rounded-pill bg-accent/10 px-2 py-0.5 font-mono text-data uppercase tracking-[0.06em] text-accent">Outcome</span>
+                    <p className="text-body-sm text-ink-secondary">{m.outcome}</p>
+                  </div>
+                )}
               </button>
-              {m.outcome && (
-                <div className="mt-2 flex items-start gap-2">
-                  <span className="mt-0.5 shrink-0 rounded-pill bg-accent/10 px-2 py-0.5 font-mono text-data uppercase tracking-[0.06em] text-accent">Outcome</span>
-                  <p className="text-body-sm text-ink-secondary">{m.outcome}</p>
-                </div>
-              )}
 
               {expanded && (
                 <div className="mt-3 space-y-3 border-t border-line pt-3">
@@ -434,6 +479,7 @@ function ModuleCard({
 
         {!editing && (
           <div className="flex flex-col items-center gap-1 text-ink-secondary">
+            <button onClick={() => setEditing(true)} aria-label="Edit module" className="hover:text-primary"><PencilIcon width={16} height={16} /></button>
             <button disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up" className="disabled:opacity-30 hover:text-primary">▲</button>
             <button disabled={isLast} onClick={() => onMove(1)} aria-label="Move down" className="disabled:opacity-30 hover:text-primary">▼</button>
             <button onClick={onRemove} aria-label="Remove module" className="mt-0.5 hover:text-error"><TrashIcon width={16} height={16} /></button>
@@ -528,7 +574,7 @@ function AtAGlance({
         onClick={onViewLive}
         className="mt-4 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline"
       >
-        <EyeIcon width={15} height={15} /> View landing page
+        <EyeIcon width={15} height={15} /> View program page
       </button>
     </Card>
   );

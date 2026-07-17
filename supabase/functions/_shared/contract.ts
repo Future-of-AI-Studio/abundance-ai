@@ -70,6 +70,7 @@ export const moduleUpsertSchema = z.object({
   id: z.string().uuid().optional(),
   idx: z.number().int().nonnegative(),
   title: z.string().min(1, 'Give this module a title.'),
+  description: z.string().max(160, 'Keep the description under 160 characters.').default(''),
   outcome: z.string(),
   detail: z.string().default(''),
   session_flow: z.string(),
@@ -80,7 +81,7 @@ export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
   title: z.string().min(1, 'Your program needs a title.').optional(),
   price_cents: z.number().int().nonnegative().optional(),
-  modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').optional(),
+  modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').max(6, 'A program can have at most 6 modules.').optional(),
   remove_module_ids: z.array(z.string().uuid()).optional(),
 });
 

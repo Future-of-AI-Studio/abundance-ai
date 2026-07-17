@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { data: modules } = await admin
       .from('modules')
-      .select('idx, title, outcome, detail')
+      .select('idx, title, description, outcome, detail')
       .eq('program_id', program.id)
       .order('idx');
 

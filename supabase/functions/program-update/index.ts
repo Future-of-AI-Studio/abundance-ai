@@ -22,25 +22,34 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = {};
       if (body.title !== undefined) patch.title = body.title;
       if (body.price_cents !== undefined) patch.price_cents = body.price_cents;
-      await db.from('programs').update(patch).eq('id', body.program_id);
+      const { error } = await db.from('programs').update(patch).eq('id', body.program_id);
+      if (error) return errorResponse('update_failed', "We couldn't save that edit.", 400);
     }
 
     if (body.remove_module_ids?.length) {
-      await db.from('modules').delete().in('id', body.remove_module_ids).eq('program_id', body.program_id);
+      const { error } = await db.from('modules').delete().in('id', body.remove_module_ids).eq('program_id', body.program_id);
+      if (error) return errorResponse('update_failed', "We couldn't remove those modules.", 400);
     }
 
     if (body.modules?.length) {
-      for (const m of body.modules) {
-        if (m.id) {
-          // Upsert (not update): a client-generated id for a brand-new module
-          // won't exist yet, so an update would no-op and the module would never
-          // persist. Upsert inserts it on first save and updates it thereafter.
-          await db.from('modules')
-            .upsert({ id: m.id, program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes });
-        } else {
-          await db.from('modules')
-            .insert({ program_id: body.program_id, idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes });
-        }
+      const mods = body.modules;
+      const row = (m: (typeof mods)[number]) => ({
+        program_id: body.program_id, idx: m.idx, title: m.title, description: m.description, outcome: m.outcome, detail: m.detail, session_flow: m.session_flow, notes: m.notes, participant_notes: m.participant_notes,
+      });
+      // Upsert (not update): a client-generated id for a brand-new module won't
+      // exist yet, so an update would no-op and the module would never persist.
+      // All rows go in ONE statement: reordering swaps idx values between rows,
+      // and the (program_id, idx) unique check is deferred to commit — row-by-row
+      // writes would collide mid-swap.
+      const withId = mods.filter((m) => m.id);
+      const withoutId = mods.filter((m) => !m.id);
+      if (withId.length) {
+        const { error } = await db.from('modules').upsert(withId.map((m) => ({ id: m.id, ...row(m) })));
+        if (error) return errorResponse('update_failed', "We couldn't save those modules.", 400);
+      }
+      if (withoutId.length) {
+        const { error } = await db.from('modules').insert(withoutId.map(row));
+        if (error) return errorResponse('update_failed', "We couldn't save those modules.", 400);
       }
     }
 

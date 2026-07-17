@@ -144,12 +144,12 @@ export function StudentsPage() {
         </Card>
       ) : enrollments.length === 0 ? (
         <Card variant="plain" className="text-center">
-          <p className="text-body text-ink">No students yet - but the door's open.</p>
+          <p className="text-body text-ink">No participants yet - but the door's open.</p>
           <p className="mt-1 text-body-sm text-ink-secondary">Share your link above. The moment someone enrolls, they'll appear here with their contact details.</p>
         </Card>
       ) : filtered.length === 0 ? (
         <Card variant="plain" className="text-center">
-          <p className="text-body-sm text-ink-secondary">No students match “{search.trim()}”.</p>
+          <p className="text-body-sm text-ink-secondary">No participants match “{search.trim()}”.</p>
         </Card>
       ) : (
         <>

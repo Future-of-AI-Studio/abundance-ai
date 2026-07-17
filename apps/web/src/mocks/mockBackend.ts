@@ -159,7 +159,7 @@ export function createMockBackend(): Backend {
       state.programs.forEach((b) => { if (b.program) b.program.is_active = false; });
       const build: ProgramWithModules = {
         program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, is_active: true, created_at: nowIso() },
-        modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, ...m })),
+        modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, description: '', ...m })),
       };
       state.programs = [build, ...state.programs];
       save();
@@ -200,6 +200,7 @@ export function createMockBackend(): Backend {
           program_id: p.program!.id,
           idx: m.idx ?? i,
           title: m.title,
+          description: m.description ?? '',
           outcome: m.outcome,
           detail: m.detail ?? '',
           session_flow: m.session_flow,
@@ -225,7 +226,7 @@ export function createMockBackend(): Backend {
         modules: build!.modules
           .slice()
           .sort((a, b) => a.idx - b.idx)
-          .map((m) => ({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail })),
+          .map((m) => ({ idx: m.idx, title: m.title, description: m.description ?? '', outcome: m.outcome, detail: m.detail })),
         creator: {
           first_name: state.profile?.first_name ?? 'Your host',
           category: state.profile?.category ?? 'other',
