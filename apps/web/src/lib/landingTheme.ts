@@ -1,295 +1,153 @@
 import {
   landingPageSettingsSchema,
+  type LandingBrandColor,
   type LandingPageSettings,
   type LandingThemeId,
 } from '@abundance/shared';
 
 /**
- * Landing page background presets — the creator picks one background color for
- * their public /p/:id page and every other color (bio box, buttons, text) is
- * fixed by the preset. Colors are applied as inline styles (not Tailwind
- * classes) because the values are chosen at runtime.
- *
- * Card tokens exist because several presets put a light bio box / module card
- * on a dark page background — text inside those cards can't reuse the page's
- * ink colors.
+ * Landing page theme palettes — the color presets a creator can pick for their
+ * public /p/:id page. Colors are applied as inline styles (not Tailwind classes)
+ * because the values are chosen at runtime; 'warm' mirrors the app's default
+ * brand tokens exactly, so an untouched page looks identical to before.
  */
 export interface LandingPalette {
   label: string;
   note: string;
   bg: string;
   bgSoft: string; // gradient end / tinted sections
-  surface: string; // bio box + module cards
+  surface: string; // cards
   line: string; // borders
-  ink: string; // primary text on the page background
-  inkSoft: string; // secondary text on the page background
+  ink: string;
+  inkSoft: string; // secondary text
   inkDeep: string; // display headings
-  accent: string; // eyebrows, check icons (on the page background)
+  accent: string; // eyebrows, module numbers
   primary: string; // price, links, buttons
   primaryHover: string;
   onPrimary: string; // button text
-  cardInk: string; // primary text on surface (bio box / module cards)
-  cardInkSoft: string; // secondary text on surface
-  cardAccent: string; // links, eyebrows & module numbers on surface
+  heroFrom: string; // "Meet your guide" card gradient
+  heroVia: string;
+  heroTo: string;
 }
 
 export const LANDING_THEMES: Record<LandingThemeId, LandingPalette> = {
-  'elegant-white': {
-    label: 'Elegant White',
-    note: 'Crisp white · deep blue buttons',
-    bg: '#FFFFFF',
-    bgSoft: '#F4F4F4',
-    surface: '#F8F8F8',
-    line: '#E8E8E8',
-    ink: '#1A1A1A',
-    inkSoft: '#555555',
-    inkDeep: '#0F0F0F',
-    accent: '#003366',
-    primary: '#003366',
-    primaryHover: '#14508C',
+  warm: {
+    label: 'Warm Clay',
+    note: 'Earthy terracotta & teal - the classic look',
+    bg: '#FBF6EF',
+    bgSoft: '#F3E9DC',
+    surface: '#FFFFFF',
+    line: '#EDE3D6',
+    ink: '#3A2E26',
+    inkSoft: '#8A7B6D',
+    inkDeep: '#2A211B',
+    accent: '#3F8E6E',
+    primary: '#B5532A',
+    primaryHover: '#E08A3C',
     onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#003366',
+    heroFrom: 'rgba(63, 142, 110, 0.15)',
+    heroVia: 'rgba(181, 83, 42, 0.10)',
+    heroTo: '#F3E9DC',
   },
-  'warm-cream': {
-    label: 'Warm Cream',
-    note: 'Soft cream · muted teal buttons',
-    bg: '#FFF8E7',
-    bgSoft: '#F8EDD2',
+  sage: {
+    label: 'Fresh Sage',
+    note: 'Calm greens - natural and grounded',
+    bg: '#F4F7F1',
+    bgSoft: '#E7EFE1',
     surface: '#FFFFFF',
-    line: '#EFE3C6',
-    ink: '#1A1A1A',
-    inkSoft: '#666666',
-    inkDeep: '#0F0F0F',
-    accent: '#2A7F9E',
-    primary: '#2A7F9E',
-    primaryHover: '#3B97B8',
+    line: '#DDE8D4',
+    ink: '#2C3A2E',
+    inkSoft: '#6E8070',
+    inkDeep: '#1E2B20',
+    accent: '#8A6D3B',
+    primary: '#2F7D4F',
+    primaryHover: '#3E9A64',
     onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#666666',
-    cardAccent: '#2A7F9E',
+    heroFrom: 'rgba(47, 125, 79, 0.14)',
+    heroVia: 'rgba(138, 109, 59, 0.08)',
+    heroTo: '#E7EFE1',
   },
-  'powerful-black': {
-    label: 'Powerful Black',
-    note: 'Bold black · gold buttons',
-    bg: '#000000',
-    bgSoft: '#121212',
-    surface: '#1A1A1A',
-    line: '#2E2E2E',
-    ink: '#FFFFFF',
-    inkSoft: '#CFCFCF',
-    inkDeep: '#FFFFFF',
-    accent: '#FFD54F',
-    primary: '#FFD54F',
-    primaryHover: '#FFE082',
-    onPrimary: '#1A1A1A',
-    cardInk: '#FFFFFF',
-    cardInkSoft: '#CFCFCF',
-    cardAccent: '#FFD54F',
-  },
-  'soothing-gray': {
-    label: 'Soothing Gray',
-    note: 'Light gray · navy buttons',
-    bg: '#F2F2F2',
-    bgSoft: '#E7E7E7',
+  sky: {
+    label: 'Coastal Sky',
+    note: 'Airy blues with a warm coral accent',
+    bg: '#F2F7FA',
+    bgSoft: '#E3EEF5',
     surface: '#FFFFFF',
-    line: '#E0E0E0',
-    ink: '#1A1A1A',
-    inkSoft: '#555555',
-    inkDeep: '#0F0F0F',
-    accent: '#1F3A93',
-    primary: '#1F3A93',
-    primaryHover: '#2E4DB3',
+    line: '#D9E6EF',
+    ink: '#26333D',
+    inkSoft: '#64798A',
+    inkDeep: '#18242F',
+    accent: '#C96F4A',
+    primary: '#2E6E8E',
+    primaryHover: '#3D85A8',
     onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#1F3A93',
+    heroFrom: 'rgba(46, 110, 142, 0.14)',
+    heroVia: 'rgba(201, 111, 74, 0.09)',
+    heroTo: '#E3EEF5',
   },
-  'royal-blue': {
-    label: 'Royal Blue',
-    note: 'Deep blue · gold buttons',
-    bg: '#2B4C7E',
-    bgSoft: '#24406B',
-    surface: '#FFFFFF',
-    line: '#3E619B',
-    ink: '#FFFFFF',
-    inkSoft: '#E0E0E0',
-    inkDeep: '#FFFFFF',
-    accent: '#FFD54F',
-    primary: '#FFD54F',
-    primaryHover: '#FFE082',
-    onPrimary: '#1A1A1A',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#2B4C7E',
+  dusk: {
+    label: 'Quiet Dusk',
+    note: 'Deep plum night mode with amber glow',
+    bg: '#221D29',
+    bgSoft: '#2B2437',
+    surface: '#2E2839',
+    line: '#3D3550',
+    ink: '#EDE6F2',
+    inkSoft: '#A99FB8',
+    inkDeep: '#F7F2FA',
+    accent: '#B49CE8',
+    primary: '#E08A3C',
+    primaryHover: '#EDA55F',
+    onPrimary: '#241C12',
+    heroFrom: 'rgba(180, 156, 232, 0.16)',
+    heroVia: 'rgba(224, 138, 60, 0.10)',
+    heroTo: '#2B2437',
   },
-  'wedgwood-blue': {
-    label: 'Classic Wedgwood Blue',
-    note: 'Classic blue · coral buttons',
-    bg: '#4A6FA5',
-    bgSoft: '#3E6094',
+  mono: {
+    label: 'Paper & Ink',
+    note: 'Minimal monochrome - let the words lead',
+    bg: '#FAFAF7',
+    bgSoft: '#F1F1EC',
     surface: '#FFFFFF',
-    line: '#5F82B4',
-    ink: '#FFFFFF',
-    inkSoft: '#E8E8E8',
-    inkDeep: '#FFFFFF',
-    accent: '#FFE3D6',
-    primary: '#FF7F50',
-    primaryHover: '#FF9569',
-    onPrimary: '#1A1A1A',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#C2552B',
-  },
-  'vibrant-turquoise': {
-    label: 'Vibrant Turquoise',
-    note: 'Turquoise · deep green buttons',
-    bg: '#2A9D8F',
-    bgSoft: '#23887C',
-    surface: '#FFFFFF',
-    line: '#45AFA2',
-    ink: '#FFFFFF',
-    inkSoft: '#E0E0E0',
-    inkDeep: '#FFFFFF',
-    accent: '#D9F3EE',
-    primary: '#1A3A2F',
-    primaryHover: '#275445',
+    line: '#E4E4DC',
+    ink: '#26261F',
+    inkSoft: '#75756C',
+    inkDeep: '#161612',
+    accent: '#75756C',
+    primary: '#22221E',
+    primaryHover: '#3A3A34',
     onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#1A3A2F',
-  },
-  'golden-yellow': {
-    label: 'Golden Yellow',
-    note: 'Sunny gold · slate buttons',
-    bg: '#FFD54F',
-    bgSoft: '#F7C838',
-    surface: '#FFFFFF',
-    line: '#E9BC2E',
-    ink: '#1A1A1A',
-    inkSoft: '#555555',
-    inkDeep: '#0F0F0F',
-    accent: '#2E2E2E',
-    primary: '#2E2E2E',
-    primaryHover: '#474747',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#2E2E2E',
-  },
-  'dusty-rose': {
-    label: 'Radiant Dusty Rose',
-    note: 'Dusty rose · deep plum buttons',
-    bg: '#E28DA6',
-    bgSoft: '#D97D99',
-    surface: '#FFFFFF',
-    line: '#EBA6BA',
-    ink: '#1A1A1A',
-    inkSoft: '#6B6B6B',
-    inkDeep: '#0F0F0F',
-    accent: '#4A2E35',
-    primary: '#4A2E35',
-    primaryHover: '#654049',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#6B6B6B',
-    cardAccent: '#4A2E35',
-  },
-  'ocean-blue': {
-    label: 'Ocean Blue',
-    note: 'Pale aqua · deep teal buttons',
-    bg: '#D8F3DC',
-    bgSoft: '#C6EACD',
-    surface: '#FFFFFF',
-    line: '#BFE4C7',
-    ink: '#1A1A1A',
-    inkSoft: '#555555',
-    inkDeep: '#0F0F0F',
-    accent: '#2A7F9E',
-    primary: '#2A7F9E',
-    primaryHover: '#3B97B8',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#2A7F9E',
-  },
-  'soft-lilac': {
-    label: 'Soft Lilac',
-    note: 'Gentle lilac · deep indigo buttons',
-    bg: '#E6E6FA',
-    bgSoft: '#D9D9F2',
-    surface: '#FFFFFF',
-    line: '#D0D0EA',
-    ink: '#1A1A1A',
-    inkSoft: '#6B6B6B',
-    inkDeep: '#0F0F0F',
-    accent: '#4B0082',
-    primary: '#4B0082',
-    primaryHover: '#6B1FA8',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#6B6B6B',
-    cardAccent: '#4B0082',
-  },
-  'sunlit-peach': {
-    label: 'Sunlit Peach',
-    note: 'Warm peach · coral buttons',
-    bg: '#FFE0C2',
-    bgSoft: '#F9D2AC',
-    surface: '#FFFFFF',
-    line: '#F0CBA6',
-    ink: '#1A1A1A',
-    inkSoft: '#6B6B6B',
-    inkDeep: '#0F0F0F',
-    accent: '#C2552B',
-    primary: '#FF7F50',
-    primaryHover: '#F2693A',
-    onPrimary: '#1A1A1A',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#6B6B6B',
-    cardAccent: '#C2552B',
-  },
-  'petal-blush': {
-    label: 'Petal Blush',
-    note: 'Blush pink · deep rose buttons',
-    bg: '#FDECEF',
-    bgSoft: '#F8DCE2',
-    surface: '#FFFFFF',
-    line: '#F1CFD7',
-    ink: '#1A1A1A',
-    inkSoft: '#6B6B6B',
-    inkDeep: '#0F0F0F',
-    accent: '#C94C72',
-    primary: '#C94C72',
-    primaryHover: '#D96486',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#6B6B6B',
-    cardAccent: '#C94C72',
-  },
-  'fresh-mint': {
-    label: 'Fresh Mint',
-    note: 'Cool mint · forest green buttons',
-    bg: '#DFF5E3',
-    bgSoft: '#CDEBD4',
-    surface: '#FFFFFF',
-    line: '#C4E5CC',
-    ink: '#1A1A1A',
-    inkSoft: '#555555',
-    inkDeep: '#0F0F0F',
-    accent: '#2F6F4E',
-    primary: '#2F6F4E',
-    primaryHover: '#3E8A63',
-    onPrimary: '#FFFFFF',
-    cardInk: '#1A1A1A',
-    cardInkSoft: '#555555',
-    cardAccent: '#2F6F4E',
+    heroFrom: 'rgba(34, 34, 30, 0.06)',
+    heroVia: 'rgba(34, 34, 30, 0.03)',
+    heroTo: '#F1F1EC',
   },
 };
 
-/** Display order for the background-color picker. */
+/** Display order for the theme picker. */
 export const LANDING_THEME_IDS = Object.keys(LANDING_THEMES) as LandingThemeId[];
+
+/**
+ * Button/accent color swatches — every value is dark enough for white (or the
+ * given) text, so any pick stays legible on any theme. Overrides only the
+ * palette's `primary` trio; the rest of the theme is untouched.
+ */
+export const BRAND_COLORS: Record<LandingBrandColor, { label: string; primary: string; primaryHover: string; onPrimary: string }> = {
+  clay: { label: 'Clay', primary: '#B5532A', primaryHover: '#E08A3C', onPrimary: '#FFFFFF' },
+  amber: { label: 'Amber', primary: '#B45309', primaryHover: '#D97706', onPrimary: '#FFFFFF' },
+  forest: { label: 'Forest', primary: '#15803D', primaryHover: '#16A34A', onPrimary: '#FFFFFF' },
+  pine: { label: 'Pine', primary: '#047857', primaryHover: '#059669', onPrimary: '#FFFFFF' },
+  teal: { label: 'Teal', primary: '#0F766E', primaryHover: '#0D9488', onPrimary: '#FFFFFF' },
+  ocean: { label: 'Ocean', primary: '#0369A1', primaryHover: '#0284C7', onPrimary: '#FFFFFF' },
+  blue: { label: 'Blue', primary: '#1D4ED8', primaryHover: '#2563EB', onPrimary: '#FFFFFF' },
+  indigo: { label: 'Indigo', primary: '#4338CA', primaryHover: '#4F46E5', onPrimary: '#FFFFFF' },
+  violet: { label: 'Violet', primary: '#6D28D9', primaryHover: '#7C3AED', onPrimary: '#FFFFFF' },
+  plum: { label: 'Plum', primary: '#A21CAF', primaryHover: '#C026D3', onPrimary: '#FFFFFF' },
+  rose: { label: 'Rose', primary: '#BE185D', primaryHover: '#DB2777', onPrimary: '#FFFFFF' },
+  slate: { label: 'Slate', primary: '#334155', primaryHover: '#475569', onPrimary: '#FFFFFF' },
+};
+
+/** Display order for the swatch picker. */
+export const BRAND_COLOR_IDS = Object.keys(BRAND_COLORS) as LandingBrandColor[];
 
 /**
  * Normalize a stored (possibly null/partial/legacy) blob into full settings +
@@ -301,7 +159,12 @@ export function resolveLanding(raw: LandingPageSettings | null | undefined): {
 } {
   const parsed = landingPageSettingsSchema.safeParse(raw ?? {});
   const settings = parsed.success ? parsed.data : landingPageSettingsSchema.parse({});
-  return { settings, palette: LANDING_THEMES[settings.theme] };
+  let palette = LANDING_THEMES[settings.theme];
+  if (settings.brand_color) {
+    const b = BRAND_COLORS[settings.brand_color];
+    palette = { ...palette, primary: b.primary, primaryHover: b.primaryHover, onPrimary: b.onPrimary };
+  }
+  return { settings, palette };
 }
 
 /**

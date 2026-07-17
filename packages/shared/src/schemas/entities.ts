@@ -42,35 +42,45 @@ export type JourneyStep = z.infer<typeof journeyStepSchema>;
 // Creator-chosen appearance & copy for their public program landing page,
 // stored as one jsonb blob on profiles (null = untouched defaults). Every field
 // has a default so a partial/legacy blob still parses.
-// Background-color presets. Each preset fixes the whole palette (bio box,
-// button, text colors) — creators pick one color, everything else follows.
-// The hex values live in the web app (landingTheme.ts).
-export const landingThemeIdSchema = z.enum([
-  'elegant-white', 'warm-cream', 'powerful-black', 'soothing-gray',
-  'royal-blue', 'wedgwood-blue', 'vibrant-turquoise', 'golden-yellow',
-  'dusty-rose', 'ocean-blue', 'soft-lilac', 'sunlit-peach',
-  'petal-blush', 'fresh-mint',
-]);
+export const landingThemeIdSchema = z.enum(['warm', 'sage', 'sky', 'dusk', 'mono']);
 export type LandingThemeId = z.infer<typeof landingThemeIdSchema>;
 
-// Pre-preset theme ids → the closest new preset, so already-saved pages keep
-// parsing (their old `brand_color` key is simply stripped by the object schema).
+// Constrained button/accent swatches (named, not free hex) so pages stay
+// tasteful and button text stays legible. The hex values live in the web app.
+export const landingBrandColorSchema = z.enum([
+  'clay', 'amber', 'forest', 'pine', 'teal', 'ocean',
+  'blue', 'indigo', 'violet', 'plum', 'rose', 'slate',
+]);
+export type LandingBrandColor = z.infer<typeof landingBrandColorSchema>;
+
+// Background-preset ids (the interim single-color design) → the closest color
+// scheme, so pages saved while that design was live keep parsing.
 const LEGACY_THEME_MAP: Record<string, LandingThemeId> = {
-  warm: 'warm-cream',
-  sage: 'fresh-mint',
-  sky: 'ocean-blue',
-  dusk: 'powerful-black',
-  mono: 'elegant-white',
+  'warm-cream': 'warm',
+  'golden-yellow': 'warm',
+  'dusty-rose': 'warm',
+  'sunlit-peach': 'warm',
+  'petal-blush': 'warm',
+  'fresh-mint': 'sage',
+  'vibrant-turquoise': 'sage',
+  'ocean-blue': 'sky',
+  'royal-blue': 'sky',
+  'wedgwood-blue': 'sky',
+  'soft-lilac': 'sky',
+  'powerful-black': 'dusk',
+  'elegant-white': 'mono',
+  'soothing-gray': 'mono',
 };
 
 export const landingPageSettingsSchema = z.object({
   theme: z.preprocess(
     (v) => (typeof v === 'string' && v in LEGACY_THEME_MAP ? LEGACY_THEME_MAP[v] : v),
-    landingThemeIdSchema.catch('warm-cream'),
-  ).default('warm-cream'), // background-color preset
+    landingThemeIdSchema.catch('warm'),
+  ).default('warm'), // color palette preset
   background: z.enum(['solid', 'gradient']).default('solid'), // page background style
   heading_font: z.enum(['serif', 'sans']).default('serif'), // display headings
   corners: z.enum(['soft', 'sharp']).default('soft'), // card/button roundness
+  brand_color: landingBrandColorSchema.nullable().default(null), // button/accent override; null → theme's own
   eyebrow: z.string().max(60).nullable().default(null), // hero badge; null → "Live group program"
   tagline: z.string().max(200).nullable().default(null), // hero subtitle; null → first module outcome
   cta_label: z.string().max(40).nullable().default(null), // enroll button; null → "Enroll now"
