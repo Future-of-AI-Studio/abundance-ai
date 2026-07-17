@@ -255,6 +255,15 @@ const GUIDES: Guide[] = [
         ],
       },
       {
+        heading: 'After people enroll',
+        bullets: [
+          'Whenever someone enrolls, you will be notified via email and receive their contact information.',
+          'You can begin your live mentoring sessions when you have the group size you want, whether that is 2 people or 20.',
+          'Contact participants directly by email to welcome them, coordinate session times, and share meeting details, reminders, and updates.',
+          'If you already have a paid Zoom account, we recommend using it for your live sessions. Otherwise, create a free Google account and use Google Meet.',
+        ],
+      },
+      {
         heading: 'Prepare to guide your live sessions',
         bullets: [
           'Review the content for each module before the session.',
@@ -500,32 +509,59 @@ export function HelpPage() {
 
   return (
     <div>
-      {/* Hero — centred search over the whole guidance page */}
+      {/* Hero — page title over the whole guidance page */}
       <div className="mx-auto max-w-2xl text-center">
         <Eyebrow className="text-accent">Guidance</Eyebrow>
         <h1 className="mt-2 font-serif text-h1 font-medium text-ink">How can we help?</h1>
         <p className="mx-auto mt-2 max-w-md text-body text-ink-secondary">
-          Search our guides, or explore each step below to get the most out of AbundanceAI.
+          Explore the questions and guides below, or search for a topic, to get the most out of AbundanceAI.
         </p>
+      </div>
 
-        <div className="relative mt-6">
-          <SearchIcon
-            width={20}
-            height={20}
-            aria-hidden
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-secondary"
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for a topic, e.g. “session length”"
-            className="h-12 w-full rounded-pill border border-line bg-surface-plain pl-11 pr-14 text-body text-ink shadow-sm outline-none placeholder:text-ink-secondary/60 focus:border-primary"
-          />
-          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-line bg-surface px-2 py-1 font-mono text-eyebrow uppercase tracking-wide text-ink-secondary sm:block">
-            ⌘K
-          </kbd>
-        </div>
+      {/* Popular questions + contact rail */}
+      <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <section>
+          <h2 className="font-serif text-h2 text-ink">Frequently Asked Questions</h2>
+
+          {faqs.length === 0 ? (
+            <p className="mt-4 text-body-sm text-ink-secondary">No questions match “{query}”.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {faqs.map((f) => {
+                const idx = FAQS.indexOf(f);
+                const isOpen = openFaq === idx;
+                return (
+                  <Card key={f.q} variant="plain" className="p-0">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                      className="flex w-full items-center justify-between gap-4 p-5 text-left"
+                    >
+                      <span className="text-h3 font-semibold text-primary">{f.q}</span>
+                      <span className="shrink-0 text-accent">
+                        {isOpen ? <MinusIcon width={18} height={18} /> : <PlusIcon width={18} height={18} />}
+                      </span>
+                    </button>
+                    {isOpen && <p className="px-5 pb-5 text-body-sm text-ink-secondary">{f.a}</p>}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* <aside className="space-y-4 lg:sticky lg:top-6">
+          <Card variant="plain" className="border border-accent/25 bg-accent/5">
+            <Eyebrow className="text-accent">Still stuck?</Eyebrow>
+            <p className="mt-2 text-body-sm text-ink-secondary">
+              Reach out any time - we usually reply within a day.
+            </p>
+            <Button className="mt-4" iconLeft={<ChatIcon width={18} height={18} />}>
+              Contact support
+            </Button>
+          </Card>
+        </aside> */}
       </div>
 
       {/* Guides — five sections, bold headings only until expanded */}
@@ -620,52 +656,31 @@ export function HelpPage() {
         )}
       </section>
 
-      {/* Popular questions + contact rail */}
-      <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <section>
-          <Eyebrow className="mb-1 text-accent">Popular questions</Eyebrow>
-          <h2 className="font-serif text-h2 text-ink">Answers to the things mentors ask most</h2>
-
-          {faqs.length === 0 ? (
-            <p className="mt-4 text-body-sm text-ink-secondary">No questions match “{query}”.</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {faqs.map((f) => {
-                const idx = FAQS.indexOf(f);
-                const isOpen = openFaq === idx;
-                return (
-                  <Card key={f.q} variant="plain" className="p-0">
-                    <button
-                      type="button"
-                      aria-expanded={isOpen}
-                      onClick={() => setOpenFaq(isOpen ? -1 : idx)}
-                      className="flex w-full items-center justify-between gap-4 p-5 text-left"
-                    >
-                      <span className="text-h3 font-semibold text-primary">{f.q}</span>
-                      <span className="shrink-0 text-accent">
-                        {isOpen ? <MinusIcon width={18} height={18} /> : <PlusIcon width={18} height={18} />}
-                      </span>
-                    </button>
-                    {isOpen && <p className="px-5 pb-5 text-body-sm text-ink-secondary">{f.a}</p>}
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* <aside className="space-y-4 lg:sticky lg:top-6">
-          <Card variant="plain" className="border border-accent/25 bg-accent/5">
-            <Eyebrow className="text-accent">Still stuck?</Eyebrow>
-            <p className="mt-2 text-body-sm text-ink-secondary">
-              Reach out any time - we usually reply within a day.
-            </p>
-            <Button className="mt-4" iconLeft={<ChatIcon width={18} height={18} />}>
-              Contact support
-            </Button>
-          </Card>
-        </aside> */}
-      </div>
+      {/* Search — filters the questions, guides, and videos on this page */}
+      <section className="mx-auto mt-10 max-w-2xl">
+        <div className="text-center">
+          <Eyebrow className="text-accent">Search</Eyebrow>
+          <h2 className="mt-1 font-serif text-h2 text-ink">Looking for something specific?</h2>
+        </div>
+        <div className="relative mt-4">
+          <SearchIcon
+            width={20}
+            height={20}
+            aria-hidden
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-secondary"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for a topic, e.g. “session length”"
+            className="h-12 w-full rounded-pill border border-line bg-surface-plain pl-11 pr-14 text-body text-ink shadow-sm outline-none placeholder:text-ink-secondary/60 focus:border-primary"
+          />
+          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-line bg-surface px-2 py-1 font-mono text-eyebrow uppercase tracking-wide text-ink-secondary sm:block">
+            ⌘K
+          </kbd>
+        </div>
+      </section>
 
       {/* Video guides — three walkthroughs (placeholders until recorded) */}
       {videos.length > 0 && (

@@ -44,7 +44,7 @@ export function ShareProgramLink({ programId, className }: { programId: string; 
         rel="noreferrer"
         className="mt-2 inline-flex items-center gap-1.5 text-caption font-medium text-primary hover:underline"
       >
-        <EyeIcon width={14} height={14} /> Preview landing page
+        <EyeIcon width={14} height={14} /> Preview program page
       </a>
     </div>
   );

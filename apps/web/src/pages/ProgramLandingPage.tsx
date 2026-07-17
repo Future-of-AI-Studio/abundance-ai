@@ -229,7 +229,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
             <div key={m.idx} className="rounded-lg border p-5" style={{ backgroundColor: t.surface, borderColor: t.line, borderRadius: radii.card }}>
               <span className="font-mono text-data" style={{ color: t.cardAccent }}>{String(i + 1).padStart(2, '0')}</span>
               <h3 className="mt-1 text-h3 font-semibold" style={{ color: t.cardInk }}>{m.title}</h3>
-              {m.outcome && <p className="mt-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>{m.outcome}</p>}
+              {(m.description || m.outcome) && <p className="mt-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>{m.description || m.outcome}</p>}
             </div>
           ))}
         </div>

@@ -28,22 +28,31 @@ const CORNERS: Array<{ value: LandingPageSettings['corners']; label: string; not
 
 // Stand-in modules so the preview reads like a real page before a program exists.
 const SAMPLE_MODULES = [
-  { idx: 0, title: 'Find your footing', outcome: 'Get clear on where you are and where you want to go.', detail: '' },
-  { idx: 1, title: 'Build the practice', outcome: 'Turn insight into a simple weekly rhythm.', detail: '' },
-  { idx: 2, title: 'Make it stick', outcome: 'Leave with a plan you will actually follow.', detail: '' },
+  { idx: 0, title: 'Find your footing', description: '', outcome: 'Get clear on where you are and where you want to go.', detail: '' },
+  { idx: 1, title: 'Build the practice', description: '', outcome: 'Turn insight into a simple weekly rhythm.', detail: '' },
+  { idx: 2, title: 'Make it stick', description: '', outcome: 'Leave with a plan you will actually follow.', detail: '' },
 ];
 
+// Module description cap — mirrors the shared programUpdate schema.
+const MAX_DESCRIPTION = 160;
+
 export function LandingStudioPage() {
-  const { backend, profile, program, refreshProfile } = useApp();
+  const { backend, profile, program, refreshProfile, refreshProgram } = useApp();
 
   const saved = useMemo(() => resolveLanding(profile?.landing_page).settings, [profile?.landing_page]);
   const [draft, setDraft] = useState<LandingPageSettings>(saved);
   // "What's included" is edited as one-per-line text, parsed into the draft array.
   const [includedText, setIncludedText] = useState(saved.included.join('\n'));
+  // Per-module description drafts, keyed by module id (saved via programUpdate,
+  // not landing_page - descriptions live on the modules themselves).
+  const [descDrafts, setDescDrafts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   // Re-sync the draft whenever the stored settings change (e.g. after a save).
   useEffect(() => { setDraft(saved); setIncludedText(saved.included.join('\n')); }, [saved]);
+  useEffect(() => {
+    setDescDrafts(Object.fromEntries(program.modules.map((m) => [m.id, m.description ?? ''])));
+  }, [program]);
 
   const set = <K extends keyof LandingPageSettings>(key: K, value: LandingPageSettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -67,14 +76,30 @@ export function LandingStudioPage() {
     social_linkedin: draft.social_linkedin?.trim() || null,
     social_website: draft.social_website?.trim() || null,
   };
-  const dirty = JSON.stringify(normalized) !== JSON.stringify(saved);
+  const pageDirty = JSON.stringify(normalized) !== JSON.stringify(saved);
+  const descDirty = program.modules.some((m) => (descDrafts[m.id] ?? '').trim() !== (m.description ?? ''));
+  const dirty = pageDirty || descDirty;
 
   const save = async () => {
     if (!backend) return;
     setSaving(true);
     try {
-      await backend.reads.updateProfile({ landing_page: normalized });
-      await refreshProfile();
+      if (pageDirty) {
+        await backend.reads.updateProfile({ landing_page: normalized });
+        await refreshProfile();
+      }
+      if (descDirty && program.program && program.modules.length) {
+        await backend.api.programUpdate({
+          program_id: program.program.id,
+          modules: program.modules.map((m) => ({
+            id: m.id, idx: m.idx, title: m.title,
+            description: (descDrafts[m.id] ?? m.description ?? '').trim(),
+            outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow,
+            notes: m.notes ?? '', participant_notes: m.participant_notes ?? '',
+          })),
+        });
+        await refreshProgram();
+      }
       toast.success('Landing page updated');
     }
     catch { toast.error("Couldn't save - try again."); }
@@ -92,7 +117,7 @@ export function LandingStudioPage() {
       price_cents: program.program?.price_cents ?? 2000,
     },
     modules: program.modules.length
-      ? program.modules.map((m) => ({ idx: m.idx, title: m.title, outcome: m.outcome, detail: m.detail }))
+      ? program.modules.map((m) => ({ idx: m.idx, title: m.title, description: (descDrafts[m.id] ?? m.description ?? '').trim(), outcome: m.outcome, detail: m.detail }))
       : SAMPLE_MODULES,
     creator: {
       first_name: profile?.first_name ?? 'You',
@@ -118,7 +143,7 @@ export function LandingStudioPage() {
           {liveUrl && (
             <a href={liveUrl} target="_blank" rel="noreferrer">
               <Button variant="secondary" size="md" fullWidth={false} iconRight={<ArrowRight width={16} height={16} />}>
-                View live page
+                View live program page
               </Button>
             </a>
           )}
@@ -240,6 +265,31 @@ export function LandingStudioPage() {
               />
             </Card>
           </section>
+
+          {/* Module descriptions — stored on the modules themselves (programUpdate),
+              shown under each module title on the public page in place of its outcome. */}
+          {program.modules.length > 0 && (
+            <section>
+              <Eyebrow className="mb-3">Module descriptions</Eyebrow>
+              <Card variant="plain" className="space-y-3">
+                {program.modules.map((m, i) => (
+                  <Textarea
+                    key={m.id}
+                    label={`${i + 1}. ${m.title}`}
+                    rows={2}
+                    maxLength={MAX_DESCRIPTION}
+                    placeholder={m.outcome || 'A short description of this module'}
+                    helperText={`${(descDrafts[m.id] ?? '').length}/${MAX_DESCRIPTION}`}
+                    value={descDrafts[m.id] ?? ''}
+                    onChange={(e) => setDescDrafts((d) => ({ ...d, [m.id]: e.target.value.slice(0, MAX_DESCRIPTION) }))}
+                  />
+                ))}
+                <p className="pt-1 font-mono text-data text-ink-secondary">
+                  Shown under each module title - leave blank to show the module's outcome instead.
+                </p>
+              </Card>
+            </section>
+          )}
 
           {/* What's included */}
           <section>
