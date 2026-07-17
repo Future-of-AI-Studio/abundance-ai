@@ -540,7 +540,7 @@ function TestimonialCapture({ onDone }: { onDone: () => void }) {
       <p className="text-body font-medium text-ink">Feeling it? Share a few words.</p>
       <Textarea className="mt-2" placeholder="What's shifting for you?" value={text} onChange={(e) => setText(e.target.value)} />
       <label className="mt-2 flex items-center gap-2 text-caption text-ink-secondary">
-        <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="h-4 w-4 accent-[#3F8E6E]" />
+        <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="h-4 w-4 accent-accent" />
         You can share this to help others.
       </label>
       <div className="mt-3 flex gap-2">

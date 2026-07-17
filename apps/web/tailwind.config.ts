@@ -5,20 +5,32 @@ import type { Config } from 'tailwindcss';
  * these semantic classes only — NO hard-coded hex anywhere in components.
  * Tailwind's default 4px spacing scale already matches §2.3 exactly (1=4px…16=64px),
  * so we extend only radius/shadow/type/color.
+ *
+ * Semantic colors resolve through CSS variables (RGB triplets in index.css) so
+ * a subtree can carry an alternate palette — `.theme-warm` keeps the original
+ * warm look on /auth while the rest of the app runs the turquoise theme.
  */
+const v = (name: string) => `rgb(var(--c-${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        primary: { DEFAULT: '#B5532A', hover: '#E08A3C', deep: '#9A4422' },
-        accent: { DEFAULT: '#3F8E6E', light: '#7FC4A6' },
-        bg: '#FBF6EF',
-        surface: { DEFAULT: '#F3E9DC', plain: '#FFFFFF' },
-        ink: { DEFAULT: '#3A2E26', secondary: '#8A7B6D', muted: '#6F6258', deep: '#2A211B', cream: '#FFF6EE' },
+        primary: { DEFAULT: v('primary'), hover: v('primary-hover'), deep: v('primary-deep') },
+        accent: { DEFAULT: v('accent'), light: v('accent-light') },
+        bg: v('bg'),
+        surface: { DEFAULT: v('surface'), plain: v('surface-plain') },
+        ink: {
+          DEFAULT: v('ink'),
+          secondary: v('ink-secondary'),
+          muted: v('ink-muted'),
+          deep: v('ink-deep'),
+          cream: v('ink-cream'),
+        },
         error: { DEFAULT: '#C0392B', bg: '#FBE9E7', border: '#F3C9C4' },
         success: { DEFAULT: '#086A55', bg: '#E6F6F1', border: '#C0E9DC' },
-        line: { DEFAULT: '#EDE3D6', strong: '#D8C9B8' },
+        line: { DEFAULT: v('line'), strong: v('line-strong') },
         // Landing-only palette (lp-*). Additive + namespaced so the marketing
         // front door can carry a brighter brand expression without touching the
         // app's semantic tokens. Mirrors AbundanceAI Landing design vars.
@@ -63,10 +75,10 @@ const config: Config = {
         pill: '999px',
       },
       boxShadow: {
-        sm: '0 1px 2px rgba(58,46,38,0.06)',
-        md: '0 4px 12px rgba(58,46,38,0.08)',
-        lg: '0 12px 28px rgba(58,46,38,0.12)',
-        focus: '0 0 0 3px rgba(181,83,42,0.25)',
+        sm: '0 1px 2px rgb(var(--c-shadow) / 0.06)',
+        md: '0 4px 12px rgb(var(--c-shadow) / 0.08)',
+        lg: '0 12px 28px rgb(var(--c-shadow) / 0.12)',
+        focus: '0 0 0 3px rgb(var(--c-primary) / 0.25)',
       },
       maxWidth: {
         frame: '720px', // app content column

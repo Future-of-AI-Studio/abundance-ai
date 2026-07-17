@@ -160,7 +160,7 @@ export function CirclePage() {
       {talk && (
         <button
           onClick={() => openExternal(talk.join_url ?? talk.recording_url, 'the talk')}
-          className="mt-7 flex w-full items-center gap-4 rounded-xl bg-[#2A211B] p-5 text-left"
+          className="mt-7 flex w-full items-center gap-4 rounded-xl bg-ink-deep p-5 text-left"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary-hover/20 text-primary-hover">
             <CalendarIcon width={22} height={22} />
