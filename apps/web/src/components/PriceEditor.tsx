@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button, TextInput } from '@/components/ui';
 import { CheckIcon, PencilIcon } from '@/components/ui/icons';
 import { toast } from '@/store/toast';
-import { formatPrice } from '@/lib/money';
+import { priceLabel } from '@/lib/money';
 
 // Shared price control for a program. Shown wherever the creator sets or confirms
 // what buyers pay — the Get Paid step (beside the share link) and the Students tab.
@@ -14,7 +14,7 @@ export function PriceEditor({ priceCents, onSave }: { priceCents: number; onSave
 
   const commit = async () => {
     const dollars = Number(value);
-    if (!Number.isFinite(dollars) || dollars < 0) { toast.error('Enter a valid price.'); return; }
+    if (!Number.isFinite(dollars) || dollars < 0) { toast.error('Enter a price of $0 or more.'); return; }
     setSaving(true);
     await onSave(Math.round(dollars * 100));
     setSaving(false);
@@ -26,7 +26,7 @@ export function PriceEditor({ priceCents, onSave }: { priceCents: number; onSave
       <div className="flex items-center justify-between">
         <div>
           <p className="text-caption text-ink-secondary">Program price</p>
-          <p className="text-h3 font-semibold text-ink">{formatPrice(priceCents)}</p>
+          <p className="text-h3 font-semibold text-ink">{priceLabel(priceCents)}</p>
         </div>
         <button
           onClick={() => { setValue(String(priceCents / 100)); setEditing(true); }}
@@ -45,8 +45,10 @@ export function PriceEditor({ priceCents, onSave }: { priceCents: number; onSave
           label="Program price (USD)"
           type="number"
           inputMode="decimal"
+          min={0}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
+          onChange={(e) => setValue(e.target.value.replace(/-/g, ''))}
         />
       </div>
       <Button size="md" fullWidth={false} loading={saving} iconLeft={<CheckIcon width={15} height={15} />} onClick={commit}>Save</Button>

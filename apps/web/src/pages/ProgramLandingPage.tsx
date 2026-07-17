@@ -7,7 +7,7 @@ import { Button, TextInput, Avatar, Sheet, Spinner } from '@/components/ui';
 import { Logo } from '@/layouts/PublicLayout';
 import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
-import { formatPrice } from '@/lib/money';
+import { priceLabel } from '@/lib/money';
 import { env } from '@/lib/env';
 import { resolveLanding, landingBackground, landingRadii, externalHref } from '@/lib/landingTheme';
 
@@ -74,7 +74,7 @@ export function ProgramLandingPage() {
   }
 
   if (done) {
-    return <ThankYou name={done.name} res={done.res} email={data.creator.email} />;
+    return <ThankYou name={done.name} res={done.res} email={data.creator.email} landing={data.creator.landing_page} />;
   }
 
   return (
@@ -104,7 +104,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
   const insideEyebrow = settings.inside_eyebrow?.trim() || 'A look inside the program';
   const insideHeading = settings.inside_heading?.trim() || "What you'll work through.";
   const closingHeading = settings.closing_heading?.trim() || 'Join us now.';
-  const price = formatPrice(program.price_cents);
+  const price = priceLabel(program.price_cents);
   const subtitle = settings.tagline?.trim()
     || modules[0]?.outcome
     || `A step-by-step program from ${creator.first_name}, built to move you forward.`;
@@ -274,13 +274,17 @@ function EnrollSheet({
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
 
   const useStripeFlow = !env.useMocks && !!env.stripePublishableKey;
-  const price = formatPrice(data.program.price_cents);
+  const isFree = data.program.price_cents === 0;
+  const price = priceLabel(data.program.price_cents);
+  const payLabel = isFree ? 'Enroll for free' : `Pay ${price}`;
 
   // Return to the contact step, dropping any half-created payment session.
   const backToForm = () => { setStage('form'); setClientSecret(null); setStripePromise(null); setFailed(null); };
   const close = () => { backToForm(); onClose(); };
 
-  // Step 1 → 2: validate contact info, then create the PaymentIntent.
+  // Step 1 → 2: validate contact info, then create the PaymentIntent. Free
+  // programs skip payment entirely — the form submit records the enrollment
+  // (no payment_intent) and goes straight to the thank-you page.
   const toPayment = async () => {
     const next: typeof errors = {};
     if (!name.trim()) next.name = 'Your name, please.';
@@ -292,6 +296,13 @@ function EnrollSheet({
     setPreparing(true);
     setFailed(null);
     try {
+      if (isFree) {
+        const res = await backend.api.enroll({
+          program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(),
+        });
+        onEnrolled(name.trim(), res);
+        return;
+      }
       const session = await backend.api.enrollSession({
         program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(),
       });
@@ -301,7 +312,7 @@ function EnrollSheet({
       }
       setStage('pay');
     } catch {
-      setFailed("We couldn't start checkout. Please try again.");
+      setFailed(isFree ? "We couldn't complete your enrollment. Please try again." : "We couldn't start checkout. Please try again.");
     } finally {
       setPreparing(false);
     }
@@ -335,7 +346,7 @@ function EnrollSheet({
         stage === 'form' ? (
           <>
             <Button size="lg" loading={preparing} iconRight={<ArrowRight width={18} height={18} />} onClick={toPayment}>
-              Continue to payment
+              {isFree ? 'Complete enrollment' : 'Continue to payment'}
             </Button>
             <Button size="lg" variant="ghost" onClick={close}>Cancel</Button>
           </>
@@ -348,7 +359,7 @@ function EnrollSheet({
         <>
           <p className="text-caption font-medium uppercase tracking-wide text-accent">Complete your enrollment</p>
           <p className="mt-1 text-body-sm text-ink-secondary">
-            with {data.creator.first_name} · {price} one-time · 90-day guarantee
+            with {data.creator.first_name} · {isFree ? 'Free' : `${price} one-time · 90-day guarantee`}
           </p>
           <div className="mt-4 space-y-3">
             <TextInput label="Full name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} required />
@@ -367,10 +378,10 @@ function EnrollSheet({
           <div className="mt-4">
             {stripeReady ? (
               <Elements stripe={stripePromise!} options={{ clientSecret: clientSecret!, appearance: { theme: 'flat' } }}>
-                <StripePay amountLabel={price} busy={recording} onPaid={recordEnrollment} />
+                <StripePay payLabel={payLabel} busy={recording} onPaid={recordEnrollment} />
               </Elements>
             ) : (
-              <MockPay amountLabel={price} busy={recording} onPaid={recordEnrollment} />
+              <MockPay payLabel={payLabel} busy={recording} onPaid={recordEnrollment} />
             )}
           </div>
           {failed && <p className="mt-3 text-caption text-error">{failed}</p>}
@@ -384,7 +395,7 @@ function EnrollSheet({
 }
 
 // Real Stripe card fields + Pay button (inside <Elements>).
-function StripePay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: boolean; onPaid: (piId: string) => void }) {
+function StripePay({ payLabel, busy, onPaid }: { payLabel: string; busy: boolean; onPaid: (piId: string) => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -414,14 +425,14 @@ function StripePay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: b
       <PaymentElement onChange={(e) => setComplete(e.complete)} />
       {error && <p className="text-caption text-error">{error}</p>}
       <Button size="lg" loading={loading || busy} disabled={!complete} onClick={pay} iconLeft={<LockIcon width={18} height={18} />}>
-        {loading || busy ? 'Processing…' : `Pay ${amountLabel}`}
+        {loading || busy ? 'Processing…' : payLabel}
       </Button>
     </div>
   );
 }
 
 // Demo pay form (no Stripe configured) — simulates a successful charge.
-function MockPay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: boolean; onPaid: (piId: string) => void }) {
+function MockPay({ payLabel, busy, onPaid }: { payLabel: string; busy: boolean; onPaid: (piId: string) => void }) {
   const [loading, setLoading] = useState(false);
   const fieldBase = 'w-full rounded-md border border-line bg-surface-plain px-4 text-body text-ink placeholder:text-ink-secondary/60';
   return (
@@ -440,59 +451,85 @@ function MockPay({ amountLabel, busy, onPaid }: { amountLabel: string; busy: boo
         iconLeft={<LockIcon width={18} height={18} />}
         onClick={() => { setLoading(true); setTimeout(() => onPaid(`pi_mock_${Date.now()}`), 700); }}
       >
-        {loading || busy ? 'Processing…' : `Pay ${amountLabel}`}
+        {loading || busy ? 'Processing…' : payLabel}
       </Button>
     </div>
   );
 }
 
-function ThankYou({ name, res, email }: { name: string; res: EnrollResponse; email: string }) {
+function ThankYou({ name, res, email, landing }: {
+  name: string;
+  res: EnrollResponse;
+  email: string;
+  landing: ProgramPublicResponse['creator']['landing_page'];
+}) {
+  const { settings, palette: t } = resolveLanding(landing);
+  const headingFont = settings.heading_font === 'sans' ? 'font-sans' : 'font-serif';
+  const radii = landingRadii(settings.corners);
+
   return (
-    <div className="min-h-[100dvh] bg-bg">
-      <header className="border-b border-line">
+    <div className="min-h-[100dvh]" style={{ background: landingBackground(t, settings.background), color: t.ink }}>
+      {/* Header — logo drawn inline (not <Logo/>) so it recolors with the theme. */}
+      <header className="border-b" style={{ borderColor: t.line }}>
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 lg:px-8 py-4">
-          <Logo to="/" />
-          <span className="inline-flex items-center gap-1.5 text-caption text-ink-secondary">
+          <Link to="/" className="inline-flex items-center gap-2 font-semibold" style={{ color: t.ink }}>
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded-pill"
+              style={{ backgroundColor: t.primary, color: t.onPrimary, borderRadius: radii.button }}
+            >
+              <span className="font-mono text-data">A</span>
+            </span>
+            <span className="text-h3">AbundanceAI</span>
+          </Link>
+          <span className="inline-flex items-center gap-1.5 text-caption" style={{ color: t.inkSoft }}>
             <ShieldIcon width={16} height={16} /> Secure checkout
           </span>
         </div>
       </header>
 
-      <div className="mx-auto max-w-narrow px-6 lg:px-8 py-16 text-center">
+      <div className="mx-auto max-w-[760px] px-6 lg:px-8 py-16 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-pill bg-success text-white">
           <CheckIcon width={30} height={30} />
         </div>
-        <p className="mt-6 font-mono text-data uppercase tracking-wide text-success">You're in</p>
-        <h1 className="mt-2 font-serif text-display text-ink-deep">Welcome, {firstNameOf(name)}.</h1>
-        <p className="mx-auto mt-3 max-w-md text-body text-ink-secondary">
-          Your spot in <span className="font-semibold text-ink">{res.program_title}</span> is confirmed. A receipt is on its way.
+        <p className="mt-6 font-mono text-data uppercase tracking-wide" style={{ color: t.accent }}>You're in</p>
+        <h1 className={`mt-2 text-display ${headingFont}`} style={{ color: t.inkDeep }}>Welcome, {firstNameOf(name)}.</h1>
+        <p className="mx-auto mt-3 max-w-lg text-body" style={{ color: t.inkSoft }}>
+          Your spot in <span className="font-semibold" style={{ color: t.ink }}>{res.program_title}</span> is confirmed.{res.amount_cents > 0 && ' A receipt is on its way.'}
         </p>
 
-        <div className="mx-auto mt-8 max-w-md rounded-xl border border-line bg-surface-plain p-6 text-left shadow-lg">
-          <div className="flex items-center justify-between border-b border-line pb-4">
+        <div
+          className="mx-auto mt-8 max-w-xl rounded-xl border p-6 sm:p-8 text-left shadow-lg"
+          style={{ backgroundColor: t.surface, borderColor: t.line, borderRadius: radii.card }}
+        >
+          <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: t.line }}>
             <div>
-              <p className="text-body font-semibold text-ink">{res.program_title}</p>
-              <p className="text-caption text-ink-secondary">with {res.creator_first_name}</p>
+              <p className="text-body font-semibold" style={{ color: t.cardInk }}>{res.program_title}</p>
+              <p className="text-caption" style={{ color: t.cardInkSoft }}>with {res.creator_first_name}</p>
             </div>
-            <span className="font-serif text-h2 text-ink-deep">{formatPrice(res.amount_cents)}</span>
+            <span className={`text-h2 ${headingFont}`} style={{ color: t.cardInk }}>{priceLabel(res.amount_cents)}</span>
           </div>
-          <p className="mt-4 font-mono text-data uppercase tracking-wide text-ink-secondary">What happens next</p>
+          <p className="mt-4 font-mono text-data uppercase tracking-wide" style={{ color: t.cardInkSoft }}>What happens next</p>
           <ol className="mt-3 space-y-3">
             {[
-              'A confirmation & receipt land in your email within a few minutes.',
+              res.amount_cents > 0
+                ? 'A confirmation & receipt land in your email within a few minutes.'
+                : 'A confirmation lands in your email within a few minutes.',
               `${res.creator_first_name} reaches out to welcome you and share how to get started.`,
               'Keep an eye on your inbox for your first session details.',
             ].map((step, i) => (
-              <li key={i} className="flex items-start gap-3 text-body-sm text-ink">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-pill bg-primary/10 font-mono text-caption text-primary">{i + 1}</span>
+              <li key={i} className="flex items-start gap-3 text-body-sm" style={{ color: t.cardInk }}>
+                <span
+                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-pill font-mono text-caption"
+                  style={{ backgroundColor: `${t.cardAccent}1A`, color: t.cardAccent }}
+                >{i + 1}</span>
                 {step}
               </li>
             ))}
           </ol>
         </div>
 
-        <p className="mt-6 text-caption text-ink-secondary">
-          Questions in the meantime? <a href={`mailto:${email}`} className="font-medium text-primary hover:underline">{email}</a>
+        <p className="mt-6 text-caption" style={{ color: t.inkSoft }}>
+          Questions in the meantime? <a href={`mailto:${email}`} className="font-medium hover:underline" style={{ color: t.primary }}>{email}</a>
         </p>
       </div>
     </div>

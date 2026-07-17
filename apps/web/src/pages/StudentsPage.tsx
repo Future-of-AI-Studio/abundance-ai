@@ -125,7 +125,7 @@ export function StudentsPage() {
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
             <TextInput
-              label="Search students"
+              label="Search participants"
               placeholder="Name, email, or number"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
