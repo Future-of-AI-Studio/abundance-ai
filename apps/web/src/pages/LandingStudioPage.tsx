@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { LandingBrandColor, LandingPageSettings, ProgramPublicResponse } from '@abundance/shared';
+import type { LandingPageSettings, ProgramPublicResponse } from '@abundance/shared';
 import { Button, Card, TextInput, Textarea, Eyebrow } from '@/components/ui';
 import { ArrowRight, CheckIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
-import { BRAND_COLORS, BRAND_COLOR_IDS, LANDING_THEMES, LANDING_THEME_IDS, resolveLanding } from '@/lib/landingTheme';
+import { LANDING_THEMES, LANDING_THEME_IDS, resolveLanding } from '@/lib/landingTheme';
 import { LandingView } from '@/pages/ProgramLandingPage';
 
 // Landing Studio — creators style their public /p/:id page: pick a color theme,
@@ -177,10 +177,7 @@ export function LandingStudioPage() {
                       <span className="h-6 w-6 rounded-pill" style={{ backgroundColor: t.primary }} />
                       <span className="h-6 w-6 rounded-pill" style={{ backgroundColor: t.accent }} />
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body-sm font-medium text-ink">{t.label}</span>
-                      <span className="block truncate text-caption text-ink-secondary">{t.note}</span>
-                    </span>
+                    <span className="min-w-0 flex-1 text-body-sm font-medium text-ink">{t.label}</span>
                     {active && <CheckIcon width={18} height={18} className="shrink-0 text-primary" />}
                   </button>
                 );
@@ -195,35 +192,6 @@ export function LandingStudioPage() {
               <ChoiceRow label="Background" options={BACKGROUNDS} value={draft.background} onChange={(v) => set('background', v)} />
               <ChoiceRow label="Headings" options={FONTS} value={draft.heading_font} onChange={(v) => set('heading_font', v)} />
               <ChoiceRow label="Corners" options={CORNERS} value={draft.corners} onChange={(v) => set('corners', v)} />
-            </Card>
-          </section>
-
-          {/* Button & accent color */}
-          <section>
-            <Eyebrow className="mb-3">Button color</Eyebrow>
-            <Card variant="plain">
-              <div className="grid grid-cols-7 gap-2">
-                {/* "Auto" = the theme's own color */}
-                <SwatchButton
-                  color={LANDING_THEMES[draft.theme].primary}
-                  label={`Theme default (${LANDING_THEMES[draft.theme].label})`}
-                  active={draft.brand_color === null}
-                  auto
-                  onClick={() => set('brand_color', null)}
-                />
-                {BRAND_COLOR_IDS.map((id) => (
-                  <SwatchButton
-                    key={id}
-                    color={BRAND_COLORS[id].primary}
-                    label={BRAND_COLORS[id].label}
-                    active={draft.brand_color === id}
-                    onClick={() => set('brand_color', id as LandingBrandColor)}
-                  />
-                ))}
-              </div>
-              <p className="mt-3 font-mono text-data text-ink-secondary">
-                {draft.brand_color ? BRAND_COLORS[draft.brand_color].label : 'Auto - matches your theme'} · buttons, price &amp; links
-              </p>
             </Card>
           </section>
 
@@ -382,32 +350,6 @@ export function LandingStudioPage() {
         </section>
       </div>
     </div>
-  );
-}
-
-// One round color swatch; "auto" gets a hollow center to read as "no override".
-function SwatchButton({ color, label, active, auto, onClick }: {
-  color: string;
-  label: string;
-  active: boolean;
-  auto?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-pill transition-shadow',
-        active ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface-plain' : 'hover:ring-2 hover:ring-line-strong hover:ring-offset-2 hover:ring-offset-surface-plain',
-      )}
-      style={{ backgroundColor: color }}
-    >
-      {auto && <span className="h-3 w-3 rounded-pill bg-surface-plain" aria-hidden />}
-    </button>
   );
 }
 

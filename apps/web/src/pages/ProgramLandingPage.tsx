@@ -9,7 +9,7 @@ import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, Ins
 import { useApp } from '@/store';
 import { priceLabel } from '@/lib/money';
 import { env } from '@/lib/env';
-import { resolveLanding, landingBackground, landingRadii, externalHref } from '@/lib/landingTheme';
+import { resolveLanding, landingBackground, landingRadii, externalHref, heroGradient } from '@/lib/landingTheme';
 
 // [Public] Program landing page (/p/:programId) — the page a creator shares so
 // prospective students can preview the program, learn about the guide, and enroll.
@@ -171,30 +171,31 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
             )}
           </div>
 
-          {/* Meet your guide — the creator's intro, front and center in the hero. */}
+          {/* Meet your guide — the creator's intro, front and center in the hero.
+              Card tokens: schemes like Royal Blue put a light card on a dark page. */}
           <div
             className="relative rounded-xl p-8"
-            style={{ background: `linear-gradient(135deg, ${t.heroFrom}, ${t.heroVia}, ${t.heroTo})`, borderRadius: radii.card }}
+            style={{ background: heroGradient(t), borderRadius: radii.card }}
           >
-            <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.primary }}>{guideHeading}</p>
+            <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.cardAccent }}>{guideHeading}</p>
             <div className="mt-4 flex items-center gap-5">
               <Avatar name={creator.first_name} src={creator.avatar_url} size={112} className="shadow-md bg-accent/20 text-accent" />
               <div>
-                <h2 className={`text-h2 leading-tight ${headingFont}`} style={{ color: t.inkDeep }}>{creator.first_name}</h2>
-                <p className="text-body-sm" style={{ color: t.inkSoft }}>{CREATOR_ROLE[creator.category]}</p>
+                <h2 className={`text-h2 leading-tight ${headingFont}`} style={{ color: t.cardInk }}>{creator.first_name}</h2>
+                <p className="text-body-sm" style={{ color: t.cardInkSoft }}>{CREATOR_ROLE[creator.category]}</p>
               </div>
             </div>
             {creator.bio?.trim() ? (
-              <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed" style={{ color: t.inkSoft }}>{creator.bio}</p>
+              <p className="mt-4 whitespace-pre-line text-body-sm leading-relaxed" style={{ color: t.cardInkSoft }}>{creator.bio}</p>
             ) : (
-              <p className="mt-4 text-body-sm leading-relaxed" style={{ color: t.inkSoft }}>
+              <p className="mt-4 text-body-sm leading-relaxed" style={{ color: t.cardInkSoft }}>
                 {creator.first_name} built this program from years of real work with real people - {modules.length} focused
                 modules you can start today, unhurried and practical, made for people finally ready to begin.
               </p>
             )}
-            <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm" style={{ color: t.inkSoft }}>
+            <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>
               <MailIcon width={16} height={16} /> Questions before you enroll?{' '}
-              <a href={`mailto:${creator.email}`} className="font-medium hover:underline" style={{ color: t.primary }}>{creator.email}</a>
+              <a href={`mailto:${creator.email}`} className="font-medium hover:underline" style={{ color: t.cardAccent }}>{creator.email}</a>
             </p>
             {/* Social links — only the ones the creator filled in. */}
             {socials.length > 0 && (
@@ -207,7 +208,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
                     rel="noreferrer"
                     aria-label={label}
                     className="transition-opacity hover:opacity-70"
-                    style={{ color: t.primary }}
+                    style={{ color: t.cardAccent }}
                   >
                     <Icon width={18} height={18} />
                   </a>
@@ -226,9 +227,9 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((m, i) => (
             <div key={m.idx} className="rounded-lg border p-5" style={{ backgroundColor: t.surface, borderColor: t.line, borderRadius: radii.card }}>
-              <span className="font-mono text-data" style={{ color: t.accent }}>{String(i + 1).padStart(2, '0')}</span>
-              <h3 className="mt-1 text-h3 font-semibold" style={{ color: t.ink }}>{m.title}</h3>
-              {(m.description || m.outcome) && <p className="mt-1.5 text-body-sm" style={{ color: t.inkSoft }}>{m.description || m.outcome}</p>}
+              <span className="font-mono text-data" style={{ color: t.cardAccent }}>{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="mt-1 text-h3 font-semibold" style={{ color: t.cardInk }}>{m.title}</h3>
+              {(m.description || m.outcome) && <p className="mt-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>{m.description || m.outcome}</p>}
             </div>
           ))}
         </div>
@@ -502,12 +503,12 @@ function ThankYou({ name, res, email, landing }: {
         >
           <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: t.line }}>
             <div>
-              <p className="text-body font-semibold" style={{ color: t.ink }}>{res.program_title}</p>
-              <p className="text-caption" style={{ color: t.inkSoft }}>with {res.creator_first_name}</p>
+              <p className="text-body font-semibold" style={{ color: t.cardInk }}>{res.program_title}</p>
+              <p className="text-caption" style={{ color: t.cardInkSoft }}>with {res.creator_first_name}</p>
             </div>
-            <span className={`text-h2 ${headingFont}`} style={{ color: t.ink }}>{priceLabel(res.amount_cents)}</span>
+            <span className={`text-h2 ${headingFont}`} style={{ color: t.cardInk }}>{priceLabel(res.amount_cents)}</span>
           </div>
-          <p className="mt-4 font-mono text-data uppercase tracking-wide" style={{ color: t.inkSoft }}>What happens next</p>
+          <p className="mt-4 font-mono text-data uppercase tracking-wide" style={{ color: t.cardInkSoft }}>What happens next</p>
           <ol className="mt-3 space-y-3">
             {[
               res.amount_cents > 0
@@ -516,10 +517,10 @@ function ThankYou({ name, res, email, landing }: {
               `${res.creator_first_name} reaches out to welcome you and share how to get started.`,
               'Keep an eye on your inbox for your first session details.',
             ].map((step, i) => (
-              <li key={i} className="flex items-start gap-3 text-body-sm" style={{ color: t.ink }}>
+              <li key={i} className="flex items-start gap-3 text-body-sm" style={{ color: t.cardInk }}>
                 <span
                   className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-pill font-mono text-caption"
-                  style={{ backgroundColor: `${t.primary}1A`, color: t.primary }}
+                  style={{ backgroundColor: `${t.cardAccent}1A`, color: t.cardAccent }}
                 >{i + 1}</span>
                 {step}
               </li>
