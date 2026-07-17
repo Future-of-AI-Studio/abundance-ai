@@ -161,7 +161,7 @@ export function AuthPage() {
   if (ready && user) return <Navigate to="/app" replace />;
 
   return (
-    <div className="dots-warm flex min-h-[100dvh] items-center justify-center px-4 py-8">
+    <div className="theme-warm dots-warm flex min-h-[100dvh] items-center justify-center bg-bg px-4 py-8">
       <div className="flex w-full max-w-[980px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface-plain shadow-lg md:flex-row">
 
         {/* ============ BRAND / VALUE PANEL ============ */}

@@ -2,17 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CSS custom properties mirror the Tailwind theme tokens (§2) — available for the
-   rare case a raw var is needed (e.g. inline canvas), but components use classes. */
+/* Semantic palette as RGB triplets — Tailwind composes them via
+   `rgb(var(--c-*) / <alpha>)` (see tailwind.config.ts), so opacity modifiers
+   like bg-bg/95 keep working. Default theme: turquoise. */
 :root {
-  --color-primary: #b5532a;
-  --color-primary-hover: #e08a3c;
-  --color-accent: #3f8e6e;
-  --color-bg: #fbf6ef;
-  --color-surface: #f3e9dc;
-  --color-surface-plain: #ffffff;
-  --color-text: #3a2e26;
-  --color-text-secondary: #8a7b6d;
+  --c-primary: 42 157 143; /* #2A9D8F teal */
+  --c-primary-hover: 51 179 164; /* #33B3A4 */
+  --c-primary-deep: 30 114 104; /* #1E7268 */
+  --c-accent: 67 169 129; /* #43A981 fresh green */
+  --c-accent-light: 138 216 194; /* #8AD8C2 */
+  --c-bg: 228 248 246; /* #E4F8F6 lightest turquoise */
+  --c-surface: 200 241 238; /* #C8F1EE light turquoise */
+  --c-surface-plain: 255 255 255; /* #FFFFFF */
+  --c-ink: 0 0 0; /* #000000 pure black — headings & body text */
+  --c-ink-secondary: 90 124 121; /* #5A7C79 */
+  --c-ink-muted: 62 102 99; /* #3E6663 */
+  --c-ink-deep: 20 45 42; /* #142D2A */
+  --c-ink-cream: 240 251 250; /* #F0FBFA light text on dark teal */
+  --c-line: 220 238 235; /* #DCEEEB */
+  --c-line-strong: 185 218 213; /* #B9DAD5 */
+  --c-shadow: 23 58 54; /* shadow tint base */
+}
+
+/* Original warm palette, scoped — /auth keeps the terracotta look. */
+.theme-warm {
+  --c-primary: 181 83 42; /* #B5532A */
+  --c-primary-hover: 224 138 60; /* #E08A3C */
+  --c-primary-deep: 154 68 34; /* #9A4422 */
+  --c-accent: 63 142 110; /* #3F8E6E */
+  --c-accent-light: 127 196 166; /* #7FC4A6 */
+  --c-bg: 251 246 239; /* #FBF6EF */
+  --c-surface: 243 233 220; /* #F3E9DC */
+  --c-surface-plain: 255 255 255; /* #FFFFFF */
+  --c-ink: 58 46 38; /* #3A2E26 */
+  --c-ink-secondary: 138 123 109; /* #8A7B6D */
+  --c-ink-muted: 111 98 88; /* #6F6258 */
+  --c-ink-deep: 42 33 27; /* #2A211B */
+  --c-ink-cream: 255 246 238; /* #FFF6EE */
+  --c-line: 237 227 214; /* #EDE3D6 */
+  --c-line-strong: 216 201 184; /* #D8C9B8 */
+  --c-shadow: 58 46 38;
 }
 
 @layer base {
@@ -23,7 +52,7 @@
     @apply bg-bg text-ink font-sans antialiased;
     text-rendering: optimizeLegibility;
   }
-  /* Warm terracotta focus ring everywhere (accessibility). */
+  /* Primary-tinted focus ring everywhere (accessibility) — follows the active theme. */
   *:focus-visible {
     @apply outline-none shadow-focus rounded-sm;
   }
@@ -57,9 +86,9 @@
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
   }
-  /* Warm dotted backdrop — landing hero & dark pillar band. */
+  /* Primary-tinted dotted backdrop — follows the active theme. */
   .dots-warm {
-    background-image: radial-gradient(rgba(181, 83, 42, 0.1) 1.6px, transparent 1.6px);
+    background-image: radial-gradient(rgb(var(--c-primary) / 0.1) 1.6px, transparent 1.6px);
     background-size: 30px 30px;
   }
   .dots-cream {

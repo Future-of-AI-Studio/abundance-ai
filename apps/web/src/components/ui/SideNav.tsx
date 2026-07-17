@@ -19,7 +19,7 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
   const navigate = useNavigate();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface-plain/70 px-4 py-6 backdrop-blur lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
       {/* Brand */}
       <Link to="/app" className="inline-flex items-center gap-2 px-2 font-semibold text-ink">
         <span className="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-white">
@@ -39,8 +39,8 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
               cn(
                 'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm transition-colors',
                 isActive
-                  ? 'bg-primary/10 font-medium text-primary'
-                  : 'text-ink-secondary hover:bg-surface hover:text-ink active:bg-surface/80',
+                  ? 'bg-bg font-medium text-ink'
+                  : 'text-ink-muted hover:bg-bg/60 hover:text-ink active:bg-bg/80',
               )
             }
           >
@@ -70,7 +70,7 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
       <button
         onClick={() => navigate('/app/account')}
         aria-label="Account"
-        className="mt-4 flex items-center gap-3 rounded-md border border-line bg-surface-plain px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+        className="mt-4 flex items-center gap-3 rounded-md border border-line bg-bg px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
       >
         <Avatar name={firstName} src={avatarUrl} size={36} />
         <div className="min-w-0">
