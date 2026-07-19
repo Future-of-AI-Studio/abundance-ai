@@ -56,15 +56,15 @@ Deno.serve(async (req) => {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
     }
 
-    // We retain up to 6 builds. At the cap, no further builds can be created
+    // We retain up to 8 builds. At the cap, no further builds can be created
     // (checked before we deactivate the current build, so a rejected build leaves
     // the active one untouched).
     const { count: buildCount } = await db
       .from('programs').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
-    if ((buildCount ?? 0) >= 6) {
+    if ((buildCount ?? 0) >= 8) {
       return errorResponse(
         'build_limit',
-        "You've reached the limit of 6 builds. Keep refining by editing your saved builds.",
+        "You've reached the limit of 8 builds. Keep refining by editing your saved builds.",
         400,
       );
     }

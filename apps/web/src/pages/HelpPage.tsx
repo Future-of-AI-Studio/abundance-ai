@@ -147,9 +147,9 @@ const GUIDES: Guide[] = [
         ],
       },
       {
-        heading: 'Create up to six builds',
+        heading: 'Create up to eight builds',
         bullets: [
-          'You can create up to six different builds.',
+          'You can create up to eight different builds.',
           'Each build gives you another opportunity to refine your content and generate a stronger version.',
           'Your early builds may help you discover what you really want your program to become.',
           'Later builds can become more focused and polished.',
@@ -424,7 +424,7 @@ const FAQS: Faq[] = [
   },
   {
     q: 'How many builds can I create?',
-    a: 'You can create up to six builds. Your previous versions stay available, allowing you to compare them and combine your favorite ideas, sections, and wording.',
+    a: 'You can create up to eight builds. Your previous versions stay available, allowing you to compare them and combine your favorite ideas, sections, and wording.',
   },
   {
     q: 'How much can I share by voice?',

@@ -17,7 +17,7 @@ import { blobToWav } from '@/lib/audio';
 // it lands, so a user can leave and return weeks later and pick up their draft.
 // "Build my program" is the finalize action. Once a program exists, this page
 // becomes an EDIT surface — re-building warns first, then creates a NEW build
-// (the prior builds are kept, up to 6) and makes it active. The user can switch
+// (the prior builds are kept, up to 8) and makes it active. The user can switch
 // between builds from the Program page.
 
 // What the first-time visitor should bring to this step — shown as an
@@ -120,9 +120,9 @@ export function AddContentPage() {
   // Once a program has been built, this visit is an edit — re-running build
   // creates a new build (keeping prior ones) and makes it active.
   const editing = isStepComplete(journey ?? { completed_steps: [] }, 'content');
-  // We retain up to 6 builds. At the cap, rebuilding is blocked — builds can't be
+  // We retain up to 8 builds. At the cap, rebuilding is blocked — builds can't be
   // deleted, so from here the user refines by editing their saved builds instead.
-  const atBuildLimit = editing && builds.length >= 6;
+  const atBuildLimit = editing && builds.length >= 8;
 
   // On an edit, preselect the current program's module count so the choice reflects
   // what they already have. Applied once, so a manual change afterwards sticks.
@@ -556,7 +556,7 @@ export function AddContentPage() {
       {atBuildLimit && (
         <Card variant="plain" className="mt-6 border-l-2 border-l-error bg-error/5">
           <p className="text-body-sm text-ink">
-            You've reached the limit of 6 builds. You can keep refining your program by editing any of your saved builds on your Program page.
+            You've reached the limit of 8 builds. You can keep refining your program by editing any of your saved builds on your Program page.
           </p>
         </Card>
       )}
@@ -615,7 +615,7 @@ export function AddContentPage() {
       >
         <p className="text-body text-ink-secondary">
           We'll create a new build from your current sources and make it active. Your current build stays saved - you can
-          switch back to it anytime from the Program page. Up to 6 builds are kept.
+          switch back to it anytime from the Program page. Up to 8 builds are kept.
         </p>
       </Sheet>
     </>
@@ -633,10 +633,10 @@ export function AddContentPage() {
         <Card variant="plain" className="p-4">
           <RailLabel>Builds kept</RailLabel>
           <p className="font-mono text-h2 font-semibold text-ink">
-            {builds.length}<span className="text-body-sm font-normal text-ink-secondary"> of 6</span>
+            {builds.length}<span className="text-body-sm font-normal text-ink-secondary"> of 8</span>
           </p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-line">
-            <div className="h-full rounded-pill bg-accent" style={{ width: `${Math.min(100, (builds.length / 6) * 100)}%` }} />
+            <div className="h-full rounded-pill bg-accent" style={{ width: `${Math.min(100, (builds.length / 8) * 100)}%` }} />
           </div>
         </Card>
       )}

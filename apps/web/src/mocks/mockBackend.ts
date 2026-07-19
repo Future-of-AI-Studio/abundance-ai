@@ -149,9 +149,9 @@ export function createMockBackend(): Backend {
     },
     async programBuild(req) {
       await delay(2600); // narrated loader has time to breathe
-      // We retain up to 6 builds — at the cap, no further builds can be created.
-      if (state.programs.length >= 6) {
-        throw new AbundanceApiError('build_limit', "You've reached the limit of 6 builds. Keep refining by editing your saved builds.");
+      // We retain up to 8 builds — at the cap, no further builds can be created.
+      if (state.programs.length >= 8) {
+        throw new AbundanceApiError('build_limit', "You've reached the limit of 8 builds. Keep refining by editing your saved builds.");
       }
       const programId = uid();
       const built = MOCK.buildProgram(req.path);

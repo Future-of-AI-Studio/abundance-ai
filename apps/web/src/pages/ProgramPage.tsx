@@ -490,7 +490,7 @@ function ModuleCard({
   );
 }
 
-// Right-rail builds card. Every rebuild is kept (max 6); the active one is
+// Right-rail builds card. Every rebuild is kept (max 8); the active one is
 // highlighted, and any other build opens the two-pane reader for comparison.
 // Builds arrive newest-first; they're numbered by age (oldest = Build 1) so
 // "Build N" stays stable as new ones are added.
@@ -510,7 +510,7 @@ function BuildsRail({
     <Card variant="plain" className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-eyebrow font-mono uppercase tracking-[0.12em] text-ink-secondary">Your builds</p>
-        <p className="text-caption text-ink-secondary">{builds.length} of 6 kept</p>
+        <p className="text-caption text-ink-secondary">{builds.length} of 8 kept</p>
       </div>
       <div className="space-y-2">
         {builds.map((b) => {
