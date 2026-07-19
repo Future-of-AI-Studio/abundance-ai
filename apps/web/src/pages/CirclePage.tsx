@@ -64,6 +64,51 @@ export function CirclePage() {
 
   return (
     <div>
+      <img
+        src="/community-banner.webp"
+        alt="AbundanceAI Community &amp; Peer Support Circles"
+        className="mb-6 w-full rounded-xl border border-line shadow-sm"
+      />
+
+      {/* AbundanceAI Telegram community — open to everyone from day one, no
+          matching required. The human counterweight to an AI-built program. */}
+      <section className="mb-7 rounded-xl border border-accent/25 bg-accent/5 p-6">
+        <div className="flex items-center gap-2 text-accent">
+          <ChatIcon width={18} height={18} />
+          <Eyebrow className="text-accent">Community</Eyebrow>
+        </div>
+        <h2 className="mt-2 font-serif text-h2 font-medium text-ink">Join the AbundanceAI Telegram Community</h2>
+        <p className="mt-1 text-body font-semibold text-ink">You do not have to build your program alone.</p>
+        <div className="mt-3 space-y-3 text-body-sm text-ink-secondary">
+          <p>
+            The AbundanceAI Telegram Community is a warm, welcoming place to meet other mentors, share ideas, ask
+            questions, celebrate wins, build friendships, and cheer one another on as you create and launch your program.
+          </p>
+          <p>
+            At a time when more of life is happening through AI, AbundanceAI brings you the human touch: real
+            conversation, genuine encouragement, practical support, laughter, care, and connection.
+          </p>
+          <p>
+            You can also meet people working in similar areas or launching around the same time and form a small Peer
+            Support Circle. Meet regularly, exchange feedback, work through challenges, stay inspired, and help one
+            another keep moving forward.
+          </p>
+        </div>
+        <div className="mt-5">
+          <Button
+            variant="accent"
+            fullWidth={false}
+            iconLeft={<ChatIcon width={18} height={18} />}
+            onClick={() => openExternal('https://t.me/+IuW34ORWMtU4Njhh', 'Telegram')}
+          >
+            Join the AbundanceAI Telegram Community
+          </Button>
+        </div>
+        <p className="mt-3 text-body-sm text-ink-secondary">
+          Come connect, create, grow, and make new friends along the way.
+        </p>
+      </section>
+
       <Eyebrow className="text-accent">Your circle</Eyebrow>
 
       {matched ? (
@@ -118,7 +163,7 @@ export function CirclePage() {
         <EmptyState
           icon={<CircleTabIcon width={30} height={30} />}
           headline="We're hand-matching your circle"
-          subline="You'll hear from us within 48 hours. Good circles are worth the wait."
+          subline="We pair you with mentors in the same field and at a similar stage, so your circle speaks your language from day one. You'll hear from us within 48 hours - good circles are worth the wait."
         />
       )}
 
