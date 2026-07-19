@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card, Eyebrow } from '@/components/ui';
+import { env } from '@/lib/env';
 import {
   SearchIcon,
   PlusIcon,
@@ -452,21 +453,27 @@ const FAQS: Faq[] = [
   },
 ];
 
-// TODO: replace with real video titles + embeds once the videos are recorded.
-type VideoGuide = { title: string; blurb: string };
+// Videos live in the public `guides` Supabase storage bucket (hosted project,
+// uploaded via `supabase storage cp`), configured via VITE_GUIDES_BUCKET_URL.
+// A guide without a src (or an unset bucket URL) renders as "Coming soon".
+type VideoGuide = { title: string; blurb: string; src?: string };
+
+const guideVideo = (file: string) =>
+  env.guidesBucketUrl ? `${env.guidesBucketUrl}/${file}` : undefined;
 
 const VIDEOS: VideoGuide[] = [
   {
-    title: 'From your ideas to your first build',
-    blurb: 'Speak, type, or upload what you know, choose your modules, and watch AbundanceAI create your first program build.',
+    title: 'Set Yourself Up for a Successful First Program',
+    blurb: 'Clarify who you would most love to support, choose the program topic they will be most excited to join, and approach your first offering as an enjoyable learning experience and real-world test.',
+    src: guideVideo('guidance-1.mp4'),
   },
   {
-    title: 'Make it yours: editing & rebuilding',
-    blurb: 'Edit any section, create new builds, and combine the best of each version until the program sounds like you.',
+    title: 'Your Complete AbundanceAI Guide',
+    blurb: '--',
   },
   {
-    title: 'Launch: your Program Page, payments & invitations',
-    blurb: 'Personalize your Program Page, connect Stripe, and use your marketing content to invite your first group.',
+    title: 'Video Coaching & Insights',
+    blurb: '--',
   },
 ];
 
@@ -563,6 +570,40 @@ export function HelpPage() {
           </Card>
         </aside> */}
       </div>
+
+      {/* Video guides — recorded walkthroughs; guides without a video yet show
+          a "Coming soon" placeholder. */}
+      {videos.length > 0 && (
+        <section className="mt-10">
+          <Eyebrow className="mb-1 text-accent">Video guides</Eyebrow>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {videos.map((v) => (
+              <Card key={v.title} variant="plain" className="flex h-full flex-col p-0">
+                {v.src ? (
+                  <video
+                    src={v.src}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="aspect-video w-full rounded-t-lg bg-ink-deep"
+                  />
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-t-lg bg-primary/10">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-plain text-primary shadow-sm">
+                      <PlayIcon width={22} height={22} />
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className="text-h3 font-semibold text-ink">{v.title}</h3>
+                  <p className="mt-1 flex-1 text-body-sm text-ink-secondary">{v.blurb}</p>
+                  {!v.src && <p className="mt-3 font-mono text-data text-ink-secondary">Coming soon</p>}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Guides — five sections, bold headings only until expanded */}
       <section className="mt-10">
@@ -682,29 +723,6 @@ export function HelpPage() {
         </div>
       </section>
 
-      {/* Video guides — three walkthroughs (placeholders until recorded) */}
-      {videos.length > 0 && (
-        <section className="mt-10">
-          <Eyebrow className="mb-1 text-accent">Video guides</Eyebrow>
-          <h2 className="font-serif text-h2 text-ink">Watch how it works</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {videos.map((v) => (
-              <Card key={v.title} variant="plain" className="flex h-full flex-col p-0">
-                <div className="flex aspect-video items-center justify-center rounded-t-lg bg-primary/10">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-plain text-primary shadow-sm">
-                    <PlayIcon width={22} height={22} />
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-h3 font-semibold text-ink">{v.title}</h3>
-                  <p className="mt-1 flex-1 text-body-sm text-ink-secondary">{v.blurb}</p>
-                  <p className="mt-3 font-mono text-data text-ink-secondary">Coming soon</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

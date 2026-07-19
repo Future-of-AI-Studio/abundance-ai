@@ -6,6 +6,9 @@ export const env = {
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL ?? '',
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
   stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '',
+  // Public storage bucket for guide videos (Guidance page). Empty → the video
+  // cards fall back to their "Coming soon" placeholder.
+  guidesBucketUrl: import.meta.env.VITE_GUIDES_BUCKET_URL ?? '',
   useMocks:
     String(import.meta.env.VITE_USE_MOCKS ?? '').toLowerCase() === 'true' ||
     !import.meta.env.VITE_SUPABASE_URL, // default to mocks when not configured
