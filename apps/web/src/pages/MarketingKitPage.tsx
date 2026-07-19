@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { MarketingPost, Platform, MarketingPhase } from '@abundance/shared';
+import type { MarketingPost, MarketingUpdateRequest, Platform, MarketingPhase } from '@abundance/shared';
 import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget, MARKETING_ROUNDS_PER_MONTH, marketingRoundsUsedThisMonth, AbundanceApiError } from '@abundance/shared';
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
 import { CopyIcon, CheckIcon, SparkleIcon, StarIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
@@ -274,7 +274,7 @@ export function MarketingKitPage() {
 }
 
 function PostCard({ post }: { post: MarketingPost }) {
-  const { backend, refreshMarketing } = useApp();
+  const { updatePost } = useApp();
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState(post.caption);
   const [copied, setCopied] = useState(false);
@@ -291,23 +291,24 @@ function PostCard({ post }: { post: MarketingPost }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // updatePost patches the store optimistically, so the UI flips before the
+  // network round-trip; the store rolls back on failure and we surface it here.
+  const update = (patch: Omit<MarketingUpdateRequest, 'id'>) =>
+    updatePost({ id: post.id, ...patch }).catch(() => toast.error("Couldn't save that change - try again."));
+
   const save = async () => {
     if (!caption.trim()) { toast.error("A post can't be empty."); return; }
     setEditing(false);
-    if (backend) { await backend.api.marketingUpdate({ id: post.id, caption }); await refreshMarketing(); }
+    await update({ caption });
   };
 
   const markShared = async () => {
-    if (backend && !post.posted) { await backend.api.marketingUpdate({ id: post.id, posted: true }); await refreshMarketing(); }
+    if (!post.posted) await update({ posted: true });
   };
 
-  const togglePosted = async () => {
-    if (backend) { await backend.api.marketingUpdate({ id: post.id, posted: !post.posted }); await refreshMarketing(); }
-  };
+  const togglePosted = () => update({ posted: !post.posted });
 
-  const toggleFavorite = async () => {
-    if (backend) { await backend.api.marketingUpdate({ id: post.id, favorited: !post.favorited }); await refreshMarketing(); }
-  };
+  const toggleFavorite = () => update({ favorited: !post.favorited });
 
   // Mobile: hand to the OS share sheet. Desktop: open the per-platform menu.
   const share = async () => {

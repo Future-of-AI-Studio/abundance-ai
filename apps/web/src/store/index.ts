@@ -9,6 +9,7 @@ import type {
   JourneyState,
   Program,
   MarketingPost,
+  MarketingUpdateRequest,
   Session,
   StripeConnect,
   MindsetCheckin,
@@ -41,6 +42,7 @@ interface AppState {
   refreshProgram: () => Promise<void>;
   refreshBuilds: () => Promise<void>;
   refreshMarketing: () => Promise<void>;
+  updatePost: (req: MarketingUpdateRequest) => Promise<void>;
   refreshSession: () => Promise<void>;
   refreshPayments: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -101,6 +103,24 @@ export const useApp = create<AppState>((set, get) => ({
   async refreshProgram() { const b = get().backend; if (b) set({ program: await b.reads.getProgram() }); },
   async refreshBuilds() { const b = get().backend; if (b) set({ builds: await b.reads.getPrograms() }); },
   async refreshMarketing() { const b = get().backend; if (b) set({ posts: await b.reads.getMarketingPosts() }); },
+
+  // Optimistic post edit: patch the slice immediately so the UI responds at
+  // once, then reconcile with the server's row; roll that post back on failure.
+  async updatePost(req) {
+    const b = get().backend;
+    if (!b) return;
+    const prevPost = get().posts.find((p) => p.id === req.id);
+    if (!prevPost) return;
+    const { id, ...patch } = req;
+    set({ posts: get().posts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+    try {
+      const { post } = await b.api.marketingUpdate(req);
+      set({ posts: get().posts.map((p) => (p.id === post.id ? post : p)) });
+    } catch (err) {
+      set({ posts: get().posts.map((p) => (p.id === prevPost.id ? prevPost : p)) });
+      throw err;
+    }
+  },
   async refreshSession() { const b = get().backend; if (b) set({ session: await b.reads.getSession() }); },
   async refreshPayments() { const b = get().backend; if (b) set({ payments: await b.reads.getStripeConnect() }); },
   async refreshProfile() { const b = get().backend; if (b) set({ profile: await b.reads.getProfile() }); },
