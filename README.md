@@ -1,13 +1,17 @@
 # AbundanceAI — MVP
 
 A humanity-first web app that helps everyday experts turn their expertise into a
-sellable online program. Built for the **Build with Gemini XPRIZE**.
+sellable online program — and sell it: each program gets a public landing page
+(`/p/:programId`, plus a gallery), students enroll and pay through Stripe, and
+experts receive payouts via Stripe Connect. Built for the **Build with Gemini
+XPRIZE**.
 
-**Gemini runs in production** for three jobs — structuring the program, writing
-the marketing, and delivering mindset reflections — and it is called **only via
-Vertex AI on Google Cloud**, so the "≥1 Google Cloud product" and "live Gemini
-call" requirements are satisfied by the same component. Every AI call is logged
-to `ai_usage_logs` for submission evidence.
+**Gemini runs in production** across the product — structuring the program,
+writing the marketing, and powering the mindset coach (check-ins, reflections,
+and chat) — and it is called **only via Vertex AI on Google Cloud**, so the
+"≥1 Google Cloud product" and "live Gemini call" requirements are satisfied by
+the same component. Every AI call is logged to `ai_usage_logs` for submission
+evidence.
 
 ---
 
@@ -15,7 +19,7 @@ to `ai_usage_logs` for submission evidence.
 
 ```
 abundance-ai/
-├── apps/web/            # React + Vite + Tailwind frontend (mobile-first, all 14 screens)
+├── apps/web/            # React + Vite + Tailwind frontend (mobile-first)
 ├── packages/shared/     # TS types + zod schemas + typed API client (source of truth)
 ├── supabase/
 │   ├── migrations/      # Postgres schema, RLS, storage, triggers
@@ -97,7 +101,7 @@ shipped to the browser.
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | injected automatically in deploys; set locally for `functions serve` |
 | `APP_URL` | public app origin (CORS + Stripe redirect URLs) |
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | $25 checkout, webhook, Connect |
-| `GOOGLE_VERTEX_PROJECT_ID`, `GOOGLE_VERTEX_LOCATION`, `GOOGLE_VERTEX_MODEL` | Vertex AI target (e.g. `gemini-2.0-flash-001`) |
+| `GOOGLE_VERTEX_PROJECT_ID`, `GOOGLE_VERTEX_LOCATION`, `GOOGLE_VERTEX_MODEL` | Vertex AI target (default `gemini-2.5-flash`) |
 | `GOOGLE_VERTEX_SA_KEY` | service-account JSON for Vertex auth (full JSON string) |
 
 > Leave `GOOGLE_VERTEX_SA_KEY` empty locally to use a deterministic AI **mock** so
@@ -119,13 +123,16 @@ shipped to the browser.
 - **Vertex AI (Google Cloud)** is the product of record. `supabase/functions/_shared/vertex.ts`
   authenticates with a Google Cloud service account and POSTs to the Vertex
   `generateContent` REST endpoint. We deliberately do **not** use the AI Studio key.
-- **Gemini powers three production features**, each through Vertex:
-  - `program-build` — structures raw content into 3–6 modules.
+- **Gemini powers five production call sites**, each through Vertex:
+  - `program-build` — structures raw content (notes, recordings, PDFs) into modules.
   - `marketing-generate` — writes social posts (+ optional email).
   - `mindset-checkin` — category-aware courage reflections.
-- Every model call funnels through `_shared/gemini.ts → callGemini()`, which
-  checks the response cache, calls Vertex, validates output against the shared
-  zod schema, and **logs usage**.
+  - `mindset-reflect` — deeper reflection on a saved check-in.
+  - `mindset-chat` — free-text conversational mindset coach.
+- Every model call funnels through `_shared/gemini.ts` (`callGemini()` for
+  schema-validated JSON, `callGeminiText()` for chat), which checks the response
+  cache, calls Vertex, validates JSON output against the shared zod schema, and
+  **logs usage**.
 
 ## AI usage evidence (`ai_usage_logs`)
 
@@ -157,14 +164,15 @@ The deployed build is **login-gated**. Use the seeded demo account (created by
 
 The demo account is fully populated: a built program (4 modules), 3 marketing
 posts, a saved Google Meet link, a **matched** circle of 3, and a mindset
-check-in. New visitors can also run the full **Flow A** ($25 Stripe test
-checkout → create account → home) and **Flow B** (choose path → add content →
-AI builds the program → marketing kit) live.
+check-in. New visitors can also run the full **Flow A** (create account → $25
+Stripe test checkout → home; onboarding is account-first, unpaid accounts are
+routed to checkout) and **Flow B** (choose path → add content → AI builds the
+program → marketing kit) live.
 
 > Stripe is in **test mode** — use card `4242 4242 4242 4242`, any future expiry, any CVC.
 
 ### < 3-minute demo plan
-1. Land on `/`, tap **Start for $25**, pay with the test card → **Create Account** → **Home**.
+1. Land on `/`, tap **Start for $25** → **Create Account** → pay with the test card → **Home**.
 2. From Home, **Build your program** → choose a path → add a note/recording →
    watch the narrated loader → see the **AI-built program** (WOW).
 3. Continue to **Marketing Kit** (AI-written posts, copy one).
@@ -183,9 +191,12 @@ AI builds the program → marketing kit) live.
 - `ai_usage_logs` and `response_cache` are **service-role only**.
 - Circle members can read peers in their own circle (via a `SECURITY DEFINER`
   helper to avoid recursive RLS).
-- The **$25 gate**: a DB trigger (`handle_new_user`) blocks account creation
-  unless a `paid` order exists for that email, links the order to the new user,
-  and bootstraps their per-user rows.
+- The **$25 gate** (account-first): anyone can create an account —
+  `handle_new_user` just bootstraps the profile and per-user rows. Paid access
+  is gated by `profiles.paid_at` (null = unpaid): the `/app` route guard sends
+  unpaid accounts to `/checkout`. When a Stripe order becomes `paid` (webhook or
+  the checkout verify step), the `on_order_paid` trigger links it to the user
+  and stamps `paid_at`.
 - Storage: a private `content` bucket; objects live under `{user_id}/…` and are
   readable only by their owner. Signed upload URLs are issued by an Edge Function.
 
