@@ -139,12 +139,15 @@ const GUIDES: Guide[] = [
       {
         heading: 'Edit everything',
         bullets: [
-          'Change the wording so it sounds like you. Edit by clicking on a content section.',
+          'Your module content is your own working guide for structuring, preparing, and leading each live mentoring session.',
+          'Participants will not see it, so it does not need to be polished or perfect.',
+          'They will only see the participant notes or other materials you send them.',
+          'Change the wording so it sounds like you.',
           'Add your own stories, examples, exercises, or methods.',
           'Remove anything that does not belong.',
           'Reorganize the content when another sequence feels better.',
           'Adjust the module structure as your program becomes clearer.',
-          'Keep refining until the program reflects your knowledge, approach and voice.',
+          'Keep refining until the program reflects your knowledge, approach, and voice.',
         ],
       },
       {
@@ -433,7 +436,7 @@ const FAQS: Faq[] = [
   },
   {
     q: 'What marketing content will AbundanceAI create for me?',
-    a: 'After each program build, AbundanceAI creates email copy and several examples tailored to each social platform where you have a presence, including Facebook, LinkedIn, Instagram, and X. You can create up to eight rounds of marketing content each month, and every round stays saved, giving you a rich library of posts and messages to personalize, combine, and post through your own social media accounts over time to promote your program.',
+    a: 'After each program build, AbundanceAI creates email copy and several examples tailored to each social platform where you have a presence, including Facebook, LinkedIn, Instagram, and X.\n\nYou can create up to eight rounds of marketing content each month, and every round stays saved, giving you a rich library of posts and messages to personalize, combine, and post through your own social media accounts over time to promote your program.',
   },
   {
     q: 'What is my Program Page?',
@@ -550,7 +553,7 @@ export function HelpPage() {
                         {isOpen ? <MinusIcon width={18} height={18} /> : <PlusIcon width={18} height={18} />}
                       </span>
                     </button>
-                    {isOpen && <p className="px-5 pb-5 text-body-sm text-ink-secondary">{f.a}</p>}
+                    {isOpen && <p className="whitespace-pre-line px-5 pb-5 text-body-sm text-ink-secondary">{f.a}</p>}
                   </Card>
                 );
               })}
@@ -571,44 +574,9 @@ export function HelpPage() {
         </aside> */}
       </div>
 
-      {/* Video guides — recorded walkthroughs; guides without a video yet show
-          a "Coming soon" placeholder. */}
-      {videos.length > 0 && (
-        <section className="mt-10">
-          <Eyebrow className="mb-1 text-accent">Video guides</Eyebrow>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {videos.map((v) => (
-              <Card key={v.title} variant="plain" className="flex h-full flex-col p-0">
-                {v.src ? (
-                  <video
-                    src={v.src}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    className="aspect-video w-full rounded-t-lg bg-ink-deep"
-                  />
-                ) : (
-                  <div className="flex aspect-video items-center justify-center rounded-t-lg bg-primary/10">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-plain text-primary shadow-sm">
-                      <PlayIcon width={22} height={22} />
-                    </span>
-                  </div>
-                )}
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-h3 font-semibold text-ink">{v.title}</h3>
-                  <p className="mt-1 flex-1 text-body-sm text-ink-secondary">{v.blurb}</p>
-                  {!v.src && <p className="mt-3 font-mono text-data text-ink-secondary">Coming soon</p>}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Guides — five sections, bold headings only until expanded */}
       <section className="mt-10">
-        <Eyebrow className="mb-1 text-accent">Guides</Eyebrow>
-        <h2 className="font-serif text-h2 text-ink">Five steps from your knowledge to your program</h2>
+        <h2 className="font-serif text-h2 text-ink">Your Complete AbundanceAI Guide</h2>
 
         {guides.length === 0 ? (
           <p className="mt-4 text-body-sm text-ink-secondary">No guides match “{query}”.</p>
@@ -624,7 +592,6 @@ export function HelpPage() {
                       <Icon width={20} height={20} />
                     </span>
                     <div>
-                      <p className="font-mono text-data text-ink-secondary">Guide {guideIdx + 1}</p>
                       <h3 className="text-h3 font-semibold text-ink">{guide.title}</h3>
                     </div>
                   </div>
@@ -696,6 +663,40 @@ export function HelpPage() {
           </div>
         )}
       </section>
+
+      {/* Video guides — recorded walkthroughs; guides without a video yet show
+          a "Coming soon" placeholder. */}
+      {videos.length > 0 && (
+        <section className="mt-10">
+          <Eyebrow className="mb-1 text-accent">Video Coaching & Insights</Eyebrow>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {videos.map((v) => (
+              <Card key={v.title} variant="plain" className="flex h-full flex-col p-0">
+                {v.src ? (
+                  <video
+                    src={v.src}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="aspect-video w-full rounded-t-lg bg-ink-deep"
+                  />
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-t-lg bg-primary/10">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-plain text-primary shadow-sm">
+                      <PlayIcon width={22} height={22} />
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className="text-h3 font-semibold text-ink">{v.title}</h3>
+                  <p className="mt-1 flex-1 text-body-sm text-ink-secondary">{v.blurb}</p>
+                  {!v.src && <p className="mt-3 font-mono text-data text-ink-secondary">Coming soon</p>}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Search — filters the questions, guides, and videos on this page */}
       <section className="mx-auto mt-10 max-w-2xl">
