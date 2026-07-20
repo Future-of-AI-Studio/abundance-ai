@@ -471,12 +471,12 @@ const VIDEOS: VideoGuide[] = [
     src: guideVideo('guidance-1.mp4'),
   },
   {
-    title: 'Your Complete AbundanceAI Guide',
-    blurb: '--',
+    title: 'Make it yours: editing & rebuilding',
+    blurb: 'Edit any section, create new builds, and combine the best of each version until the program sounds like you.',
   },
   {
-    title: 'Video Coaching & Insights',
-    blurb: '--',
+    title: 'Launch: your Program Page, payments & invitations',
+    blurb: 'Personalize your Program Page, connect Stripe, and use your marketing content to invite your first group.',
   },
 ];
 
