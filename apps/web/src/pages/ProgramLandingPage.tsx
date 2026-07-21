@@ -8,6 +8,7 @@ import { Logo } from '@/layouts/PublicLayout';
 import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { priceLabel } from '@/lib/money';
+import { freeOfferOpen, tryFreeLabel } from '@/lib/freeOffer';
 import { env } from '@/lib/env';
 import { resolveLanding, landingBackground, landingRadii, externalHref, heroGradient } from '@/lib/landingTheme';
 
@@ -105,6 +106,9 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
   const insideHeading = settings.inside_heading?.trim() || "What you'll work through.";
   const closingHeading = settings.closing_heading?.trim() || 'Join us now.';
   const price = priceLabel(program.price_cents);
+  // A time-limited "join free" offer on a paid program — advertised beside the
+  // price so visitors know the free option exists before they open the sheet.
+  const freeOpen = freeOfferOpen(program) && program.price_cents > 0;
   const subtitle = settings.tagline?.trim()
     || modules[0]?.outcome
     || `A step-by-step program from ${creator.first_name}, built to move you forward.`;
@@ -147,6 +151,17 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
                 with <span className="font-semibold">{creator.first_name}</span>
               </p>
             </div>
+
+            {freeOpen && (
+              <div className="mt-5">
+                <span
+                  className="inline-flex items-center rounded-pill px-3 py-1 text-caption font-semibold uppercase tracking-wide"
+                  style={{ backgroundColor: `${t.accent}1A`, color: t.accent }}
+                >
+                  {tryFreeLabel(program.free_offer_until)}
+                </span>
+              </div>
+            )}
 
             <div className="mt-7 flex flex-wrap items-center gap-4">
               <span className={`text-display ${headingFont}`} style={{ color: t.primary }}>{price}</span>
@@ -267,25 +282,36 @@ function EnrollSheet({
   const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   const [errors, setErrors] = useState<{ name?: string; email?: string; contact?: string }>({});
-  const [preparing, setPreparing] = useState(false);
+  // Which action is mid-flight, so the right button shows its spinner (there can
+  // be two — "Pay" and "Enroll for free" — when the program offers a free option).
+  const [submitting, setSubmitting] = useState<'free' | 'paid' | null>(null);
   const [recording, setRecording] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
 
   const useStripeFlow = !env.useMocks && !!env.stripePublishableKey;
-  const isFree = data.program.price_cents === 0;
+  const isFullyFree = data.program.price_cents === 0;
+  // A paid program whose time-limited free offer is open → the buyer gets to
+  // choose Free or paid. (A fully-free program has no choice; neither does a paid
+  // program with no open offer.)
+  const hasChoice = !isFullyFree && freeOfferOpen(data.program);
   const price = priceLabel(data.program.price_cents);
-  const payLabel = isFree ? 'Enroll for free' : `Pay ${price}`;
+  const payLabel = `Pay ${price}`;
+  const headerSummary = isFullyFree
+    ? 'Free'
+    : hasChoice
+      ? `Try it for free, or ${price} one-time`
+      : `${price} one-time`;
 
   // Return to the contact step, dropping any half-created payment session.
   const backToForm = () => { setStage('form'); setClientSecret(null); setStripePromise(null); setFailed(null); };
   const close = () => { backToForm(); onClose(); };
 
-  // Step 1 → 2: validate contact info, then create the PaymentIntent. Free
-  // programs skip payment entirely — the form submit records the enrollment
-  // (no payment_intent) and goes straight to the thank-you page.
-  const toPayment = async () => {
+  // Validate contact info, then either record a free enrollment straight away
+  // (no payment) or create the PaymentIntent and move to the pay step. The `free`
+  // flag is re-checked server-side, so it can't grant a $0 spot on its own.
+  const submit = async (mode: 'free' | 'paid') => {
     const next: typeof errors = {};
     if (!name.trim()) next.name = 'Your name, please.';
     if (!EMAIL_RE.test(email)) next.email = 'Enter a valid email.';
@@ -293,12 +319,12 @@ function EnrollSheet({
     setErrors(next);
     if (Object.keys(next).length || !backend) return;
 
-    setPreparing(true);
+    setSubmitting(mode);
     setFailed(null);
     try {
-      if (isFree) {
+      if (mode === 'free') {
         const res = await backend.api.enroll({
-          program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(),
+          program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(), free: true,
         });
         onEnrolled(name.trim(), res);
         return;
@@ -312,9 +338,9 @@ function EnrollSheet({
       }
       setStage('pay');
     } catch {
-      setFailed(isFree ? "We couldn't complete your enrollment. Please try again." : "We couldn't start checkout. Please try again.");
+      setFailed(mode === 'free' ? "We couldn't complete your enrollment. Please try again." : "We couldn't start checkout. Please try again.");
     } finally {
-      setPreparing(false);
+      setSubmitting(null);
     }
   };
 
@@ -344,12 +370,24 @@ function EnrollSheet({
       title={data.program.title}
       footer={
         stage === 'form' ? (
-          <>
-            <Button size="lg" loading={preparing} iconRight={<ArrowRight width={18} height={18} />} onClick={toPayment}>
-              {isFree ? 'Complete enrollment' : 'Continue to payment'}
-            </Button>
-            <Button size="lg" variant="ghost" onClick={close}>Cancel</Button>
-          </>
+          hasChoice ? (
+            <>
+              <Button size="lg" loading={submitting === 'paid'} disabled={submitting !== null} iconRight={<ArrowRight width={18} height={18} />} onClick={() => submit('paid')}>
+                {payLabel}
+              </Button>
+              <Button size="lg" variant="secondary" loading={submitting === 'free'} disabled={submitting !== null} onClick={() => submit('free')}>
+                Try it for free
+              </Button>
+              <Button size="lg" variant="ghost" onClick={close}>Cancel</Button>
+            </>
+          ) : (
+            <>
+              <Button size="lg" loading={submitting !== null} iconRight={<ArrowRight width={18} height={18} />} onClick={() => submit(isFullyFree ? 'free' : 'paid')}>
+                {isFullyFree ? 'Complete enrollment' : 'Continue to payment'}
+              </Button>
+              <Button size="lg" variant="ghost" onClick={close}>Cancel</Button>
+            </>
+          )
         ) : (
           <Button size="lg" variant="ghost" onClick={backToForm}>Back</Button>
         )
@@ -359,7 +397,7 @@ function EnrollSheet({
         <>
           <p className="text-caption font-medium uppercase tracking-wide text-accent">Complete your enrollment</p>
           <p className="mt-1 text-body-sm text-ink-secondary">
-            with {data.creator.first_name} · {isFree ? 'Free' : `${price} one-time · 90-day guarantee`}
+            with {data.creator.first_name} · {headerSummary}
           </p>
           <div className="mt-4 space-y-3">
             <TextInput label="Full name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} required />

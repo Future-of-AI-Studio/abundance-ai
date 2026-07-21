@@ -135,6 +135,9 @@ export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
   title: z.string().min(1, 'Your program needs a title.').optional(),
   price_cents: z.number().int().nonnegative().optional(),
+  // Free-enrollment offer toggle + its end date (ISO string, or null for no end).
+  free_offer_enabled: z.boolean().optional(),
+  free_offer_until: z.string().nullable().optional(),
   modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').max(6, 'A program can have at most 6 modules.').optional(),
   remove_module_ids: z.array(z.string().uuid()).optional(),
 });
@@ -378,6 +381,10 @@ export const programPublicResponseSchema = z.object({
     id: z.string().uuid(),
     title: z.string(),
     price_cents: z.number().int().nonnegative(),
+    // Free-enrollment offer state, so the landing page can present a free option
+    // while the window is open. `free_offer_until` null = no end date.
+    free_offer_enabled: z.boolean().default(false),
+    free_offer_until: z.string().nullable().default(null),
   }),
   modules: z.array(publicModuleSchema),
   creator: z.object({
@@ -439,6 +446,9 @@ export const enrollRequestSchema = z.object({
   contact: z.string().min(1, 'A contact number lets your host reach you.'),
   // The PaymentIntent the buyer just paid; verified server-side before recording.
   payment_intent_id: z.string().optional(),
+  // The buyer chose the free option (only honored while the program's free-offer
+  // window is open; re-checked server-side, never trusted from the client alone).
+  free: z.boolean().optional(),
 });
 export type EnrollRequest = z.infer<typeof enrollRequestSchema>;
 

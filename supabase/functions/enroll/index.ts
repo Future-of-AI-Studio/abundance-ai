@@ -13,22 +13,38 @@ import { stripeClient, stripeConfigured } from '../_shared/stripe.ts';
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
   try {
-    const { program_id, name, email, contact, payment_intent_id } = await parseBody(req, enrollRequestSchema);
+    const { program_id, name, email, contact, payment_intent_id, free } = await parseBody(req, enrollRequestSchema);
     const admin = adminClient();
 
     const { data: program } = await admin
       .from('programs')
-      .select('id, user_id, title, price_cents, status')
+      .select('id, user_id, title, price_cents, status, free_offer_enabled, free_offer_until')
       .eq('id', program_id)
       .maybeSingle();
     if (!program || program.status !== 'ready') {
       return errorResponse('not_found', "This program isn't available.", 404);
     }
 
-    // With real Stripe, confirm the charge succeeded before recording anything.
-    // Mock/demo payment ids (pi_mock_*) skip this — there's no PaymentIntent.
+    // Is a free enrollment actually allowed right now? Either the program is
+    // always free (price 0), or its time-limited free offer is enabled and hasn't
+    // ended. This is the authoritative check — the client's `free` flag alone is
+    // never trusted (it can't grant itself a $0 spot on a paid program).
+    const freeWindowOpen = program.free_offer_enabled === true &&
+      (!program.free_offer_until || new Date(program.free_offer_until).getTime() > Date.now());
+    const isFreeEnrollment = program.price_cents === 0 || (free === true && freeWindowOpen);
+
+    // Buyer asked to enroll free but the offer isn't open on a paid program.
+    if (free === true && !isFreeEnrollment) {
+      return errorResponse('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.', 409);
+    }
+
+    const amountCents = isFreeEnrollment ? 0 : program.price_cents;
+
+    // With real Stripe, confirm the charge succeeded before recording a paid spot.
+    // Free enrollments and mock/demo payment ids (pi_mock_*) skip this — there's
+    // no PaymentIntent to verify.
     const isMockPayment = !payment_intent_id || payment_intent_id.startsWith('pi_mock');
-    if (stripeConfigured() && !isMockPayment) {
+    if (!isFreeEnrollment && stripeConfigured() && !isMockPayment) {
       const pi = await stripeClient().paymentIntents.retrieve(payment_intent_id!);
       if (pi.status !== 'succeeded') {
         return errorResponse('payment_incomplete', "Your payment didn't complete. Please try again.", 402);
@@ -47,9 +63,9 @@ Deno.serve(async (req) => {
       name,
       email,
       contact,
-      amount_cents: program.price_cents,
+      amount_cents: amountCents,
       status: 'enrolled',
-      stripe_payment_intent: payment_intent_id ?? null,
+      stripe_payment_intent: isFreeEnrollment ? null : (payment_intent_id ?? null),
     });
     if (insErr) {
       return errorResponse('enroll_failed', 'We could not complete your enrollment. Please try again.', 502);
@@ -59,7 +75,7 @@ Deno.serve(async (req) => {
       ok: true,
       program_title: program.title,
       creator_first_name: creator?.first_name ?? 'your host',
-      amount_cents: program.price_cents,
+      amount_cents: amountCents,
     });
   } catch (err) {
     return handleThrown(err);

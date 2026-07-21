@@ -136,6 +136,12 @@ export const programSchema = z.object({
   title: z.string().min(1),
   status: programStatusSchema,
   price_cents: z.number().int().nonnegative().default(2000), // what buyers pay on the landing page ($20 default)
+  // Free-enrollment offer: let buyers join this (paid) program for free until a
+  // set date (e.g. a launch week). `free_offer_until` null = no end date (free
+  // while the offer is enabled). Whether a participant joined free vs paid is
+  // derived from their enrollment's amount_cents (0 = free).
+  free_offer_enabled: z.boolean().default(false),
+  free_offer_until: timestamp.nullable().default(null),
   is_active: z.boolean().default(true), // the build the app reads as "your program"; ≤1 active per user
   created_at: timestamp,
 });

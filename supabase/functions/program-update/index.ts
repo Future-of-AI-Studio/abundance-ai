@@ -18,10 +18,15 @@ Deno.serve(async (req) => {
       .from('programs').select('id, user_id, title').eq('id', body.program_id).maybeSingle();
     if (!program) return errorResponse('not_found', "We couldn't find that program.", 404);
 
-    if (body.title !== undefined || body.price_cents !== undefined) {
+    if (
+      body.title !== undefined || body.price_cents !== undefined ||
+      body.free_offer_enabled !== undefined || body.free_offer_until !== undefined
+    ) {
       const patch: Record<string, unknown> = {};
       if (body.title !== undefined) patch.title = body.title;
       if (body.price_cents !== undefined) patch.price_cents = body.price_cents;
+      if (body.free_offer_enabled !== undefined) patch.free_offer_enabled = body.free_offer_enabled;
+      if (body.free_offer_until !== undefined) patch.free_offer_until = body.free_offer_until;
       const { error } = await db.from('programs').update(patch).eq('id', body.program_id);
       if (error) return errorResponse('update_failed', "We couldn't save that edit.", 400);
 

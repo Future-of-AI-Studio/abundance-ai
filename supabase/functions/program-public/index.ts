@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     const { data: program } = await admin
       .from('programs')
-      .select('id, user_id, title, price_cents, status')
+      .select('id, user_id, title, price_cents, status, free_offer_enabled, free_offer_until')
       .eq('id', program_id)
       .maybeSingle();
 
@@ -41,7 +41,13 @@ Deno.serve(async (req) => {
     }
 
     return json({
-      program: { id: program.id, title: program.title, price_cents: program.price_cents },
+      program: {
+        id: program.id,
+        title: program.title,
+        price_cents: program.price_cents,
+        free_offer_enabled: program.free_offer_enabled ?? false,
+        free_offer_until: program.free_offer_until ?? null,
+      },
       modules: modules ?? [],
       creator,
     });

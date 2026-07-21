@@ -158,7 +158,7 @@ export function createMockBackend(): Backend {
       // Non-destructive: deactivate current builds, prepend the new active one.
       state.programs.forEach((b) => { if (b.program) b.program.is_active = false; });
       const build: ProgramWithModules = {
-        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, is_active: true, created_at: nowIso() },
+        program: { id: programId, user_id: state.user!.id, title: built.title, status: 'ready', price_cents: 2000, free_offer_enabled: false, free_offer_until: null, is_active: true, created_at: nowIso() },
         modules: built.modules.map((m, i) => ({ id: uid(), program_id: programId, idx: i, description: '', ...m })),
       };
       state.programs = [build, ...state.programs];
@@ -203,6 +203,8 @@ export function createMockBackend(): Backend {
         }
       }
       if (req.price_cents !== undefined) p.program.price_cents = req.price_cents;
+      if (req.free_offer_enabled !== undefined) p.program.free_offer_enabled = req.free_offer_enabled;
+      if (req.free_offer_until !== undefined) p.program.free_offer_until = req.free_offer_until;
       if (req.remove_module_ids?.length) {
         p.modules = p.modules.filter((m) => !req.remove_module_ids!.includes(m.id));
       }
@@ -234,7 +236,11 @@ export function createMockBackend(): Backend {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       return {
-        program: { id: p.id, title: p.title, price_cents: p.price_cents },
+        program: {
+          id: p.id, title: p.title, price_cents: p.price_cents,
+          free_offer_enabled: p.free_offer_enabled ?? false,
+          free_offer_until: p.free_offer_until ?? null,
+        },
         modules: build!.modules
           .slice()
           .sort((a, b) => a.idx - b.idx)
@@ -274,18 +280,27 @@ export function createMockBackend(): Backend {
       if (!p) {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
+      // Mirror the live function: honor a free enrollment only when the program
+      // is free outright or its time-limited free offer is currently open.
+      const freeWindowOpen = p.free_offer_enabled === true &&
+        (!p.free_offer_until || new Date(p.free_offer_until).getTime() > Date.now());
+      const isFreeEnrollment = p.price_cents === 0 || (req.free === true && freeWindowOpen);
+      if (req.free === true && !isFreeEnrollment) {
+        throw new AbundanceApiError('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.');
+      }
+      const amountCents = isFreeEnrollment ? 0 : p.price_cents;
       state.enrollments.unshift({
         id: uid(), program_id: p.id, creator_id: p.user_id,
         name: req.name, email: req.email, contact: req.contact,
-        amount_cents: p.price_cents, status: 'enrolled',
-        stripe_payment_intent: req.payment_intent_id ?? null, created_at: nowIso(),
+        amount_cents: amountCents, status: 'enrolled',
+        stripe_payment_intent: isFreeEnrollment ? null : (req.payment_intent_id ?? null), created_at: nowIso(),
       });
       save();
       return {
         ok: true,
         program_title: p.title,
         creator_first_name: state.profile?.first_name ?? 'your host',
-        amount_cents: p.price_cents,
+        amount_cents: amountCents,
       };
     },
     async marketingGenerate(req) {

@@ -81,6 +81,8 @@ export const programUpdateRequestSchema = z.object({
   program_id: z.string().uuid(),
   title: z.string().min(1, 'Your program needs a title.').optional(),
   price_cents: z.number().int().nonnegative().optional(),
+  free_offer_enabled: z.boolean().optional(),
+  free_offer_until: z.string().nullable().optional(),
   modules: z.array(moduleUpsertSchema).min(1, 'Keep at least one module.').max(6, 'A program can have at most 6 modules.').optional(),
   remove_module_ids: z.array(z.string().uuid()).optional(),
 });
@@ -103,6 +105,7 @@ export const enrollRequestSchema = z.object({
   email: z.string().email('Enter a valid email.'),
   contact: z.string().min(1, 'A contact number lets your host reach you.'),
   payment_intent_id: z.string().optional(),
+  free: z.boolean().optional(),
 });
 
 // ── marketing ─────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import type { LandingPageSettings, ProgramPublicResponse } from '@abundance/shar
 import { Button, Card, TextInput, Textarea, Eyebrow } from '@/components/ui';
 import { ArrowRight, CheckIcon } from '@/components/ui/icons';
 import { PriceEditor } from '@/components/PriceEditor';
+import { FreeOfferEditor } from '@/components/FreeOfferEditor';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -119,6 +120,19 @@ export function LandingStudioPage() {
     }
   };
 
+  // The free-enrollment offer saves on its own too (same as price - it writes to
+  // the program record, not the landing_page blob).
+  const saveFreeOffer = async (enabled: boolean, until: string | null) => {
+    if (!backend || !program.program) return;
+    try {
+      await backend.api.programUpdate({ program_id: program.program.id, free_offer_enabled: enabled, free_offer_until: until });
+      await refreshProgram();
+      toast.success(enabled ? 'Free offer saved.' : 'Free offer turned off.');
+    } catch {
+      toast.error("Couldn't save that - try again.");
+    }
+  };
+
   const liveReady = program.program?.status === 'ready';
   const liveUrl = liveReady ? `/p/${program.program!.id}` : null;
 
@@ -128,6 +142,8 @@ export function LandingStudioPage() {
       id: program.program?.id ?? 'preview',
       title: program.program?.title ?? 'Your program title',
       price_cents: program.program?.price_cents ?? 2000,
+      free_offer_enabled: program.program?.free_offer_enabled ?? false,
+      free_offer_until: program.program?.free_offer_until ?? null,
     },
     modules: program.modules.length
       ? program.modules.map((m) => ({ idx: m.idx, title: m.title, description: (descDrafts[m.id] ?? m.description ?? '').trim(), outcome: m.outcome, detail: m.detail }))
@@ -311,6 +327,11 @@ export function LandingStudioPage() {
                 <p className="mt-3 font-mono text-data text-ink-secondary">
                   What participants pay to enroll - shown on your program page.
                 </p>
+                <FreeOfferEditor
+                  enabled={program.program.free_offer_enabled}
+                  until={program.program.free_offer_until}
+                  onSave={saveFreeOffer}
+                />
               </Card>
             </section>
           )}
