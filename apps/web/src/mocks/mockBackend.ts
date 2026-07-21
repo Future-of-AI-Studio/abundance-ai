@@ -189,7 +189,19 @@ export function createMockBackend(): Backend {
       await delay(250);
       const p = findBuild(req.program_id);
       if (!p?.program) throw new AbundanceApiError('not_found', "We couldn't find that program.");
-      if (req.title !== undefined) p.program.title = req.title;
+      if (req.title !== undefined && req.title !== p.program.title) {
+        const oldTitle = p.program.title;
+        p.program.title = req.title;
+        // Mirror the live backend: a rename follows the title into un-posted
+        // marketing copy, where it was baked in verbatim at generation time.
+        if (oldTitle.trim().length >= 3) {
+          state.posts = state.posts.map((post) =>
+            !post.posted && post.caption.includes(oldTitle)
+              ? { ...post, caption: post.caption.split(oldTitle).join(req.title!) }
+              : post,
+          );
+        }
+      }
       if (req.price_cents !== undefined) p.program.price_cents = req.price_cents;
       if (req.remove_module_ids?.length) {
         p.modules = p.modules.filter((m) => !req.remove_module_ids!.includes(m.id));

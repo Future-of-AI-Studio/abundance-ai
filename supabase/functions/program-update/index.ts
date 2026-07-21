@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     // Confirm ownership.
     const { data: program } = await db
-      .from('programs').select('id, user_id').eq('id', body.program_id).maybeSingle();
+      .from('programs').select('id, user_id, title').eq('id', body.program_id).maybeSingle();
     if (!program) return errorResponse('not_found', "We couldn't find that program.", 404);
 
     if (body.title !== undefined || body.price_cents !== undefined) {
@@ -24,6 +24,28 @@ Deno.serve(async (req) => {
       if (body.price_cents !== undefined) patch.price_cents = body.price_cents;
       const { error } = await db.from('programs').update(patch).eq('id', body.program_id);
       if (error) return errorResponse('update_failed', "We couldn't save that edit.", 400);
+
+      // The program title is baked verbatim into generated marketing copy
+      // (posts + emails), so a rename must follow it there — otherwise the user
+      // has to hunt through every caption by hand. Exact-match replacement keeps
+      // their own caption edits intact; posts already marked posted are left
+      // alone (they're out in the world as-is). Best-effort: a failure here
+      // never fails the title save itself.
+      const oldTitle = program.title;
+      const newTitle = body.title;
+      if (newTitle !== undefined && oldTitle && newTitle !== oldTitle && oldTitle.trim().length >= 3) {
+        const { data: posts } = await db
+          .from('marketing_posts').select('id, caption')
+          .eq('user_id', user.id).eq('posted', false);
+        const renamed = (posts ?? [])
+          .filter((p) => typeof p.caption === 'string' && p.caption.includes(oldTitle))
+          .map((p) => ({ id: p.id, caption: (p.caption as string).split(oldTitle).join(newTitle) }));
+        for (const p of renamed) {
+          const { error: renameErr } = await db
+            .from('marketing_posts').update({ caption: p.caption }).eq('id', p.id);
+          if (renameErr) console.error('program-update: caption rename failed', renameErr);
+        }
+      }
     }
 
     if (body.remove_module_ids?.length) {

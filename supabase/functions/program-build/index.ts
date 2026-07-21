@@ -3,12 +3,16 @@
 // set it becomes a hard rule in the prompt plus a verify/repair pass, otherwise the
 // AI picks 1-6. Sets programs.status building → ready / failed so the frontend's
 // narrated loader + retry work. Output is validated by the shared schema.
+import { z } from 'zod';
 import { handleOptions } from '../_shared/cors.ts';
 import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, programBuildRequestSchema, aiProgramSchema } from '../_shared/contract.ts';
 import { requireUser, userClient, adminClient } from '../_shared/supabase.ts';
 import { callGemini } from '../_shared/gemini.ts';
 import { programBuildPrompt } from '../_shared/prompts.ts';
+
+// Overflow recordings are transcribed in their own call; this is that call's shape.
+const transcriptSchema = z.object({ transcript: z.string() });
 
 // Map a stored source to a Gemini-supported inline MIME type, or null if it can't
 // be analyzed inline (e.g. .docx, or a legacy .webm recording — Gemini has no
@@ -90,8 +94,14 @@ Deno.serve(async (req) => {
     // filenames). Non-analyzable or oversized files are noted by name.
     let raw = '';
     const mediaParts: { mimeType: string; dataBase64: string }[] = [];
-    let mediaBytes = 0;
-    const MEDIA_CAP = 18 * 1024 * 1024; // keep the total inline request under Vertex's limit
+    // Recordings that don't fit the shared inline budget; transcribed separately.
+    const toTranscribe: { mime: string; blob: Blob; label: string }[] = [];
+    // Vertex caps the whole generateContent request at ~20 MB, and inlineData is
+    // base64 (×4/3 inflation) — so the budget must count ENCODED bytes, with
+    // headroom for the prompt text and JSON overhead. 18 MB encoded ≈ 13.5 MB raw.
+    let mediaEncodedBytes = 0;
+    const MEDIA_CAP_ENCODED = 18 * 1024 * 1024;
+    const encodedSize = (rawBytes: number) => Math.ceil(rawBytes / 3) * 4;
 
     for (const s of sources) {
       const ext = (s.filename.split('.').pop() ?? '').toLowerCase();
@@ -101,16 +111,51 @@ Deno.serve(async (req) => {
         continue;
       }
       const mime = inlineMime(s.kind, ext);
-      if (mime && mediaBytes < MEDIA_CAP) {
+      const label = `${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}`;
+      if (mime) {
         const { data: blob } = await admin.storage.from('content').download(s.storage_path);
-        if (blob && blob.size + mediaBytes <= MEDIA_CAP) {
+        if (blob && mediaEncodedBytes + encodedSize(blob.size) <= MEDIA_CAP_ENCODED) {
           mediaParts.push({ mimeType: mime, dataBase64: toBase64(new Uint8Array(await blob.arrayBuffer())) });
-          mediaBytes += blob.size;
-          raw += `\n\n[attached ${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}]`;
+          mediaEncodedBytes += encodedSize(blob.size);
+          raw += `\n\n[attached ${label}]`;
           continue;
         }
+        // Audio that doesn't fit the shared budget still fits a request of its
+        // own (an 8 kHz recording is ≤10 min ≈ 12.8 MB encoded) — transcribe it
+        // separately below so up to 60 min of total voice input is fully heard.
+        // (Solo-budget check matters for legacy 16 kHz recordings, which can
+        // exceed even a dedicated request.)
+        if (blob && mime.startsWith('audio/') && encodedSize(blob.size) <= MEDIA_CAP_ENCODED) {
+          toTranscribe.push({ mime, blob, label });
+          continue;
+        }
+        console.warn(`program-build: ${s.filename} skipped — over the inline media budget`);
+        raw += `\n\n[${label} — too large to analyze directly; not included]`;
+        continue;
       }
-      raw += `\n\n[${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}]`;
+      raw += `\n\n[${label}]`;
+    }
+
+    // Transcribe overflow recordings concurrently and feed the transcripts in as
+    // text — text is tiny, so this scales past the inline media ceiling.
+    if (toTranscribe.length) {
+      const transcripts = await Promise.all(toTranscribe.map(async (t) => {
+        const dataBase64 = toBase64(new Uint8Array(await t.blob.arrayBuffer()));
+        const { data } = await callGemini({
+          admin, userId: user.id, feature: 'program-build',
+          systemPrompt:
+            'You transcribe voice recordings. Return JSON of the shape {"transcript": string} — the complete, faithful transcript of the recording. No commentary, no summarization.',
+          userPrompt: `Transcribe this recording (${t.label}).`,
+          schema: transcriptSchema,
+          temperature: 0,
+          mediaParts: [{ mimeType: t.mime, dataBase64 }],
+          mockText: JSON.stringify({ transcript: `(mock transcript of ${t.label})` }),
+        });
+        return { label: t.label, transcript: data.transcript };
+      }));
+      for (const t of transcripts) {
+        raw += `\n\n=== Transcript of ${t.label} ===\n` + t.transcript.slice(0, 24000);
+      }
     }
     if (raw.trim().length < 20 && mediaParts.length === 0) {
       raw = 'The expert provided material about their area of expertise; infer a sensible foundational program.';

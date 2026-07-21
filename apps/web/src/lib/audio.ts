@@ -1,6 +1,9 @@
 // Convert a recorded audio blob (MediaRecorder gives webm/opus in Chrome, mp4 in
-// Safari) into a 16 kHz mono 16-bit PCM WAV. WAV is a format Vertex Gemini reliably
-// accepts for analysis, and downsampling to 16 kHz keeps voice notes small.
+// Safari) into an 8 kHz mono 16-bit PCM WAV. WAV is a format Vertex Gemini reliably
+// accepts for analysis. 8 kHz (telephone quality) is plenty for speech
+// transcription and keeps long recordings inside Vertex's ~20 MB inline request
+// limit: a full 10-minute recording is ~9.6 MB raw (~12.8 MB once base64-encoded),
+// where 16 kHz would blow the limit past ~8 minutes.
 export async function blobToWav(blob: Blob): Promise<Blob> {
   const arrayBuf = await blob.arrayBuffer();
   const AC: typeof AudioContext =
@@ -13,7 +16,7 @@ export async function blobToWav(blob: Blob): Promise<Blob> {
     void ctx.close();
   }
 
-  const targetRate = 16000;
+  const targetRate = 8000;
   const frames = Math.max(1, Math.ceil(decoded.duration * targetRate));
   const OAC: typeof OfflineAudioContext =
     window.OfflineAudioContext ??

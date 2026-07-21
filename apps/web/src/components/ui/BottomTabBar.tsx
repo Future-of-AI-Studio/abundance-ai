@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useUnsaved } from '@/store/unsaved';
 import { cn } from '@/lib/cn';
 import { HomeIcon, ProgramIcon, UsersIcon, HeartIcon, CircleTabIcon } from './icons';
 
@@ -13,6 +14,9 @@ const TABS = [
 ];
 
 export function BottomTabBar() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const guard = useUnsaved((s) => s.guard);
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/95 pb-safe backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-frame">
@@ -21,6 +25,7 @@ export function BottomTabBar() {
             key={to}
             to={to}
             end={end}
+            onClick={(e) => { if (pathname !== to && guard(() => navigate(to))) e.preventDefault(); }}
             className={({ isActive }) =>
               cn(
                 'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-caption transition-colors',

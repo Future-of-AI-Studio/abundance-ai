@@ -62,7 +62,7 @@ const GUIDES: Guide[] = [
         heading: 'Voice input guidelines',
         bullets: [
           'Each voice recording can be up to 10 minutes.',
-          'You can add up to 30 minutes of voice input altogether.',
+          'You can add up to 60 minutes of voice input altogether.',
           'Even if you already have strong written materials, we encourage you to include some voice input so your personality, natural language, and way of expressing ideas can come through.',
           'You do not need to speak perfectly or follow a prepared script.',
           'Talk naturally about what you know, who you want to help, and what you want participants to learn or experience.',
@@ -432,7 +432,7 @@ const FAQS: Faq[] = [
   },
   {
     q: 'How much can I share by voice?',
-    a: 'Each voice recording can be up to 10 minutes, with up to 30 minutes of voice input altogether. You can also combine voice recordings with typed text and uploaded materials.',
+    a: 'Each voice recording can be up to 10 minutes, with up to 60 minutes of voice input altogether. You can also combine voice recordings with typed text and uploaded materials.',
   },
   {
     q: 'What marketing content will AbundanceAI create for me?',
@@ -583,7 +583,6 @@ export function HelpPage() {
         ) : (
           <div className="mt-4 space-y-4">
             {guides.map((guide) => {
-              const guideIdx = GUIDES.findIndex((g) => g.title === guide.title);
               const { Icon } = guide;
               return (
                 <Card key={guide.title} variant="plain" className="p-0">

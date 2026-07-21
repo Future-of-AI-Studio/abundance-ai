@@ -1,6 +1,7 @@
 import { Outlet, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useApp } from '@/store';
-import { Avatar, Spinner, BottomTabBar, SideNav } from '@/components/ui';
+import { useUnsaved } from '@/store/unsaved';
+import { Avatar, Button, Sheet, Spinner, BottomTabBar, SideNav } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 // Authenticated shell. Mobile: top greeting bar (avatar→Account) + persistent
@@ -13,6 +14,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const { ready, user, profile } = useApp();
+  const { pending, guard, confirmPending, cancelPending } = useUnsaved();
   // Full-height routes (the Mindset conversation) manage their own scrolling: on
   // desktop the shell becomes a fixed-viewport flex column with a padding-less
   // main, so the page's header/thread/composer can flex-fill the screen with no
@@ -44,7 +46,10 @@ export function AppShell() {
           <p className="text-body-sm text-ink-secondary">
             Good to see you, <span className="font-medium text-ink">{firstName}</span>
           </p>
-          <button onClick={() => navigate('/app/account')} aria-label="Account">
+          <button
+            onClick={() => { if (!guard(() => navigate('/app/account'))) navigate('/app/account'); }}
+            aria-label="Account"
+          >
             <Avatar name={firstName} src={profile?.avatar_url} size={36} />
           </button>
         </div>
@@ -65,6 +70,24 @@ export function AppShell() {
       </div>
 
       <BottomTabBar />
+
+      {/* Unsaved-edits confirm — rendered last so it paints above any page-level
+          sheet (Sheet has no portal; DOM order breaks the z-50 tie). */}
+      <Sheet
+        open={pending !== null}
+        onClose={cancelPending}
+        title="Leave without saving?"
+        footer={
+          <>
+            <Button variant="destructive" onClick={confirmPending}>Leave without saving</Button>
+            <Button variant="ghost" onClick={cancelPending}>Keep editing</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          You have edits that haven&rsquo;t been saved yet. If you leave now, those changes will be lost.
+        </p>
+      </Sheet>
     </div>
   );
 }

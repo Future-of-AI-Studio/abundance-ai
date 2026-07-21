@@ -1,4 +1,5 @@
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useUnsaved } from '@/store/unsaved';
 import { cn } from '@/lib/cn';
 import { Avatar } from './Avatar';
 import { HomeIcon, ProgramIcon, PaletteIcon, UsersIcon, HeartIcon, CircleTabIcon, HelpIcon } from './icons';
@@ -17,11 +18,22 @@ const TABS = [
 
 export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl?: string | null }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const guard = useUnsaved((s) => s.guard);
+  // Leaving with unsaved edits? Block the link and let the confirm sheet decide.
+  // Re-clicking the current tab is a no-op, so it never needs the guard.
+  const guardLink = (e: React.MouseEvent, to: string) => {
+    if (pathname !== to && guard(() => navigate(to))) e.preventDefault();
+  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
       {/* Brand */}
-      <Link to="/app" className="inline-flex items-center gap-2 px-2 font-semibold text-ink">
+      <Link
+        to="/app"
+        onClick={(e) => guardLink(e, '/app')}
+        className="inline-flex items-center gap-2 px-2 font-semibold text-ink"
+      >
         <span className="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-white">
           <span className="font-mono text-data">A</span>
         </span>
@@ -35,6 +47,7 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
             key={to}
             to={to}
             end={end}
+            onClick={(e) => guardLink(e, to)}
             className={({ isActive }) =>
               cn(
                 'group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm transition-colors',
@@ -68,7 +81,7 @@ export function SideNav({ firstName, avatarUrl }: { firstName: string; avatarUrl
 
       {/* Account — pinned to the foot */}
       <button
-        onClick={() => navigate('/app/account')}
+        onClick={() => { if (!guard(() => navigate('/app/account'))) navigate('/app/account'); }}
         aria-label="Account"
         className="mt-4 flex items-center gap-3 rounded-md border border-line bg-bg px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
       >

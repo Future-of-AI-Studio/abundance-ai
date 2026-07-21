@@ -1,15 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Module, Program } from '@abundance/shared';
 import { Button, Badge, Card, Eyebrow, EmptyState, Sheet, Skeleton } from '@/components/ui';
 import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, PencilIcon, CheckIcon, ArrowRight, ArrowLeft, SparkleIcon, ChevronDown, EyeIcon, CloseIcon } from '@/components/ui/icons';
 import { JourneyStepper } from '@/components/JourneyStepper';
 import { useApp } from '@/store';
+import { useUnsaved } from '@/store/unsaved';
 import type { Backend } from '@/lib/backend';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
 type LocalModule = Pick<Module, 'id' | 'idx' | 'title' | 'description' | 'outcome' | 'detail' | 'session_flow' | 'notes' | 'participant_notes'>;
+
+// The editable fields of a module — what a draft can differ from its saved copy in.
+const EDIT_FIELDS = ['title', 'description', 'outcome', 'detail', 'session_flow', 'notes', 'participant_notes'] as const;
+
+const draftDiffers = (draft: LocalModule, saved: LocalModule | undefined) =>
+  !saved || EDIT_FIELDS.some((f) => draft[f] !== saved[f]);
 
 // Program size cap — mirrors the shared programUpdate schema and the AI build
 // rule (builds produce 3-6 modules).
@@ -38,15 +45,40 @@ export function ProgramPage() {
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [modules, setModules] = useState<LocalModule[]>([]);
+  // Per-module edit drafts, keyed by module id. A module is in edit mode iff it
+  // has a draft; edits only touch the draft, so store refreshes can't wipe them.
+  const [drafts, setDrafts] = useState<Record<string, LocalModule>>({});
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [continuing, setContinuing] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const { guard, setDirty } = useUnsaved();
+
+  // Refreshes may land while the title input is open (e.g. after a module save);
+  // read the flag through a ref so they don't clobber the in-progress title.
+  const editingTitleRef = useRef(editingTitle);
+  editingTitleRef.current = editingTitle;
 
   useEffect(() => {
-    setTitle(program.program?.title ?? '');
+    if (!editingTitleRef.current) setTitle(program.program?.title ?? '');
     setModules(program.modules.map((m) => ({ id: m.id, idx: m.idx, title: m.title, description: m.description ?? '', outcome: m.outcome, detail: m.detail ?? '', session_flow: m.session_flow, notes: m.notes ?? '', participant_notes: m.participant_notes ?? '' })));
+    // Drop drafts for modules that no longer exist (e.g. after switching builds).
+    const ids = new Set(program.modules.map((m) => m.id));
+    setDrafts((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => ids.has(id))));
   }, [program]);
+
+  // Anything typed but not saved? Feeds the global leave guard + tab-close warning.
+  const hasUnsaved = Object.entries(drafts).some(([id, d]) => draftDiffers(d, modules.find((m) => m.id === id)));
+
+  useEffect(() => {
+    setDirty(hasUnsaved);
+    if (!hasUnsaved) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsaved, setDirty]);
+  useEffect(() => () => setDirty(false), [setDirty]);
 
   if (!ready) return <div className="space-y-4"><Skeleton variant="line" className="w-1/2" />{[0, 1, 2].map((i) => <Skeleton key={i} variant="module-card" />)}</div>;
 
@@ -62,13 +94,26 @@ export function ProgramPage() {
   }
   const programId = program.program.id;
 
+  // Navigation that respects unsaved drafts: blocked → AppShell's confirm sheet
+  // takes over and re-runs the action if the user chooses to leave.
+  const guardedNavigate = (path: string) => {
+    if (!guard(() => navigate(path))) navigate(path);
+  };
+
   const saveTitle = async () => {
     setEditingTitle(false);
-    if (!backend || !title.trim()) { setTitle(program.program!.title); return; }
+    const saved = program.program!.title;
+    const next = title.trim();
+    if (!next) {
+      setTitle(saved);
+      toast.info('A program needs a title, so we kept the previous one.');
+      return;
+    }
+    if (!backend || next === saved) { setTitle(next || saved); return; }
     try {
-      await backend.api.programUpdate({ program_id: programId, title });
+      await backend.api.programUpdate({ program_id: programId, title: next });
       await refreshProgram();
-    } catch { toast.error("Couldn't save that edit - tap to retry"); }
+    } catch { toast.error("Couldn't save that edit - tap the title to try again"); }
   };
 
   const persist = async (next: LocalModule[], removeIds?: string[]) => {
@@ -83,8 +128,9 @@ export function ProgramPage() {
       });
       await refreshProgram();
     } catch {
-      toast.error("Couldn't save that edit - tap to retry");
-      await refreshProgram();
+      // Keep the optimistic local state (don't refetch over it) so nothing the
+      // user typed is lost — re-opening the module and saving again retries.
+      toast.error("Couldn't save your changes - check your connection and save again");
     }
   };
 
@@ -122,6 +168,7 @@ export function ProgramPage() {
 
   const confirmRemove = () => {
     if (!confirmRemoveId) return;
+    closeDraft(confirmRemoveId);
     void persist(modules.filter((m) => m.id !== confirmRemoveId), [confirmRemoveId]);
     setConfirmRemoveId(null);
   };
@@ -134,12 +181,33 @@ export function ProgramPage() {
     void persist([...modules, newModule]);
   };
 
-  const editModule = (id: string, patch: Partial<LocalModule>) => {
-    const next = modules.map((m) => (m.id === id ? { ...m, ...patch } : m));
-    setModules(next);
+  const startEdit = (id: string) => {
+    const m = modules.find((x) => x.id === id);
+    if (m) setDrafts((prev) => ({ ...prev, [id]: { ...m } }));
+  };
+
+  const editDraft = (id: string, patch: Partial<LocalModule>) =>
+    setDrafts((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id]!, ...patch } } : prev));
+
+  const closeDraft = (id: string) =>
+    setDrafts((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== id)));
+
+  const saveModule = (id: string) => {
+    const draft = drafts[id];
+    if (!draft) return;
+    closeDraft(id);
+    void persist(modules.map((m) => (m.id === id ? { ...m, ...draft } : m)));
+  };
+
+  const cancelEdit = (id: string) => {
+    const draft = drafts[id];
+    if (!draft) return;
+    if (draftDiffers(draft, modules.find((m) => m.id === id))) { setConfirmCancelId(id); return; }
+    closeDraft(id);
   };
 
   const goMarketing = async () => {
+    if (guard(() => { void goMarketing(); })) return;
     setContinuing(true);
     try {
       if (backend) { await backend.api.journeyUpdate({ current_step: 'marketing' }); await refreshJourney(); }
@@ -158,7 +226,7 @@ export function ProgramPage() {
     <div>
       {/* Header — Back + eyebrow + title, consistent with the other steps. The
           forward CTA lives at the bottom of the content, like every step. */}
-      <button onClick={() => navigate('/app/onboarding/content')} className="mb-3 inline-flex items-center gap-1 text-body-sm text-ink-secondary hover:text-ink">
+      <button onClick={() => guardedNavigate('/app/onboarding/content')} className="mb-3 inline-flex items-center gap-1 text-body-sm text-ink-secondary hover:text-ink">
         <ArrowLeft width={18} height={18} /> Back
       </button>
       <div className="mb-5">
@@ -213,13 +281,16 @@ export function ProgramPage() {
                 key={m.id}
                 index={i}
                 module={m}
+                draft={drafts[m.id] ?? null}
                 isFirst={i === 0}
                 isLast={i === modules.length - 1}
                 isDragging={dragIndex === i}
                 onMove={(dir) => move(i, dir)}
                 onRemove={() => askRemove(m.id)}
-                onChange={(patch) => editModule(m.id, patch)}
-                onCommit={() => persist(modules)}
+                onEditStart={() => startEdit(m.id)}
+                onDraftChange={(patch) => editDraft(m.id, patch)}
+                onSave={() => saveModule(m.id)}
+                onCancel={() => cancelEdit(m.id)}
                 onDragStart={() => onDragStart(i)}
                 onDragOverItem={() => onDragOverItem(i)}
                 onDragEnd={onDragEnd}
@@ -243,7 +314,7 @@ export function ProgramPage() {
               size="lg"
               variant="ghost"
               iconLeft={<SparkleIcon width={18} height={18} />}
-              onClick={() => navigate('/app/onboarding/content')}
+              onClick={() => guardedNavigate('/app/onboarding/content')}
             >
               Edit my content & rebuild
             </Button>
@@ -257,7 +328,7 @@ export function ProgramPage() {
             activeId={programId}
             backend={backend}
             onOpen={(id) => setPreviewId(id)}
-            onNewBuild={() => navigate('/app/onboarding/content')}
+            onNewBuild={() => guardedNavigate('/app/onboarding/content')}
           />
           <AtAGlance
             moduleCount={modules.length}
@@ -293,6 +364,29 @@ export function ProgramPage() {
           will be removed from this build. This can&rsquo;t be undone.
         </p>
       </Sheet>
+
+      {/* Discard-unsaved-edits confirm sheet (per-module Cancel) */}
+      <Sheet
+        open={confirmCancelId !== null}
+        onClose={() => setConfirmCancelId(null)}
+        title="Discard your changes?"
+        footer={
+          <>
+            <Button
+              variant="destructive"
+              onClick={() => { if (confirmCancelId) closeDraft(confirmCancelId); setConfirmCancelId(null); }}
+            >
+              Discard changes
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirmCancelId(null)}>Keep editing</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          Your edits to &ldquo;{(confirmCancelId && drafts[confirmCancelId]?.title) || 'this module'}&rdquo; haven&rsquo;t
+          been saved. Discard them and go back to the saved version?
+        </p>
+      </Sheet>
     </div>
   );
 }
@@ -306,23 +400,28 @@ function MetaPill({ children }: { children: React.ReactNode }) {
 }
 
 function ModuleCard({
-  index, module: m, isFirst, isLast, isDragging, onMove, onRemove, onChange, onCommit,
+  index, module: m, draft, isFirst, isLast, isDragging, onMove, onRemove,
+  onEditStart, onDraftChange, onSave, onCancel,
   onDragStart, onDragOverItem, onDragEnd,
 }: {
   index: number;
   module: LocalModule;
+  /** Non-null while this module is being edited; edits go to the draft only. */
+  draft: LocalModule | null;
   isFirst: boolean;
   isLast: boolean;
   isDragging: boolean;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
-  onChange: (patch: Partial<LocalModule>) => void;
-  onCommit: () => void;
+  onEditStart: () => void;
+  onDraftChange: (patch: Partial<LocalModule>) => void;
+  onSave: () => void;
+  onCancel: () => void;
   onDragStart: () => void;
   onDragOverItem: () => void;
   onDragEnd: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const editing = draft !== null;
   // Detail is long-form; keep cards scannable by collapsing it behind a toggle.
   const [expanded, setExpanded] = useState(false);
   // Only drag from the handle, and never while editing (so inputs stay usable).
@@ -359,52 +458,57 @@ function ModuleCard({
           {editing ? (
             <div className="space-y-2">
               <input
-                value={m.title}
-                onChange={(e) => onChange({ title: e.target.value })}
+                value={draft!.title}
+                onChange={(e) => onDraftChange({ title: e.target.value })}
                 placeholder="Module title"
                 className="w-full rounded-md border border-line px-3 py-2 text-h3 font-semibold text-ink focus:border-primary"
               />
               <textarea
-                value={m.outcome}
-                onChange={(e) => onChange({ outcome: e.target.value })}
+                value={draft!.outcome}
+                onChange={(e) => onDraftChange({ outcome: e.target.value })}
                 placeholder="What can they do after this module?"
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
               <textarea
-                value={m.detail}
-                onChange={(e) => onChange({ detail: e.target.value })}
+                value={draft!.detail}
+                onChange={(e) => onDraftChange({ detail: e.target.value })}
                 placeholder="The full module - what it covers, what's taught, and the exercise they complete"
                 rows={6}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
               <textarea
-                value={m.session_flow}
-                onChange={(e) => onChange({ session_flow: e.target.value })}
+                value={draft!.session_flow}
+                onChange={(e) => onDraftChange({ session_flow: e.target.value })}
                 placeholder="How the session runs"
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
               <textarea
-                value={m.notes}
-                onChange={(e) => onChange({ notes: e.target.value })}
+                value={draft!.notes}
+                onChange={(e) => onDraftChange({ notes: e.target.value })}
                 placeholder="Notes for you - prep, sticking points, delivery tips (optional)"
                 rows={2}
                 className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
               />
               <div>
                 <textarea
-                  value={m.participant_notes}
-                  onChange={(e) => onChange({ participant_notes: e.target.value })}
+                  value={draft!.participant_notes}
+                  onChange={(e) => onDraftChange({ participant_notes: e.target.value })}
                   placeholder={'Notes for participants - one bullet per line\ne.g. Bring a recent client story\nPractice your message out loud'}
                   rows={4}
                   className="w-full resize-none rounded-md border border-line px-3 py-2 text-body-sm text-ink focus:border-primary"
                 />
                 <p className="mt-1 text-caption text-ink-secondary">One note per line - each becomes a bullet your participants see.</p>
               </div>
-              <Button size="sm" fullWidth={false} iconLeft={<CheckIcon width={15} height={15} />} onClick={() => { setEditing(false); onCommit(); }}>
-                Save
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" fullWidth={false} iconLeft={<CheckIcon width={15} height={15} />} onClick={onSave}>
+                  Save
+                </Button>
+                <Button size="sm" fullWidth={false} variant="ghost" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </div>
             </div>
           ) : (
             <div>
@@ -479,7 +583,7 @@ function ModuleCard({
 
         {!editing && (
           <div className="flex flex-col items-center gap-1 text-ink-secondary">
-            <button onClick={() => setEditing(true)} aria-label="Edit module" className="hover:text-primary"><PencilIcon width={16} height={16} /></button>
+            <button onClick={onEditStart} aria-label="Edit module" className="hover:text-primary"><PencilIcon width={16} height={16} /></button>
             <button disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up" className="disabled:opacity-30 hover:text-primary">▲</button>
             <button disabled={isLast} onClick={() => onMove(1)} aria-label="Move down" className="disabled:opacity-30 hover:text-primary">▼</button>
             <button onClick={onRemove} aria-label="Remove module" className="mt-0.5 hover:text-error"><TrashIcon width={16} height={16} /></button>
@@ -612,6 +716,9 @@ function BuildReader({
 
   const activate = async () => {
     if (!build || !backend) return;
+    // Switching builds replaces the whole module set — confirm first if the
+    // user has unsaved module edits on the active build.
+    if (useUnsaved.getState().guard(() => { void activate(); })) return;
     setBusy(true);
     try {
       await backend.api.programActivate({ program_id: build.id });

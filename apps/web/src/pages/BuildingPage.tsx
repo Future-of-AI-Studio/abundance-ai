@@ -19,6 +19,9 @@ export function BuildingPage() {
   const location = useLocation();
   const { backend, journey, refreshProgram, refreshBuilds, refreshJourney } = useApp();
   const [failed, setFailed] = useState(false);
+  // The server's message for the failure (e.g. the 8-build limit) — retrying
+  // can't fix those, so the user needs to see the actual reason.
+  const [failReason, setFailReason] = useState<string | null>(null);
   const started = useRef(false);
   // The module count chosen on the content step (null/absent = let the AI decide).
   // Lost on a hard refresh, which harmlessly falls back to Auto.
@@ -35,7 +38,8 @@ export function BuildingPage() {
       await Promise.all([refreshProgram(), refreshBuilds(), backend.api.journeyUpdate({ current_step: 'program', complete_step: 'program' })]);
       await refreshJourney();
       navigate('/app/program', { replace: true });
-    } catch {
+    } catch (err) {
+      setFailReason(err instanceof Error && err.message ? err.message : null);
       setFailed(true);
     }
   };
@@ -51,7 +55,9 @@ export function BuildingPage() {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-8 text-center">
         <h1 className="text-h1 font-bold text-ink">We hit a snag building your program.</h1>
-        <p className="mt-3 max-w-sm text-body text-ink-secondary">Your content is safe. Let's try that again.</p>
+        <p className="mt-3 max-w-sm text-body text-ink-secondary">
+          {failReason ?? "Your content is safe. Let's try that again."}
+        </p>
         <div className="mt-6 w-full max-w-xs">
           <Button size="lg" onClick={() => { void run(); }}>Try again</Button>
         </div>

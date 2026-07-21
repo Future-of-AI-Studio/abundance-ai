@@ -95,9 +95,9 @@ const MODULE_COUNT_OPTIONS = [null, 1, 2, 3, 4, 5, 6] as const;
 // the limit isn't a surprise.
 const MAX_NOTE_CHARS = 20000;
 // Voice limits: each recording auto-stops at 10 min, and total voice across all
-// recordings is capped at 30 min (both enforced, not just displayed).
+// recordings is capped at 60 min (both enforced, not just displayed).
 const MAX_RECORD_SECONDS = 10 * 60;
-const MAX_TOTAL_RECORD_SECONDS = 30 * 60;
+const MAX_TOTAL_RECORD_SECONDS = 60 * 60;
 
 // mm:ss for a whole number of seconds.
 const fmtDuration = (sec: number) =>
@@ -112,6 +112,8 @@ export function AddContentPage() {
   const [savingLabel, setSavingLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  // Source pending delete confirmation (the trash icon asks before removing).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmRebuild, setConfirmRebuild] = useState(false);
   const [building, setBuilding] = useState(false);
   // How many modules to generate. null = Auto (AI picks 1–6); a number pins it.
@@ -258,7 +260,7 @@ export function AddContentPage() {
 
   const startRecording = async () => {
     if (atRecordCap) {
-      setError('You\'ve reached the 30-minute recording limit. Remove a recording to add more, or upload a file instead.');
+      setError('You\'ve reached the 60-minute recording limit. Remove a recording to add more, or upload a file instead.');
       return;
     }
     // This take can run until the per-recording cap or whatever total time is left.
@@ -508,7 +510,7 @@ export function AddContentPage() {
                     )}
                   </div>
                   <button
-                    onClick={() => remove(s.id)}
+                    onClick={() => setConfirmDeleteId(s.id)}
                     disabled={removingId === s.id}
                     aria-label="Remove"
                     className="mt-0.5 shrink-0 text-ink-secondary hover:text-error disabled:opacity-40"
@@ -616,6 +618,31 @@ export function AddContentPage() {
         <p className="text-body text-ink-secondary">
           We'll create a new build from your current sources and make it active. Your current build stays saved - you can
           switch back to it anytime from the Program page. Up to 8 builds are kept.
+        </p>
+      </Sheet>
+
+      {/* Delete-source confirm sheet */}
+      <Sheet
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Remove this from your content?"
+        footer={
+          <>
+            <Button
+              variant="destructive"
+              onClick={() => { if (confirmDeleteId) void remove(confirmDeleteId); setConfirmDeleteId(null); }}
+            >
+              Yes, remove it
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirmDeleteId(null)}>Keep it</Button>
+          </>
+        }
+      >
+        <p className="text-body text-ink-secondary">
+          &ldquo;{(() => {
+            const s = contentSources.find((c) => c.id === confirmDeleteId);
+            return s ? sourceMeta(s).name : 'This item';
+          })()}&rdquo; will no longer be part of what your program is built from. This can&rsquo;t be undone.
         </p>
       </Sheet>
     </>

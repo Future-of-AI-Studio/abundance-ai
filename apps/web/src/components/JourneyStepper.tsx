@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { trail as journeyTrail, getNextStep } from '@abundance/shared';
 import { Stepper } from '@/components/ui';
 import { useApp } from '@/store';
+import { useUnsaved } from '@/store/unsaved';
 import { cn } from '@/lib/cn';
 
 // The shared, clickable journey trail shown across every onboarding step. Reads
@@ -11,6 +12,7 @@ export function JourneyStepper({ className }: { className?: string }) {
   const navigate = useNavigate();
   const location = useLocation();
   const journey = useApp((s) => s.journey);
+  const guard = useUnsaved((s) => s.guard);
   if (!journey) return null;
 
   const trailSteps = journeyTrail(journey.path);
@@ -30,7 +32,16 @@ export function JourneyStepper({ className }: { className?: string }) {
 
   return (
     <div className={cn('overflow-x-auto pb-1', className)}>
-      <Stepper steps={nodes} activeIndex={activeIndex} onSelect={(i) => { const s = trailSteps[i]; if (s) navigate(s.route); }} />
+      <Stepper
+        steps={nodes}
+        activeIndex={activeIndex}
+        onSelect={(i) => {
+          const s = trailSteps[i];
+          if (!s || s.route === location.pathname) return;
+          // Unsaved edits on the current step? Block and let the confirm sheet decide.
+          if (!guard(() => navigate(s.route))) navigate(s.route);
+        }}
+      />
     </div>
   );
 }
