@@ -4,9 +4,7 @@ import { Avatar, Button, Card, EmptyState, Select, Skeleton, TextInput } from '@
 import { UsersIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
-import { PriceEditor } from '@/components/PriceEditor';
 import { useApp } from '@/store';
-import { toast } from '@/store/toast';
 import { formatPrice } from '@/lib/money';
 
 type SortKey = 'latest' | 'oldest' | 'az' | 'za';
@@ -19,10 +17,11 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 const PAGE_SIZE = 8;
 
 // [Students] The creator's list of buyers who enrolled through their program's
-// public landing page — plus the shareable link and the program's price.
+// public landing page — plus the shareable link. The program price is set on the
+// program page (Landing Studio).
 export function StudentsPage() {
   const navigate = useNavigate();
-  const { ready, backend, program, enrollments, refreshEnrollments, refreshProgram } = useApp();
+  const { ready, program, enrollments, refreshEnrollments } = useApp();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('latest');
@@ -77,35 +76,20 @@ export function StudentsPage() {
   }
 
   const programId = program.program.id;
-  const priceCents = program.program.price_cents;
   const total = enrollments.reduce((sum, e) => sum + e.amount_cents, 0);
-
-  const savePrice = async (cents: number) => {
-    if (!backend) return;
-    try {
-      await backend.api.programUpdate({ program_id: programId, price_cents: cents });
-      await refreshProgram();
-      toast.success('Price updated.');
-    } catch {
-      toast.error("Couldn't save that price - try again.");
-    }
-  };
 
   return (
     <div>
       <PageHeader eyebrow="Participants" title="Your participants." />
 
       {/* Share + summary — two columns on desktop */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-stretch">
         <Card variant="plain">
           <h2 className="text-h3 font-semibold text-ink">Share your program</h2>
           <p className="mt-1 text-body-sm text-ink-secondary">
             Post this link anywhere. Anyone who opens it can preview your program and enroll.
           </p>
           <ShareProgramLink programId={programId} className="mt-3" />
-          <div className="mt-4 border-t border-line pt-4">
-            <PriceEditor priceCents={priceCents} onSave={savePrice} />
-          </div>
         </Card>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">

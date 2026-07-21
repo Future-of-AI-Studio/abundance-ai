@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import type { LandingPageSettings, ProgramPublicResponse } from '@abundance/shared';
 import { Button, Card, TextInput, Textarea, Eyebrow } from '@/components/ui';
 import { ArrowRight, CheckIcon } from '@/components/ui/icons';
+import { PriceEditor } from '@/components/PriceEditor';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -103,6 +104,19 @@ export function LandingStudioPage() {
     }
     catch { toast.error("Couldn't save - try again."); }
     finally { setSaving(false); }
+  };
+
+  // Price saves on its own (the inline editor's Save button) rather than through
+  // the page-level Save changes button, since it writes to the program record.
+  const savePrice = async (cents: number) => {
+    if (!backend || !program.program) return;
+    try {
+      await backend.api.programUpdate({ program_id: program.program.id, price_cents: cents });
+      await refreshProgram();
+      toast.success('Price updated.');
+    } catch {
+      toast.error("Couldn't save that price - try again.");
+    }
   };
 
   const liveReady = program.program?.status === 'ready';
@@ -283,6 +297,19 @@ export function LandingStudioPage() {
                 ))}
                 <p className="pt-1 font-mono text-data text-ink-secondary">
                   Shown under each module title - leave blank to show the module's outcome instead.
+                </p>
+              </Card>
+            </section>
+          )}
+
+          {/* Price — stored on the program record; saves on its own Save button. */}
+          {program.program && (
+            <section>
+              <Eyebrow className="mb-3">Price</Eyebrow>
+              <Card variant="plain">
+                <PriceEditor priceCents={program.program.price_cents} onSave={savePrice} />
+                <p className="mt-3 font-mono text-data text-ink-secondary">
+                  What participants pay to enroll - shown on your program page.
                 </p>
               </Card>
             </section>
