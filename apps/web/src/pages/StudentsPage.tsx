@@ -68,7 +68,7 @@ export function StudentsPage() {
     return (
       <EmptyState
         icon={<UsersIcon width={30} height={30} />}
-        headline="Your students will show up here"
+        headline="Your participants will show up here"
         subline="Build your program first - then share its link and watch enrollments roll in."
         action={<Button size="lg" onClick={() => navigate('/app/program')}>Go to my program</Button>}
       />
@@ -99,7 +99,7 @@ export function StudentsPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
           <Card variant="plain">
             <p className="font-serif text-display text-ink-deep">{enrollments.length}</p>
-            <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">{enrollments.length === 1 ? 'Student' : 'Students'}</p>
+            <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">{enrollments.length === 1 ? 'Participant' : 'Participants'}</p>
             {freeCount > 0 && (
               <p className="mt-1.5 text-caption text-ink-secondary">{paidCount} paid · {freeCount} free</p>
             )}
@@ -145,7 +145,7 @@ export function StudentsPage() {
       ) : (
         <>
           <div className="mb-1.5 flex items-center gap-4 px-5 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">
-            <span className="flex-1">Student</span>
+            <span className="flex-1">Participant</span>
             <span className="w-24 text-right">Paid</span>
             <span className="hidden w-28 text-right sm:block">Joined</span>
           </div>

@@ -45,6 +45,12 @@ export interface BackendAuth {
   signInWithMagicLink(email: string): Promise<void>;
   /** Set a new password for the signed-in user. */
   updatePassword(newPassword: string): Promise<void>;
+  /**
+   * Change the signed-in user's email, re-verifying their password first (the
+   * session alone isn't proof the person at the keyboard owns the account).
+   * The caller signs the user out afterwards — they sign back in with the new address.
+   */
+  updateEmail(args: { currentPassword: string; newEmail: string }): Promise<void>;
   signOut(): Promise<void>;
 }
 

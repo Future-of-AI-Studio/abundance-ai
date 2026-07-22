@@ -160,7 +160,7 @@ export function LiveSessionsPage() {
                   <span className="truncate font-mono text-caption text-ink">{maskLink(savedLink)}</span>
                   <button onClick={copy} aria-label="Copy link" className="shrink-0 text-primary hover:text-primary-hover"><CopyIcon width={16} height={16} /></button>
                 </div>
-                <p className="mt-2 text-caption text-ink-secondary">Students get this link by email and in their dashboard.</p>
+                <p className="mt-2 text-caption text-ink-secondary">Participants get this link by email and in their dashboard.</p>
               </>
             ) : (
               <p className="mt-3 text-caption text-ink-secondary">Your meeting link will appear here once you save it.</p>

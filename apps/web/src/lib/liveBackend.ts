@@ -62,6 +62,18 @@ export function createLiveBackend(): Backend {
         const { error } = await supabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
       },
+      async updateEmail({ currentPassword, newEmail }) {
+        const { data: current } = await supabase.auth.getUser();
+        const email = current.user?.email;
+        if (!email) throw new Error("You're not signed in.");
+        const { error: pwError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+        if (pwError) throw new Error("That password isn't right - try again.");
+        // Applies immediately (profiles.email follows via the on_auth_email_changed
+        // trigger) — requires "Secure email change" to be off in the Supabase
+        // project's auth settings, or the change stays pending a mailed link.
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        if (error) throw error;
+      },
       async signOut() {
         await supabase.auth.signOut();
       },

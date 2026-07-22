@@ -16,7 +16,9 @@ import { resolveLanding, landingBackground, landingRadii, externalHref, heroGrad
 // prospective students can preview the program, learn about the guide, and enroll.
 // Fully public (no auth): data comes from the program-public Edge Function.
 
-const CREATOR_ROLE: Record<Category, string> = {
+// Currently unused (the role line under the guide's name is commented out) but
+// kept exported so it can be restored without rebuilding the mapping.
+export const CREATOR_ROLE: Record<Category, string> = {
   healer: 'Coach & Healer',
   hobbyist: 'Coach & Guide',
   professional: 'Coach & Consultant',
@@ -103,7 +105,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
   const ctaLabel = settings.cta_label?.trim() || 'Enroll now';
   const guideHeading = settings.guide_heading?.trim() || 'Meet your guide';
   const insideEyebrow = settings.inside_eyebrow?.trim() || 'A look inside the program';
-  const insideHeading = settings.inside_heading?.trim() || "What you'll work through.";
+  const insideHeading = settings.inside_heading?.trim() || "What you will experience";
   const closingHeading = settings.closing_heading?.trim() || 'Join us now.';
   const price = priceLabel(program.price_cents);
   // A time-limited "join free" offer on a paid program — advertised beside the
@@ -197,7 +199,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
               <Avatar name={creator.first_name} src={creator.avatar_url} size={112} className="shadow-md bg-accent/20 text-accent" />
               <div>
                 <h2 className={`text-h2 leading-tight ${headingFont}`} style={{ color: t.cardInk }}>{creator.first_name}</h2>
-                <p className="text-body-sm" style={{ color: t.cardInkSoft }}>{CREATOR_ROLE[creator.category]}</p>
+                {/* <p className="text-body-sm" style={{ color: t.cardInkSoft }}>{CREATOR_ROLE[creator.category]}</p> */}
               </div>
             </div>
             {creator.bio?.trim() ? (
@@ -209,7 +211,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
               </p>
             )}
             <p className="mt-5 inline-flex flex-wrap items-center gap-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>
-              <MailIcon width={16} height={16} /> Questions before you enroll?{' '}
+              <MailIcon width={16} height={16} /> {' '}
               <a href={`mailto:${creator.email}`} className="font-medium hover:underline" style={{ color: t.cardAccent }}>{creator.email}</a>
             </p>
             {/* Social links — only the ones the creator filled in. */}
@@ -235,14 +237,14 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
       </section>
 
       {/* A look inside */}
-      <section className="mx-auto max-w-[1200px] px-6 lg:px-8 py-14">
+      <section className="mx-auto max-w-[1200px] px-6 lg:px-8 pt-14 pb-6">
         <p className="font-mono text-data uppercase tracking-wide" style={{ color: t.accent }}>{insideEyebrow}</p>
         <h2 className={`mt-2 text-h1 ${headingFont}`} style={{ color: t.inkDeep }}>{insideHeading}</h2>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m, i) => (
+          {modules.map((m) => (
             <div key={m.idx} className="rounded-lg border p-5" style={{ backgroundColor: t.surface, borderColor: t.line, borderRadius: radii.card }}>
-              <span className="font-mono text-data" style={{ color: t.cardAccent }}>{String(i + 1).padStart(2, '0')}</span>
+              {/* <span className="font-mono text-data" style={{ color: t.cardAccent }}>{String(i + 1).padStart(2, '0')}</span> */}
               <h3 className="mt-1 text-h3 font-semibold" style={{ color: t.cardInk }}>{m.title}</h3>
               {(m.description || m.outcome) && <p className="mt-1.5 text-body-sm" style={{ color: t.cardInkSoft }}>{m.description || m.outcome}</p>}
             </div>
@@ -251,7 +253,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
       </section>
 
       {/* Final CTA */}
-      <section className="mx-auto max-w-[1200px] px-6 lg:px-8 py-16 text-center">
+      <section className="mx-auto max-w-[1200px] px-6 lg:px-8 pt-6 pb-16 text-center">
         <h2 className={`mx-auto max-w-xl text-h1 ${headingFont}`} style={{ color: t.inkDeep }}>{closingHeading}</h2>
         <div className="mx-auto mt-6 max-w-[280px]">
           <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel} · {price}</Button>
@@ -259,9 +261,8 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
       </section>
 
       <footer className="border-t" style={{ borderColor: t.line }}>
-        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-2 px-6 lg:px-8 py-6 text-caption sm:flex-row" style={{ color: t.inkSoft }}>
-          <span className="inline-flex items-center gap-1.5"><SparkleIcon width={14} height={14} style={{ color: t.accent }} /> Powered by AbundanceAI</span>
-          <span>Secure checkout · Your details are shared only with {creator.first_name}</span>
+        <div className="mx-auto flex max-w-[1200px] items-center justify-center px-6 lg:px-8 py-6 text-body" style={{ color: t.inkSoft }}>
+          <span className="inline-flex items-center gap-2"><SparkleIcon width={18} height={18} style={{ color: t.accent }} /> Powered by AbundanceAI</span>
         </div>
       </footer>
     </div>

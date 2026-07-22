@@ -471,8 +471,9 @@ const VIDEOS: VideoGuide[] = [
     src: guideVideo('guidance-1.mp4'),
   },
   {
-    title: 'Make it yours: editing & rebuilding',
-    blurb: 'Edit any section, create new builds, and combine the best of each version until the program sounds like you.',
+    title: 'Build Your Program and Make It Yours',
+    blurb: 'Learn the three ways to input your content, see how AbundanceAI turns it into your modules, Program Page, and marketing copy, and refine each build until it truly reflects your knowledge, style, and voice.',
+    src: guideVideo('guidance-2.mp4'),
   },
   {
     title: 'Launch: your Program Page, payments & invitations',

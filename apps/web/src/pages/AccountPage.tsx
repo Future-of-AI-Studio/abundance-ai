@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { categoryLabel, type Category } from '@abundance/shared';
 import { Button, Card, TextInput, Textarea, Select, Sheet, Eyebrow, Avatar, Spinner } from '@/components/ui';
 import {
-  PencilIcon, CardIcon, LockIcon, HelpIcon, BookIcon, CircleTabIcon, ShieldIcon, ArrowRight, UploadIcon,
+  PencilIcon, CardIcon, LockIcon, HelpIcon, BookIcon, CircleTabIcon, ShieldIcon, ArrowRight, UploadIcon, MailIcon,
 } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
@@ -15,6 +15,8 @@ const CATEGORIES: Array<{ value: Category; label: string }> = [
   { value: 'professional', label: 'Professional' },
   { value: 'other', label: 'Other' },
 ];
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
 type Cadence = 'gentle' | 'balanced' | 'active';
 const CADENCE: Array<{ value: Cadence; label: string; note: string }> = [
   { value: 'gentle', label: 'Gentle', note: 'up to 1 check-in a week' },
@@ -46,6 +48,12 @@ export function AccountPage() {
   const [circleTalks, setCircleTalks] = useState(true);
   const [productEmails, setProductEmails] = useState(false);
   const [cadence, setCadence] = useState<Cadence>('balanced');
+
+  // Change-email sheet — the password must be re-entered before the change goes through.
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailPw, setEmailPw] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
 
   // Change-password sheet
   const [pwOpen, setPwOpen] = useState(false);
@@ -99,6 +107,25 @@ export function AccountPage() {
     }
     catch { toast.error("Couldn't upload that photo - try again."); }
     finally { setUploadingAvatar(false); }
+  };
+
+  const saveEmail = async () => {
+    if (!backend) return;
+    const email = newEmail.trim();
+    if (!emailPw) { toast.error('Confirm your current password first.'); return; }
+    if (!EMAIL_RE.test(email)) { toast.error('Enter a valid email address.'); return; }
+    if (email.toLowerCase() === (profile?.email ?? '').toLowerCase()) { toast.error("That's already your email."); return; }
+    setSavingEmail(true);
+    try {
+      await backend.auth.updateEmail({ currentPassword: emailPw, newEmail: email });
+      // Fresh start under the new address: sign out and back to the sign-in page.
+      toast.success('Email updated - sign in again with your new address.');
+      await backend.auth.signOut();
+      navigate('/');
+    } catch (e) {
+      toast.error(e instanceof Error && e.message ? e.message : "Couldn't update your email - try again.");
+      setSavingEmail(false);
+    }
   };
 
   const savePassword = async () => {
@@ -245,7 +272,7 @@ export function AccountPage() {
           <section>
             <Eyebrow className="mb-3">Check-in rhythm</Eyebrow>
             <Card variant="plain">
-              <p className="text-body text-ink">How often should we reach out to keep your courage up?</p>
+              <p className="text-body text-ink">How often should we reach out for mindset support?</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {CADENCE.map((c) => {
                   const active = c.value === cadence;
@@ -275,6 +302,7 @@ export function AccountPage() {
             <Eyebrow className="mb-3">Account &amp; security</Eyebrow>
             <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-plain shadow-sm">
               <NavRow icon={<CardIcon width={20} height={20} />} label="Payment & billing" onClick={() => toast.info('Billing portal is coming soon.')} />
+              <NavRow icon={<MailIcon width={20} height={20} />} label="Email address" onClick={() => { setEmailPw(''); setNewEmail(''); setEmailOpen(true); }} />
               <NavRow icon={<LockIcon width={20} height={20} />} label="Password & security" onClick={() => { setNewPw(''); setConfirmPw(''); setPwOpen(true); }} />
               <NavRow icon={<HelpIcon width={20} height={20} />} label="Help & contact us" onClick={() => toast.info('Reach us anytime at hello@abundance.ai')} />
             </div>
@@ -349,6 +377,39 @@ export function AccountPage() {
             helperText={`Shown publicly on your landing page · ${bio.trim().length}/600`}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
+          />
+        </div>
+      </Sheet>
+
+      {/* Change-email sheet */}
+      <Sheet
+        open={emailOpen}
+        onClose={() => { if (!savingEmail) setEmailOpen(false); }}
+        title="Change your email"
+        footer={
+          <>
+            <Button loading={savingEmail} onClick={saveEmail}>Update email</Button>
+            <Button variant="ghost" disabled={savingEmail} onClick={() => setEmailOpen(false)}>Cancel</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-body-sm text-ink-secondary">
+            You&rsquo;re currently signed in as <span className="font-medium text-ink">{profile?.email}</span>.
+            Confirm your password, then tell us the new address. You&rsquo;ll be signed out and can sign
+            back in with your new email. Your progress stays saved.
+          </p>
+          <TextInput
+            label="Current password"
+            type="password"
+            value={emailPw}
+            onChange={(e) => setEmailPw(e.target.value)}
+          />
+          <TextInput
+            label="New email"
+            type="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
           />
         </div>
       </Sheet>

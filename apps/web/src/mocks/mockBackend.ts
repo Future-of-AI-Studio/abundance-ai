@@ -467,6 +467,12 @@ export function createMockBackend(): Backend {
       async updatePassword() {
         await delay(400);
       },
+      async updateEmail({ newEmail }) {
+        await delay(400);
+        if (state.user) state.user = { ...state.user, email: newEmail };
+        if (state.profile) state.profile = { ...state.profile, email: newEmail };
+        save();
+      },
       async signOut() {
         await delay(150);
         state = fresh();

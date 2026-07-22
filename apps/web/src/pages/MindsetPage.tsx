@@ -31,8 +31,8 @@ const WALL_LABELS: Record<WallKey, string> = {
 // Warm invitation copy for the dashboard's "right now" card — the teaser shown
 // before a reflection begins (the reflection itself is generated on start).
 const FEATURED: Record<WallKey, { quote: string; teaser: string }> = {
-  'who-am-i-to-teach': { quote: 'Who am I to teach this?', teaser: "Your students aren't looking for the world's expert - just someone a step ahead. That's you." },
-  'fear-of-being-seen': { quote: 'What if nobody shows up?', teaser: "You don't need a crowd. You need the right few. Let's look at who your first students really are." },
+  'who-am-i-to-teach': { quote: 'Who am I to teach this?', teaser: "Your participants aren't looking for the world's expert - just someone a step ahead. That's you." },
+  'fear-of-being-seen': { quote: 'What if nobody shows up?', teaser: "You don't need a crowd. You need the right few. Let's look at who your first participants really are." },
   'charging-money': { quote: 'It feels wrong to charge.', teaser: "Charging isn't taking - it's what lets you keep showing up for the people you help." },
   'tech-overwhelm': { quote: 'The tech overwhelms me.', teaser: "You don't have to learn all of it. Just the next small step - and we'll take it together." },
   'staying-consistent': { quote: "What if I can't keep it up?", teaser: "Consistency isn't intensity. Let's find a rhythm that fits the life you already have." },
@@ -410,7 +410,7 @@ export function MindsetPage() {
         ) : (
           /* Dashboard — weekly progress, a recommended reflection, recent history */
           <div>
-            <h1 className="font-serif text-h1 font-medium text-ink">A little courage, right when you need it.</h1>
+            <h1 className="font-serif text-h1 font-medium text-ink">A little support, right when you need it.</h1>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
               {/* Main — talk it through + the recommended reflection */}
