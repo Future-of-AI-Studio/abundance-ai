@@ -41,7 +41,7 @@ export function GalleryPage() {
           <TextInput label="Text" placeholder="Type here" />
           <TextInput label="Password" type="password" placeholder="Secret" />
           <TextInput label="With error" error="Something's off" defaultValue="oops" />
-          <Select label="Category" value={sel} options={[{ value: 'healer', label: 'Healer' }, { value: 'other', label: 'Other' }]} onChange={setSel} />
+          <Select label="Category" value={sel} options={[{ value: 'healer', label: 'Expert' }, { value: 'other', label: 'Other' }]} onChange={setSel} />
         </div>
         <Textarea label="Textarea" placeholder="A few words…" className="mt-3" />
       </Section>

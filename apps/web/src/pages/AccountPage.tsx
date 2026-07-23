@@ -10,7 +10,7 @@ import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 
 const CATEGORIES: Array<{ value: Category; label: string }> = [
-  { value: 'healer', label: 'Healer' },
+  { value: 'healer', label: 'Expert' },
   { value: 'hobbyist', label: 'Hobbyist' },
   { value: 'professional', label: 'Professional' },
   { value: 'other', label: 'Other' },
@@ -119,7 +119,7 @@ export function AccountPage() {
     try {
       await backend.auth.updateEmail({ currentPassword: emailPw, newEmail: email });
       // Fresh start under the new address: sign out and back to the sign-in page.
-      toast.success('Email updated - sign in again with your new address.');
+      toast.success(`Check ${email} for a confirmation link, then sign in with your new email address.`);
       await backend.auth.signOut();
       navigate('/');
     } catch (e) {

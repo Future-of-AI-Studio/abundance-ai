@@ -19,7 +19,7 @@ import { resolveLanding, landingBackground, landingRadii, externalHref, heroGrad
 // Currently unused (the role line under the guide's name is commented out) but
 // kept exported so it can be restored without rebuilding the mapping.
 export const CREATOR_ROLE: Record<Category, string> = {
-  healer: 'Coach & Healer',
+  healer: 'Coach & Expert',
   hobbyist: 'Coach & Guide',
   professional: 'Coach & Consultant',
   other: 'Coach & Facilitator',

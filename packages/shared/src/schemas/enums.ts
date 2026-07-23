@@ -25,7 +25,7 @@ export const CATEGORY_VALUES = categorySchema.options;
 
 /** Display labels for each category (shared by signup, account, roster). */
 export const CATEGORY_LABELS: Record<Category, string> = {
-  healer: 'Healer',
+  healer: 'Expert',
   hobbyist: 'Hobbyist',
   professional: 'Professional',
   other: 'Other',
