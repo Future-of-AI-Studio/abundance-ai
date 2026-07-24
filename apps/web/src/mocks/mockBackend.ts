@@ -272,7 +272,7 @@ export function createMockBackend(): Backend {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       // No real Stripe in the mock — the landing page shows the demo pay form.
-      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: p.price_cents, publishable_key: '', stripe: false };
+      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: p.price_cents, publishable_key: '', stripe_account: null, stripe: false };
     },
     async enroll(req) {
       await delay(600);
@@ -340,6 +340,9 @@ export function createMockBackend(): Backend {
     },
     async stripeConnect(req) {
       await delay(300);
+      if (req.dashboard) {
+        return { onboarding_url: null, dashboard_url: 'https://connect.stripe.com/mock-dashboard', connected: state.stripe?.connected ?? true, checklist: state.stripe!.checklist };
+      }
       if (req.reconcile) {
         state.stripe = { ...state.stripe!, connected: true, checklist: { bank: true, id: true, email: true } };
         save();
@@ -417,7 +420,16 @@ export function createMockBackend(): Backend {
     },
     async circleGet() {
       await delay(400);
-      return MOCK.circle();
+      const circle = MOCK.circle();
+      // The demo runs in one browser, so recommended peers have no real program of
+      // their own. Point their landing-page link at the creator's own active build
+      // (a 'ready' program) so clicking a peer navigates to a working /p/:id page.
+      const demoProgramId = activeBuild().program?.id ?? null;
+      circle.members = circle.members.map((m) => ({
+        ...m,
+        program_id: m.is_you ? null : demoProgramId,
+      }));
+      return circle;
     },
     async testimonialCreate(req) {
       await delay(250);

@@ -45,7 +45,20 @@ Deno.serve(async (req) => {
     // no PaymentIntent to verify.
     const isMockPayment = !payment_intent_id || payment_intent_id.startsWith('pi_mock');
     if (!isFreeEnrollment && stripeConfigured() && !isMockPayment) {
-      const pi = await stripeClient().paymentIntents.retrieve(payment_intent_id!);
+      // The charge is a direct charge on the creator's connected account, so the
+      // PaymentIntent must be retrieved on that same account to verify it.
+      const { data: connect } = await admin
+        .from('stripe_connect')
+        .select('account_id')
+        .eq('user_id', program.user_id)
+        .maybeSingle();
+      if (!connect?.account_id) {
+        return errorResponse('payment_incomplete', "We couldn't verify your payment. Please contact your host.", 402);
+      }
+      const pi = await stripeClient().paymentIntents.retrieve(
+        payment_intent_id!,
+        { stripeAccount: connect.account_id },
+      );
       if (pi.status !== 'succeeded') {
         return errorResponse('payment_incomplete', "Your payment didn't complete. Please try again.", 402);
       }

@@ -17,6 +17,7 @@ interface RosterMember {
   name: string;
   category: string;
   is_you?: boolean;
+  program_id?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -91,6 +92,25 @@ Deno.serve(async (req) => {
         }));
       }
       // match_status stays 'pending' — a recommendation, not a confirmed circle.
+    }
+
+    // Attach each member's public program landing page so the roster can link
+    // through to it. A member's program is hidden from the user client by RLS, so
+    // read with the service role; only a published ('ready'), active build is
+    // linkable. Members without one are left with program_id: null (not clickable).
+    const peerIds = members.filter((m) => !m.is_you).map((m) => m.user_id);
+    if (peerIds.length) {
+      const { data: progs } = await adminClient()
+        .from('programs')
+        .select('id, user_id')
+        .in('user_id', peerIds)
+        .eq('status', 'ready')
+        .eq('is_active', true);
+      const programByUser = new Map<string, string>();
+      for (const p of progs ?? []) {
+        if (!programByUser.has(p.user_id as string)) programByUser.set(p.user_id as string, p.id as string);
+      }
+      members = members.map((m) => ({ ...m, program_id: m.is_you ? null : programByUser.get(m.user_id) ?? null }));
     }
 
     // Next expert talk: soonest upcoming, else most recent past (for recording).

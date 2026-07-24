@@ -1,6 +1,9 @@
 // stripe-webhook — public, signature-verified. On payment_intent.succeeded it
-// marks the order paid (which unblocks account creation — the $25 gate). Handling
-// is idempotent: re-delivery of the same event never double-creates or double-marks.
+// marks the order paid (which unblocks account creation — the $25 gate). On
+// account.updated (a Connect event, delivered when "listen to connected accounts"
+// is enabled on this endpoint) it refreshes the creator's payout-readiness so the
+// UI reflects onboarding progress without them re-clicking. Handling is idempotent:
+// re-delivery of the same event never double-creates or double-marks.
 import { stripeClient } from '../_shared/stripe.ts';
 import { adminClient } from '../_shared/supabase.ts';
 
@@ -53,6 +56,30 @@ Deno.serve(async (req) => {
             .update({ status: 'refunded' })
             .eq('stripe_payment_intent', charge.payment_intent);
         }
+        break;
+      }
+      case 'account.updated': {
+        // A creator's connected account changed (finished onboarding, added a
+        // bank account, etc.). Mirror payout-readiness into stripe_connect so the
+        // Get Paid page reflects it. Matched by account_id, so no user context needed.
+        const acct = event.data.object as {
+          id: string;
+          charges_enabled?: boolean;
+          payouts_enabled?: boolean;
+          details_submitted?: boolean;
+          email?: string | null;
+          external_accounts?: { total_count?: number };
+        };
+        const connected = Boolean(acct.charges_enabled && acct.payouts_enabled);
+        const checklist = {
+          bank: (acct.external_accounts?.total_count ?? 0) > 0,
+          id: Boolean(acct.details_submitted),
+          email: Boolean(acct.email),
+        };
+        await admin
+          .from('stripe_connect')
+          .update({ connected, checklist })
+          .eq('account_id', acct.id);
         break;
       }
       default:

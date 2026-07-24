@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { isStepComplete } from '@abundance/shared';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { isStepComplete, AbundanceApiError } from '@abundance/shared';
 import { Button, Card, Badge } from '@/components/ui';
 import { ShieldIcon, ArrowRight, UsersIcon, CheckIcon } from '@/components/ui/icons';
 import { StepLayout, RailLabel } from '@/components/StepLayout';
@@ -91,12 +91,65 @@ function WhatHappensNext() {
 }
 
 // [11] Get Paid — connect payments so the user can receive THEIR client payments.
-// Stripe Connect isn't wired yet, so this is MOCKED: one click marks the step done
-// and reveals the shareable landing-page link. AbundanceAI never touches the money.
+// Tapping "Connect Stripe" hands off to Stripe's hosted Connect onboarding; Stripe
+// returns to this page (?stripe=return), where we reconcile the account and mark
+// the step done only once the account can actually accept charges + payouts. The
+// creator's enrollment revenue then lands straight in their own Stripe account —
+// AbundanceAI never touches the money. In mock mode the redirect is simulated.
 export function GetPaidPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { backend, program, journey, payments, refreshPayments, refreshJourney, refreshProgram } = useApp();
   const [connecting, setConnecting] = useState(false);
+  // Set while we reconcile after returning from Stripe, so the button reflects it.
+  const [returning, setReturning] = useState(false);
+  // Set while we mint an Express dashboard login link ("Manage on Stripe").
+  const [openingDashboard, setOpeningDashboard] = useState(false);
+
+  // Handle the return from Stripe's hosted onboarding. Stripe sends the creator
+  // back to ?stripe=return (finished or paused) or ?stripe=refresh (link expired).
+  useEffect(() => {
+    const flow = searchParams.get('stripe');
+    if (!backend || env.useMocks || !flow) return;
+    let cancelled = false;
+
+    const clearParam = () => {
+      if (cancelled) return;
+      searchParams.delete('stripe');
+      setSearchParams(searchParams, { replace: true });
+    };
+
+    (async () => {
+      setReturning(true);
+      try {
+        if (flow === 'refresh') {
+          // The onboarding link expired before completion — mint a fresh one.
+          const returnUrl = `${window.location.origin}/app/onboarding/payments?stripe=return`;
+          const link = await backend.api.stripeConnect({ return_url: returnUrl });
+          if (!cancelled && link.onboarding_url) { window.location.href = link.onboarding_url; return; }
+        }
+        // Reconcile the account's real charges/payouts status from Stripe.
+        const res = await backend.api.stripeConnect({ reconcile: true });
+        if (cancelled) return;
+        if (res.connected) {
+          await backend.api.journeyUpdate({ complete_step: 'payments' });
+          await Promise.all([refreshPayments(), refreshJourney()]);
+          toast.success("Payments connected — you're ready to sell.");
+        } else {
+          await refreshPayments();
+          toast.info('Almost there — finish your Stripe details to start accepting payments.');
+        }
+      } catch (err) {
+        if (!cancelled) toast.error(err instanceof AbundanceApiError ? err.message : "We couldn't confirm your Stripe setup. Please try again.");
+      } finally {
+        if (!cancelled) setReturning(false);
+        clearParam();
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend]);
 
   const savePrice = async (cents: number) => {
     if (!backend || !program.program) return;
@@ -131,22 +184,57 @@ export function GetPaidPage() {
   const paymentsDone = (payments?.connected ?? false) || isStepComplete(journey ?? { completed_steps: [] }, 'payments');
   const programId = program.program.id;
 
-  // Mocked connect: flip the local connected flag (mock backend only), then mark
-  // the step complete. No redirect to Stripe until Connect is configured.
+  // Connect Stripe. In mock mode we simulate a completed onboarding. Live, we hand
+  // the creator off to Stripe's hosted onboarding and return to ?stripe=return,
+  // where the effect above reconciles and marks the step done.
   const connect = async () => {
     if (!backend) return;
     setConnecting(true);
     try {
       if (env.useMocks) {
         try { await backend.api.stripeConnect({ reconcile: true }); } catch { /* best effort */ }
+        await backend.api.journeyUpdate({ complete_step: 'payments' });
+        await Promise.all([refreshPayments(), refreshJourney()]);
+        toast.success("You're ready to sell - share your program link.");
+        return;
       }
-      await backend.api.journeyUpdate({ complete_step: 'payments' });
-      await Promise.all([refreshPayments(), refreshJourney()]);
-      toast.success("You're ready to sell - share your program link.");
-    } catch {
-      toast.error('Something went wrong - please try again.');
+      const returnUrl = `${window.location.origin}/app/onboarding/payments?stripe=return`;
+      const res = await backend.api.stripeConnect({ return_url: returnUrl });
+      if (res.onboarding_url) {
+        window.location.href = res.onboarding_url; // leaving the app for Stripe
+        return;
+      }
+      // No link needed — the account is already fully onboarded. Mark done.
+      if (res.connected) {
+        await backend.api.journeyUpdate({ complete_step: 'payments' });
+        await Promise.all([refreshPayments(), refreshJourney()]);
+        toast.success("You're ready to sell - share your program link.");
+      }
+    } catch (err) {
+      // Surface the mapped server message (e.g. "Payments aren't fully set up
+      // yet…") instead of a bland generic, so setup issues are actionable.
+      toast.error(err instanceof AbundanceApiError ? err.message : 'Something went wrong - please try again.');
     } finally {
       setConnecting(false);
+    }
+  };
+
+  // Open the creator's Stripe Express dashboard (payouts, bank details, history).
+  // In mock mode there's no real dashboard, so we just inform the user.
+  const openDashboard = async () => {
+    if (!backend) return;
+    setOpeningDashboard(true);
+    try {
+      const res = await backend.api.stripeConnect({ dashboard: true });
+      if (res.dashboard_url && !env.useMocks) {
+        window.open(res.dashboard_url, '_blank', 'noopener,noreferrer');
+      } else {
+        toast.info('Your Stripe dashboard opens here once you connect a live account.');
+      }
+    } catch (err) {
+      toast.error(err instanceof AbundanceApiError ? err.message : "We couldn't open your Stripe dashboard. Please try again.");
+    } finally {
+      setOpeningDashboard(false);
     }
   };
 
@@ -168,7 +256,7 @@ export function GetPaidPage() {
 
             <StripeSetupGuide />
 
-            <Button size="lg" loading={connecting} onClick={connect}>Connect Stripe</Button>
+            <Button size="lg" loading={connecting || returning} onClick={connect}>Connect Stripe</Button>
 
             <div className="flex items-center gap-2 rounded-md border border-line bg-surface px-4 py-3">
               <ShieldIcon width={20} height={20} className="text-accent" />
@@ -192,6 +280,9 @@ export function GetPaidPage() {
             <div className="space-y-2">
               <Button size="lg" iconLeft={<UsersIcon width={18} height={18} />} onClick={() => navigate('/app/students')}>
                 View my students
+              </Button>
+              <Button size="lg" variant="secondary" loading={openingDashboard} iconLeft={<ShieldIcon width={18} height={18} />} onClick={openDashboard}>
+                Manage on Stripe
               </Button>
               <Button size="lg" variant="ghost" iconRight={<ArrowRight width={18} height={18} />} onClick={() => navigate('/app')}>
                 Go to dashboard

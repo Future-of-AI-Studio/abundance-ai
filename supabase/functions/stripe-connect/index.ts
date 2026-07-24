@@ -24,6 +24,22 @@ Deno.serve(async (req) => {
     }
     const stripe = stripeClient();
 
+    // Express dashboard login link — lets a connected creator manage their own
+    // account (payouts, bank details, transactions) on Stripe. Only works once
+    // onboarding is complete, which is the only time the UI offers this.
+    if (body.dashboard) {
+      if (!existing?.account_id) {
+        return errorResponse('not_connected', 'Connect your Stripe account first.', 409);
+      }
+      const login = await stripe.accounts.createLoginLink(existing.account_id);
+      return json({
+        onboarding_url: null,
+        dashboard_url: login.url,
+        connected: existing.connected ?? false,
+        checklist: existing.checklist ?? { bank: false, id: false, email: Boolean(user.email) },
+      });
+    }
+
     // Reconcile on return from Stripe-hosted onboarding.
     if (body.reconcile && existing?.account_id) {
       const acct = await stripe.accounts.retrieve(existing.account_id);

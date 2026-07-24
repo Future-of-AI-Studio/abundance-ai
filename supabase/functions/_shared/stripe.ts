@@ -6,6 +6,17 @@ const SECRET = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 
 export const SIGNUP_AMOUNT_CENTS = 2500;
 
+// Optional platform fee taken from each creator enrollment, in basis points
+// (100 = 1%). Default 0 → the creator keeps the full amount; the charge is a
+// direct charge on their connected account and AbundanceAI never holds the funds.
+// Set PLATFORM_FEE_BPS in Supabase secrets to start collecting an application fee.
+const PLATFORM_FEE_BPS = Math.max(0, Math.trunc(Number(Deno.env.get('PLATFORM_FEE_BPS') ?? '0')) || 0);
+
+export function platformFeeCents(amountCents: number): number {
+  if (PLATFORM_FEE_BPS <= 0) return 0;
+  return Math.round((amountCents * PLATFORM_FEE_BPS) / 10000);
+}
+
 export function stripeClient(): Stripe {
   return new Stripe(SECRET, {
     apiVersion: '2024-06-20',

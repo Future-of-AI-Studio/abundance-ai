@@ -147,17 +147,37 @@ export function CirclePage() {
       {/* Roster (matched circle or recommendations) — name + avatar only. */}
       {members.length > 0 ? (
         <div className="mt-5 overflow-hidden rounded-lg border border-line bg-surface-plain shadow-sm">
-          {members.map((m, i) => (
-            <div key={m.user_id} className={cn('flex items-center gap-3.5 px-5 py-4', i > 0 && 'border-t border-line')}>
-              <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-pill font-mono text-data text-white', AVATAR_TONES[i % AVATAR_TONES.length])}>
-                {m.name.trim().charAt(0).toUpperCase() || '·'}
-              </span>
-              <p className="min-w-0 truncate text-body font-semibold text-ink">{m.name}</p>
-              {m.is_you && (
-                <span className="ml-auto shrink-0 rounded-pill bg-surface px-2 py-0.5 text-caption font-medium text-ink-secondary">You</span>
-              )}
-            </div>
-          ))}
+          {members.map((m, i) => {
+            // A member with a published program links through to their landing page.
+            const linkable = !m.is_you && !!m.program_id;
+            const rowClass = cn('flex w-full items-center gap-3.5 px-5 py-4 text-left', i > 0 && 'border-t border-line');
+            const inner = (
+              <>
+                <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-pill font-mono text-data text-white', AVATAR_TONES[i % AVATAR_TONES.length])}>
+                  {m.name.trim().charAt(0).toUpperCase() || '·'}
+                </span>
+                <p className="min-w-0 truncate text-body font-semibold text-ink">{m.name}</p>
+                {m.is_you ? (
+                  <span className="ml-auto shrink-0 rounded-pill bg-surface px-2 py-0.5 text-caption font-medium text-ink-secondary">You</span>
+                ) : linkable ? (
+                  <span className="ml-auto shrink-0 text-caption font-medium text-accent">View program page →</span>
+                ) : null}
+              </>
+            );
+            return linkable ? (
+              <a
+                key={m.user_id}
+                href={`/p/${m.program_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(rowClass, 'transition-colors hover:bg-surface')}
+              >
+                {inner}
+              </a>
+            ) : (
+              <div key={m.user_id} className={rowClass}>{inner}</div>
+            );
+          })}
         </div>
       ) : (
         <EmptyState

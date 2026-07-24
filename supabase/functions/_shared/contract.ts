@@ -160,6 +160,7 @@ export const sessionsSetLinkRequestSchema = z
 export const stripeConnectRequestSchema = z.object({
   return_url: z.string().url().optional(),
   reconcile: z.boolean().optional(),
+  dashboard: z.boolean().optional(),
 });
 
 // ── mindset ───────────────────────────────────────────────────────────────────

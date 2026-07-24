@@ -1,13 +1,14 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { categoryLabel, type Category } from '@abundance/shared';
-import { Button, Card, TextInput, Textarea, Select, Sheet, Eyebrow, Avatar, Spinner } from '@/components/ui';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { categoryLabel, AbundanceApiError, type Category } from '@abundance/shared';
+import { Button, Card, TextInput, Textarea, Select, Sheet, Eyebrow, Avatar, Spinner, Badge } from '@/components/ui';
 import {
   PencilIcon, CardIcon, LockIcon, HelpIcon, BookIcon, CircleTabIcon, ShieldIcon, ArrowRight, UploadIcon, MailIcon,
 } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
+import { env } from '@/lib/env';
 
 const CATEGORIES: Array<{ value: Category; label: string }> = [
   { value: 'healer', label: 'Expert' },
@@ -29,7 +30,8 @@ const CADENCE: Array<{ value: Cadence; label: string; note: string }> = [
 // sheet). Two-column dashboard on desktop, stacked on mobile.
 export function AccountPage() {
   const navigate = useNavigate();
-  const { backend, profile, journey, program, refreshProfile } = useApp();
+  const { backend, profile, journey, program, payments, refreshProfile, refreshPayments, refreshJourney } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Edit-profile sheet
   const [editOpen, setEditOpen] = useState(false);
@@ -60,6 +62,11 @@ export function AccountPage() {
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [savingPw, setSavingPw] = useState(false);
+
+  // Payment & billing (payouts) sheet
+  const [payoutsOpen, setPayoutsOpen] = useState(false);
+  const [connectingPayouts, setConnectingPayouts] = useState(false);
+  const [openingDashboard, setOpeningDashboard] = useState(false);
 
   // Refund flow
   const [refundOpen, setRefundOpen] = useState(false);
@@ -155,6 +162,87 @@ export function AccountPage() {
     catch { setRefundResult('Something went wrong - please reach out to us directly.'); }
     finally { setRefunding(false); }
   };
+
+  // Whether the creator's Stripe payout account is live (can accept charges + payouts).
+  const payoutsConnected = payments?.connected ?? false;
+
+  // Start / resume Stripe payout onboarding. In mock mode we simulate a completed
+  // connection; live, we redirect to Stripe's hosted onboarding and come back to
+  // ?stripe=return, where the effect below reconciles the account.
+  const connectPayouts = async () => {
+    if (!backend) return;
+    setConnectingPayouts(true);
+    try {
+      if (env.useMocks) {
+        try { await backend.api.stripeConnect({ reconcile: true }); } catch { /* best effort */ }
+        await backend.api.journeyUpdate({ complete_step: 'payments' });
+        await Promise.all([refreshPayments(), refreshJourney()]);
+        toast.success("You're all set to get paid.");
+        return;
+      }
+      const returnUrl = `${window.location.origin}/app/account?stripe=return`;
+      const res = await backend.api.stripeConnect({ return_url: returnUrl });
+      if (res.onboarding_url) { window.location.href = res.onboarding_url; return; }
+      if (res.connected) {
+        await backend.api.journeyUpdate({ complete_step: 'payments' });
+        await Promise.all([refreshPayments(), refreshJourney()]);
+        toast.success("You're all set to get paid.");
+      }
+    } catch (err) {
+      toast.error(err instanceof AbundanceApiError ? err.message : 'Something went wrong - please try again.');
+    } finally {
+      setConnectingPayouts(false);
+    }
+  };
+
+  // Open the creator's Stripe Express dashboard (payouts, bank details, history).
+  const openDashboard = async () => {
+    if (!backend) return;
+    setOpeningDashboard(true);
+    try {
+      const res = await backend.api.stripeConnect({ dashboard: true });
+      if (res.dashboard_url && !env.useMocks) {
+        window.open(res.dashboard_url, '_blank', 'noopener,noreferrer');
+      } else {
+        toast.info('Your Stripe dashboard opens here once you connect a live account.');
+      }
+    } catch (err) {
+      toast.error(err instanceof AbundanceApiError ? err.message : "We couldn't open your Stripe dashboard. Please try again.");
+    } finally {
+      setOpeningDashboard(false);
+    }
+  };
+
+  // Reconcile after returning from Stripe's hosted onboarding (?stripe=return),
+  // then reflect payout-readiness and mark the payments step done if connected.
+  useEffect(() => {
+    if (!backend || env.useMocks || searchParams.get('stripe') !== 'return') return;
+    let cancelled = false;
+    (async () => {
+      setPayoutsOpen(true);
+      try {
+        const res = await backend.api.stripeConnect({ reconcile: true });
+        if (cancelled) return;
+        if (res.connected) {
+          await backend.api.journeyUpdate({ complete_step: 'payments' });
+          await Promise.all([refreshPayments(), refreshJourney()]);
+          toast.success("Payments connected — you're all set to get paid.");
+        } else {
+          await refreshPayments();
+          toast.info('Almost there — finish your Stripe details to start accepting payments.');
+        }
+      } catch (err) {
+        if (!cancelled) toast.error(err instanceof AbundanceApiError ? err.message : "We couldn't confirm your Stripe setup. Please try again.");
+      } finally {
+        if (!cancelled) {
+          searchParams.delete('stripe');
+          setSearchParams(searchParams, { replace: true });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend]);
 
   const signOut = async () => {
     setSigningOut(true);
@@ -301,7 +389,7 @@ export function AccountPage() {
           <section>
             <Eyebrow className="mb-3">Account &amp; security</Eyebrow>
             <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-plain shadow-sm">
-              <NavRow icon={<CardIcon width={20} height={20} />} label="Payment & billing" onClick={() => toast.info('Billing portal is coming soon.')} />
+              <NavRow icon={<CardIcon width={20} height={20} />} label="Payment & billing" onClick={() => setPayoutsOpen(true)} />
               <NavRow icon={<MailIcon width={20} height={20} />} label="Email address" onClick={() => { setEmailPw(''); setNewEmail(''); setEmailOpen(true); }} />
               <NavRow icon={<LockIcon width={20} height={20} />} label="Password & security" onClick={() => { setNewPw(''); setConfirmPw(''); setPwOpen(true); }} />
               <NavRow icon={<HelpIcon width={20} height={20} />} label="Help & contact us" onClick={() => toast.info('Reach us anytime at hello@abundance.ai')} />
@@ -444,6 +532,42 @@ export function AccountPage() {
             onChange={(e) => setConfirmPw(e.target.value)}
           />
         </div>
+      </Sheet>
+
+      {/* Payment & billing (payouts) sheet */}
+      <Sheet
+        open={payoutsOpen}
+        onClose={() => setPayoutsOpen(false)}
+        title="Payment & billing"
+        footer={<Button variant="ghost" onClick={() => setPayoutsOpen(false)}>Close</Button>}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-caption font-medium uppercase tracking-wide text-accent">Getting paid</p>
+          <Badge variant={payoutsConnected ? 'done' : 'pending'}>{payoutsConnected ? 'Connected' : 'Not connected'}</Badge>
+        </div>
+        <p className="mt-2 text-body-sm text-ink-secondary">
+          Your students&rsquo; payments go straight to your own Stripe account — AbundanceAI never holds your money.
+        </p>
+
+        {payoutsConnected ? (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start gap-2.5 rounded-md border border-line bg-surface-plain px-4 py-3">
+              <ShieldIcon width={20} height={20} className="shrink-0 text-success" />
+              <p className="text-body-sm text-ink-secondary">Your account is verified and ready to receive payouts.</p>
+            </div>
+            <Button size="lg" loading={openingDashboard} iconLeft={<CardIcon width={18} height={18} />} onClick={openDashboard}>
+              Manage on Stripe
+            </Button>
+            <p className="text-caption text-ink-secondary">Opens your Stripe dashboard to review payouts, transactions, and bank details.</p>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <Button size="lg" loading={connectingPayouts} onClick={connectPayouts}>Connect Stripe</Button>
+            <p className="text-caption text-ink-secondary">
+              Set up your payout account with Stripe so you can accept enrollments. Takes about 5 minutes on Stripe&rsquo;s secure site.
+            </p>
+          </div>
+        )}
       </Sheet>
 
       {/* Refund confirm sheet */}

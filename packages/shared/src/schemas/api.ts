@@ -248,11 +248,15 @@ export type SessionsSetLinkResponse = z.infer<typeof sessionsSetLinkResponseSche
 export const stripeConnectRequestSchema = z.object({
   return_url: z.string().url().optional(),
   reconcile: z.boolean().optional(), // true on return to refresh status
+  dashboard: z.boolean().optional(), // true to get an Express dashboard login link
 });
 export type StripeConnectRequest = z.infer<typeof stripeConnectRequestSchema>;
 
 export const stripeConnectResponseSchema = z.object({
   onboarding_url: z.string().url().nullable(),
+  // A one-time Stripe Express dashboard login link (only returned for a
+  // `dashboard` request, once the account is connected). Null/absent otherwise.
+  dashboard_url: z.string().url().nullable().optional(),
   connected: z.boolean(),
   checklist: stripeChecklistSchema,
 });
@@ -434,6 +438,10 @@ export const enrollSessionResponseSchema = z.object({
   payment_intent_id: z.string(),
   amount_cents: z.number().int().nonnegative(),
   publishable_key: z.string(),
+  // The creator's connected Stripe account the charge lives on (direct charge).
+  // The client must initialise Stripe.js with this to confirm the payment. Null
+  // when Stripe isn't configured (demo form) — the money still routes to the creator.
+  stripe_account: z.string().nullable(),
   stripe: z.boolean(),
 });
 export type EnrollSessionResponse = z.infer<typeof enrollSessionResponseSchema>;

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { Category, ProgramPublicResponse, EnrollResponse } from '@abundance/shared';
+import { AbundanceApiError } from '@abundance/shared';
 import { Button, TextInput, Avatar, Sheet, Spinner } from '@/components/ui';
 import { Logo } from '@/layouts/PublicLayout';
 import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
@@ -334,12 +335,24 @@ function EnrollSheet({
         program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(),
       });
       if (useStripeFlow && session.client_secret) {
-        setStripePromise(loadStripe(session.publishable_key || env.stripePublishableKey));
+        // Direct charge: the client_secret belongs to the creator's connected
+        // account, so Stripe.js must be scoped to it or confirmPayment 404s.
+        setStripePromise(loadStripe(
+          session.publishable_key || env.stripePublishableKey,
+          session.stripe_account ? { stripeAccount: session.stripe_account } : undefined,
+        ));
         setClientSecret(session.client_secret);
       }
       setStage('pay');
-    } catch {
-      setFailed(mode === 'free' ? "We couldn't complete your enrollment. Please try again." : "We couldn't start checkout. Please try again.");
+    } catch (err) {
+      // Surface the mapped server message (host not connected yet, card declined,
+      // payments not fully set up, …) instead of a bland generic — these are the
+      // messages a buyer can actually act on.
+      if (err instanceof AbundanceApiError) {
+        setFailed(err.message);
+      } else {
+        setFailed(mode === 'free' ? "We couldn't complete your enrollment. Please try again." : "We couldn't start checkout. Please try again.");
+      }
     } finally {
       setSubmitting(null);
     }

@@ -311,6 +311,9 @@ export const circleRosterMemberSchema = z.object({
   name: z.string(),
   category: categorySchema, // kept for the matcher/analytics, not shown as a label
   is_you: z.boolean().optional(), // marks the current user in the roster
+  // The member's public program landing page (/p/:program_id), when they have a
+  // published ('ready') program — lets the roster link through to their program.
+  program_id: uuid.nullable().optional(),
 });
 export type CircleRosterMember = z.infer<typeof circleRosterMemberSchema>;
 
