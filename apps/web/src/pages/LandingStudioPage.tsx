@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LandingPageSettings, ProgramPublicResponse } from '@abundance/shared';
-import { Button, Card, TextInput, Textarea, Eyebrow } from '@/components/ui';
-import { ArrowRight, CheckIcon } from '@/components/ui/icons';
+import { Button, Card, TextInput, Textarea, Eyebrow, Tooltip } from '@/components/ui';
+import { ArrowRight, CheckIcon, LockIcon } from '@/components/ui/icons';
 import { PriceEditor } from '@/components/PriceEditor';
 import { FreeOfferEditor } from '@/components/FreeOfferEditor';
 import { cn } from '@/lib/cn';
+import { env } from '@/lib/env';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { LANDING_THEMES, LANDING_THEME_IDS, resolveLanding } from '@/lib/landingTheme';
@@ -38,7 +39,7 @@ const SAMPLE_MODULES = [
 const MAX_DESCRIPTION = 160;
 
 export function LandingStudioPage() {
-  const { backend, profile, program, refreshProfile, refreshProgram } = useApp();
+  const { backend, profile, program, payments, refreshProfile, refreshProgram } = useApp();
 
   const saved = useMemo(() => resolveLanding(profile?.landing_page).settings, [profile?.landing_page]);
   const [draft, setDraft] = useState<LandingPageSettings>(saved);
@@ -133,8 +134,16 @@ export function LandingStudioPage() {
     }
   };
 
+  // The live page can only be shared once the creator can actually be paid — until
+  // Stripe is connected, exposing the /p/:id link would let someone enroll on a
+  // program whose payment can't go through. We enforce this in PRODUCTION only:
+  // the test/beta site keeps links open so existing beta testers (who have program
+  // pages but haven't connected Stripe yet) aren't suddenly locked out.
+  const payoutsConnected = payments?.connected ?? false;
+  const requireStripeToShare = env.environment === 'production';
+  const canShare = payoutsConnected || !requireStripeToShare;
   const liveReady = program.program?.status === 'ready';
-  const liveUrl = liveReady ? `/p/${program.program!.id}` : null;
+  const liveUrl = liveReady && canShare ? `/p/${program.program!.id}` : null;
 
   // The exact data shape the public page renders, with the draft injected.
   const previewData: ProgramPublicResponse = {
@@ -169,12 +178,20 @@ export function LandingStudioPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {liveUrl && (
-            <a href={liveUrl} target="_blank" rel="noreferrer">
-              <Button variant="secondary" size="md" fullWidth={false} iconRight={<ArrowRight width={16} height={16} />}>
-                View live program page
-              </Button>
-            </a>
+          {liveReady && (
+            liveUrl ? (
+              <a href={liveUrl} target="_blank" rel="noreferrer">
+                <Button variant="secondary" size="md" fullWidth={false} iconRight={<ArrowRight width={16} height={16} />}>
+                  View live program page
+                </Button>
+              </a>
+            ) : (
+              <Tooltip label="Connect your Stripe account first so enrollments can pay you, then your program page goes live.">
+                <Button variant="secondary" size="md" fullWidth={false} disabled iconLeft={<LockIcon width={15} height={15} />} iconRight={<ArrowRight width={16} height={16} />}>
+                  View live program page
+                </Button>
+              </Tooltip>
+            )
           )}
           <Button size="md" fullWidth={false} loading={saving} disabled={!dirty} onClick={save}>
             {dirty ? 'Save changes' : 'Saved'}

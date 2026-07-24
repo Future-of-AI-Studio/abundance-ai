@@ -18,4 +18,5 @@ export { BottomTabBar } from './BottomTabBar';
 export { SideNav } from './SideNav';
 export { ChecklistRow } from './ChecklistRow';
 export { Spinner } from './Spinner';
+export { Tooltip } from './Tooltip';
 export * from './icons';

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Card, EmptyState, Select, Skeleton, TextInput } from '@/components/ui';
-import { UsersIcon } from '@/components/ui/icons';
+import { UsersIcon, ArrowRight } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { useApp } from '@/store';
+import { env } from '@/lib/env';
 import { formatPrice } from '@/lib/money';
 
 type SortKey = 'latest' | 'oldest' | 'az' | 'za';
@@ -21,7 +22,7 @@ const PAGE_SIZE = 8;
 // program page (Landing Studio).
 export function StudentsPage() {
   const navigate = useNavigate();
-  const { ready, program, enrollments, refreshEnrollments } = useApp();
+  const { ready, program, enrollments, payments, refreshEnrollments } = useApp();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('latest');
@@ -76,6 +77,12 @@ export function StudentsPage() {
   }
 
   const programId = program.program.id;
+  // The shareable /p/:id link is hidden until Stripe is connected — sharing it
+  // before the creator can accept payment would let a participant enroll on a
+  // program whose payment can't go through. Enforced in PRODUCTION only; the
+  // test/beta site keeps links open so existing beta testers aren't locked out.
+  const payoutsConnected = payments?.connected ?? false;
+  const canShare = payoutsConnected || env.environment !== 'production';
   const total = enrollments.reduce((sum, e) => sum + e.amount_cents, 0);
   // "Free vs paid" is derived from the amount recorded on each enrollment
   // (0 = joined free, via the program's free-enrollment offer).
@@ -90,10 +97,23 @@ export function StudentsPage() {
       <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-stretch">
         <Card variant="plain">
           <h2 className="text-h3 font-semibold text-ink">Share your program</h2>
-          <p className="mt-1 text-body-sm text-ink-secondary">
-            Post this link anywhere. Anyone who opens it can preview your program and enroll.
-          </p>
-          <ShareProgramLink programId={programId} className="mt-3" />
+          {canShare ? (
+            <>
+              <p className="mt-1 text-body-sm text-ink-secondary">
+                Post this link anywhere. Anyone who opens it can preview your program and enroll.
+              </p>
+              <ShareProgramLink programId={programId} className="mt-3" />
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-body-sm text-ink-secondary">
+                Connect your Stripe account first so enrollments can pay you. Your link stays hidden until then — sharing it before you can accept payment would leave participants unable to enroll.
+              </p>
+              <Button size="md" fullWidth={false} className="mt-3" iconRight={<ArrowRight width={16} height={16} />} onClick={() => navigate('/app/onboarding/payments')}>
+                Connect Stripe to get your link
+              </Button>
+            </>
+          )}
         </Card>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
