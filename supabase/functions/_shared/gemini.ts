@@ -62,7 +62,11 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
     }
   }
 
-  // (b) live Gemini call via Vertex
+  // (b) live Gemini call via Vertex. Disable "thinking" for these structured JSON
+  // calls: on 2.5 models thinking tokens are billed against maxOutputTokens, so an
+  // uncapped thinking pass can truncate a long JSON answer into unparseable output
+  // (the root cause of spurious ai_bad_output on program-build). The whole budget
+  // now goes to the answer.
   const result = await callVertex({
     systemPrompt: args.systemPrompt,
     userPrompt: args.userPrompt,
@@ -70,6 +74,7 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
     temperature: args.temperature,
     json: true,
     maxOutputTokens: args.maxOutputTokens,
+    thinkingBudget: 0,
     mockText: args.mockText,
   });
 
@@ -82,12 +87,14 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
     try {
       value = JSON.parse(cleaned);
     } catch {
+      console.error(`[callGemini:${feature}] unparseable output (len=${result.text.length}):`, result.text.slice(0, 500));
       throw new ApiHttpError('ai_bad_output', 'The AI returned something unexpected. Please try again.', 502);
     }
   }
 
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
+    console.error(`[callGemini:${feature}] schema mismatch:`, JSON.stringify(parsed.error.issues.slice(0, 5)));
     throw new ApiHttpError('ai_bad_output', 'The AI returned something unexpected. Please try again.', 502);
   }
 

@@ -46,6 +46,13 @@ export interface VertexCallArgs {
   json?: boolean;
   /** Output cap override for long-form responses (default 8192). */
   maxOutputTokens?: number;
+  /**
+   * Gemini 2.5 "thinking" token budget. These tokens count AGAINST maxOutputTokens,
+   * so on long structured responses uncapped thinking can starve the JSON output and
+   * truncate it (→ unparseable). Pass 0 to disable thinking entirely (flash supports
+   * it) so the whole budget goes to the answer. Omit to use the model default.
+   */
+  thinkingBudget?: number;
   /** Deterministic stub used when credentials are absent (local dev only). */
   mockText?: string;
 }
@@ -101,6 +108,9 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
       // Room for the JSON output plus any 2.5 "thinking" tokens so structured
       // responses aren't truncated mid-object (marketing can be a batch of posts).
       maxOutputTokens: args.maxOutputTokens ?? 8192,
+      // Thinking tokens are billed against maxOutputTokens; cap/disable them so a
+      // long structured answer can't be starved and truncated into invalid JSON.
+      ...(args.thinkingBudget !== undefined ? { thinkingConfig: { thinkingBudget: args.thinkingBudget } } : {}),
       ...(args.json ? { responseMimeType: 'application/json' } : {}),
     },
   };
@@ -120,9 +130,24 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
   }
 
   const data = await res.json();
+  const candidate = data?.candidates?.[0];
   const text: string =
-    data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+    candidate?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
   const usage = data?.usageMetadata ?? {};
+  const finishReason: string | undefined = candidate?.finishReason;
+
+  // Surface the two silent failure modes that otherwise reach the caller as a bare
+  // "ai_bad_output": the model hit the token ceiling (usually thinking tokens
+  // starving the JSON) or the response was blocked. Logged with token counts so
+  // the cause is visible in the function logs instead of guessed at.
+  if (!text || (finishReason && finishReason !== 'STOP')) {
+    console.warn(
+      `[vertex] problematic output — finishReason=${finishReason ?? 'none'}, textLen=${text.length}, ` +
+      `promptTokens=${usage.promptTokenCount ?? 0}, candidatesTokens=${usage.candidatesTokenCount ?? 0}, ` +
+      `thoughtsTokens=${usage.thoughtsTokenCount ?? 0}, maxOutputTokens=${args.maxOutputTokens ?? 8192}`,
+    );
+  }
+
   return {
     text,
     promptTokens: usage.promptTokenCount ?? 0,
