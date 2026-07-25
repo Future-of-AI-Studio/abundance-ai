@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
+import { LegalLink } from '@/components/LegalLink';
 
 // [Auth] Create account / Sign in — the split-panel front door reached from every
 // landing CTA. Signup creates the account then continues to $25 checkout; sign-in
@@ -379,8 +380,9 @@ export function AuthPage() {
                     {...register('terms')}
                   />
                   <span className="text-caption leading-relaxed text-ink-secondary">
-                    I agree to the <a href="#" className="text-primary">Terms</a> and{' '}
-                    <a href="#" className="text-primary">Privacy Policy</a>.
+                    I agree to the <LegalLink doc="terms">Terms of Service</LegalLink> and{' '}
+                    <LegalLink doc="privacy">Privacy Policy</LegalLink>, and to the use of cookies as
+                    described in the <LegalLink doc="cookies">Cookie Policy</LegalLink>.
                   </span>
                 </label>
                 {errors.terms && <p className="mt-1.5 text-caption text-error">{errors.terms.message}</p>}
