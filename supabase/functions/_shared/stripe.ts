@@ -4,7 +4,15 @@ import Stripe from 'stripe';
 // they never reach the client (only the publishable key is returned to the UI).
 const SECRET = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
 
-export const SIGNUP_AMOUNT_CENTS = 2500;
+// Sign-up fee in cents — the account-first "$25 gate". Overridable via the
+// SIGNUP_AMOUNT_CENTS secret so the LIVE gateway can be smoke-tested for a tiny
+// amount: `supabase secrets set SIGNUP_AMOUNT_CENTS=50` on the target project,
+// then `supabase secrets unset SIGNUP_AMOUNT_CENTS` to restore the $25 default.
+// Floored at 50 because Stripe rejects USD charges under $0.50 (amount_too_small).
+export const SIGNUP_AMOUNT_CENTS = Math.max(
+  50,
+  Math.trunc(Number(Deno.env.get('SIGNUP_AMOUNT_CENTS') ?? '')) || 2500,
+);
 
 // Optional platform fee taken from each creator enrollment, in basis points
 // (100 = 1%). Default 0 → the creator keeps the full amount; the charge is a
