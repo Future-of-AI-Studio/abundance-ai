@@ -25,6 +25,11 @@ import { CirclePage } from '@/pages/CirclePage';
 import { AccountPage } from '@/pages/AccountPage';
 import { GalleryPage } from '@/pages/GalleryPage';
 import { HelpPage } from '@/pages/HelpPage';
+import { PrivacyPolicyPage } from '@/pages/legal/PrivacyPolicyPage';
+import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage';
+import { CookiePolicyPage } from '@/pages/legal/CookiePolicyPage';
+import { DeliveryPolicyPage } from '@/pages/legal/DeliveryPolicyPage';
+import { RefundPolicyPage } from '@/pages/legal/RefundPolicyPage';
 
 export default function App() {
   const init = useApp((s) => s.init);
@@ -42,6 +47,12 @@ export default function App() {
           <Route path="/gallery" element={<GalleryPage />} />
           {/* Public program landing page — the link a creator shares to sell. */}
           <Route path="/p/:programId" element={<ProgramLandingPage />} />
+          {/* Legal policies */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/cookies" element={<CookiePolicyPage />} />
+          <Route path="/delivery" element={<DeliveryPolicyPage />} />
+          <Route path="/refunds" element={<RefundPolicyPage />} />
         </Route>
 
         {/* APP — auth required, app shell + bottom tab bar */}
