@@ -3,7 +3,7 @@ import type { LandingPageSettings, ProgramPublicResponse } from '@abundance/shar
 import { Button, Card, TextInput, Textarea, Eyebrow, Tooltip } from '@/components/ui';
 import { ArrowRight, CheckIcon, LockIcon } from '@/components/ui/icons';
 import { PriceEditor } from '@/components/PriceEditor';
-import { FreeOfferEditor } from '@/components/FreeOfferEditor';
+// import { FreeOfferEditor } from '@/components/FreeOfferEditor'; // hidden for now — re-enable with the free-first-session offer
 import { cn } from '@/lib/cn';
 import { env } from '@/lib/env';
 import { useApp } from '@/store';
@@ -122,17 +122,18 @@ export function LandingStudioPage() {
   };
 
   // The free-enrollment offer saves on its own too (same as price - it writes to
-  // the program record, not the landing_page blob).
-  const saveFreeOffer = async (enabled: boolean, until: string | null) => {
-    if (!backend || !program.program) return;
-    try {
-      await backend.api.programUpdate({ program_id: program.program.id, free_offer_enabled: enabled, free_offer_until: until });
-      await refreshProgram();
-      toast.success(enabled ? 'First session free offer saved.' : 'First session free offer turned off.');
-    } catch {
-      toast.error("Couldn't save that - try again.");
-    }
-  };
+  // the program record, not the landing_page blob). Hidden for now along with the
+  // FreeOfferEditor below — re-enable together when the offer ships.
+  // const saveFreeOffer = async (enabled: boolean, until: string | null) => {
+  //   if (!backend || !program.program) return;
+  //   try {
+  //     await backend.api.programUpdate({ program_id: program.program.id, free_offer_enabled: enabled, free_offer_until: until });
+  //     await refreshProgram();
+  //     toast.success(enabled ? 'First session free offer saved.' : 'First session free offer turned off.');
+  //   } catch {
+  //     toast.error("Couldn't save that - try again.");
+  //   }
+  // };
 
   // The live page can only be shared once the creator can actually be paid — until
   // Stripe is connected, exposing the /p/:id link would let someone enroll on a
@@ -344,11 +345,13 @@ export function LandingStudioPage() {
                 <p className="mt-3 font-mono text-data text-ink-secondary">
                   What participants pay to enroll - shown on your program page.
                 </p>
-                <FreeOfferEditor
+                {/* "Let participants try the first session for free" — hidden for now;
+                    re-enable once the free-first-session offer is ready to ship. */}
+                {/* <FreeOfferEditor
                   enabled={program.program.free_offer_enabled}
                   until={program.program.free_offer_until}
                   onSave={saveFreeOffer}
-                />
+                /> */}
               </Card>
             </section>
           )}
