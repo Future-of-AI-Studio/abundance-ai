@@ -179,9 +179,12 @@ export function GetPaidPage() {
     );
   }
 
-  // "Done" = payments step completed OR the connect flag is set. Keyed off the
-  // journey so it survives a reload regardless of the (mocked) Stripe state.
-  const paymentsDone = (payments?.connected ?? false) || isStepComplete(journey ?? { completed_steps: [] }, 'payments');
+  // "Done" = Stripe is actually connected. In mock mode (no real Stripe) we also
+  // accept the completed journey step, so the demo flow survives a reload. In real
+  // environments we key strictly off payments.connected — matching the Account page
+  // — so a stale journey step can't falsely show "Connected" without a live account.
+  const paymentsDone = (payments?.connected ?? false)
+    || (env.useMocks && isStepComplete(journey ?? { completed_steps: [] }, 'payments'));
   const programId = program.program.id;
 
   // Connect Stripe. In mock mode we simulate a completed onboarding. Live, we hand

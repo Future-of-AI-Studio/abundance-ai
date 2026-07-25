@@ -12,6 +12,8 @@ import { priceLabel } from '@/lib/money';
 import { freeOfferOpen, tryFreeLabel, discountedPriceCents, FREE_OFFER_DISCOUNT_PCT } from '@/lib/freeOffer';
 import { env } from '@/lib/env';
 import { resolveLanding, landingBackground, landingRadii, externalHref, heroGradient } from '@/lib/landingTheme';
+import { LegalLink } from '@/components/LegalLink';
+import { PaymentResultOverlay, type PayResult } from '@/components/PaymentResultOverlay';
 
 // [Public] Program landing page (/p/:programId) — the page a creator shares so
 // prospective students can preview the program, learn about the guide, and enroll.
@@ -299,8 +301,11 @@ function EnrollSheet({
   // Which action is mid-flight, so the right button shows its spinner (there can
   // be two — "Pay" and "Enroll for free" — when the program offers a free option).
   const [submitting, setSubmitting] = useState<'free' | 'paid' | null>(null);
-  const [recording, setRecording] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  // Post-payment feedback overlay shown before the thank-you page (paid path only).
+  const [result, setResult] = useState<PayResult | null>(null);
+  const [enrolledRes, setEnrolledRes] = useState<EnrollResponse | null>(null);
+  const lastPiRef = useRef<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
 
@@ -373,30 +378,61 @@ function EnrollSheet({
     }
   };
 
-  // Payment succeeded → record the enrollment, then show the thank-you page.
+  // Payment succeeded on Stripe's side → confirm feedback, record the enrollment,
+  // then a brief success before the thank-you page. A failure to save the spot
+  // after a real charge → 'error' (retryable; the enroll insert is idempotent on
+  // the payment intent, so a retry can't double-book).
   const recordEnrollment = async (paymentIntentId: string) => {
     if (!backend) return;
-    setRecording(true);
+    lastPiRef.current = paymentIntentId;
+    setResult('confirming');
     setFailed(null);
     try {
       const res = await backend.api.enroll({
         program_id: data.program.id, name: name.trim(), email: email.trim(), contact: contact.trim(),
         payment_intent_id: paymentIntentId,
       });
-      onEnrolled(name.trim(), res);
+      setEnrolledRes(res);
+      setResult('success');
     } catch {
-      setFailed('Your payment went through, but we hit a snag confirming your spot. Please reach out to your host.');
-      setRecording(false);
+      setResult('error');
     }
   };
+
+  // On success, briefly hold the confirmation, then reveal the thank-you page
+  // (the Continue button lets the buyer skip the wait).
+  useEffect(() => {
+    if (result !== 'success' || !enrolledRes) return;
+    const t = window.setTimeout(() => onEnrolled(name.trim(), enrolledRes), 2200);
+    return () => window.clearTimeout(t);
+  }, [result, enrolledRes, name, onEnrolled]);
 
   const stripeReady = useStripeFlow && clientSecret && stripePromise;
 
   return (
-    <Sheet
-      open={open}
-      onClose={close}
-      title={data.program.title}
+    <>
+      {result && (
+        <PaymentResultOverlay
+          state={result}
+          confirming={{ body: 'One moment while we confirm your enrollment.' }}
+          success={{
+            body: "You're enrolled! Taking you to your confirmation.",
+            continueLabel: 'See confirmation',
+            onContinue: () => { if (enrolledRes) onEnrolled(name.trim(), enrolledRes); },
+            autoNote: 'One moment…',
+          }}
+          error={{
+            title: "We couldn't confirm your spot",
+            body: 'Your payment went through, but we hit a snag saving your enrollment. Try again, or reach out to your host and they\'ll sort it out.',
+            primary: { label: 'Try again', onClick: () => { if (lastPiRef.current) void recordEnrollment(lastPiRef.current); } },
+            secondary: { label: 'Close', onClick: close },
+          }}
+        />
+      )}
+      <Sheet
+        open={open}
+        onClose={close}
+        title={data.program.title}
       footer={
         stage === 'form' ? (
           hasChoice ? (
@@ -437,6 +473,11 @@ function EnrollSheet({
           <p className="mt-3 text-caption text-ink-secondary">
             We share these only with {data.creator.first_name} so they can welcome you and send your session links.
           </p>
+          {/* Consent — the enroll/pay action is the agreement; no checkbox needed. */}
+          <p className="mt-2 text-caption leading-relaxed text-ink-secondary">
+            By enrolling, you agree to the <LegalLink doc="terms">Terms of Service</LegalLink> and{' '}
+            <LegalLink doc="refunds">Refund &amp; Cancellation Policy</LegalLink>.
+          </p>
         </>
       ) : (
         <>
@@ -449,19 +490,20 @@ function EnrollSheet({
           <div className="mt-4">
             {stripeReady ? (
               <Elements stripe={stripePromise!} options={{ clientSecret: clientSecret!, appearance: { theme: 'flat' } }}>
-                <StripePay payLabel={payLabel} busy={recording} onPaid={recordEnrollment} />
+                <StripePay payLabel={payLabel} busy={result === 'confirming'} onPaid={recordEnrollment} />
               </Elements>
             ) : (
-              <MockPay payLabel={payLabel} busy={recording} onPaid={recordEnrollment} />
+              <MockPay payLabel={payLabel} busy={result === 'confirming'} onPaid={recordEnrollment} />
             )}
           </div>
           {failed && <p className="mt-3 text-caption text-error">{failed}</p>}
           <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-ink-secondary">
             <ShieldIcon width={14} height={14} className="text-success" /> 90-day money-back guarantee
           </p>
-        </>
-      )}
-    </Sheet>
+          </>
+        )}
+      </Sheet>
+    </>
   );
 }
 

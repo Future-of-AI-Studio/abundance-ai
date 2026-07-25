@@ -6,6 +6,8 @@ import { Button, TextInput, Eyebrow, Avatar } from '@/components/ui';
 import { ShieldIcon, ArrowLeft, CheckIcon, LockIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { env } from '@/lib/env';
+import { LegalLink } from '@/components/LegalLink';
+import { PaymentResultOverlay, type PayResult } from '@/components/PaymentResultOverlay';
 
 // [02] Checkout — $25 via Stripe, two-column layout: a value panel (what you get
 // + guarantee + proof) beside the payment form. The checkout session is created
@@ -193,6 +195,8 @@ export function CheckoutPage() {
   const [piId, setPiId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [initing, setIniting] = useState(false);
+  // Post-payment feedback overlay (null = still on the form).
+  const [result, setResult] = useState<PayResult | null>(null);
   const startedRef = useRef(false);
 
   const useStripeFlow = !env.useMocks && !!env.stripePublishableKey;
@@ -227,26 +231,56 @@ export function CheckoutPage() {
     if (EMAIL_RE.test(email)) void beginPayment(email);
   }, [email, beginPayment]);
 
-  // Payment succeeded: confirm server-side (marks the order paid → stamps
-  // profiles.paid_at), refresh the profile, then enter the app. The /app guard
-  // re-checks paid_at, so even if the refresh lags the user lands correctly.
+  // Payment succeeded on Stripe's side: confirm server-side (marks the order paid
+  // → stamps profiles.paid_at) and refresh the profile, showing a "confirming"
+  // then "success" overlay so the buyer gets clear feedback before entering the
+  // app. A verify hiccup after a real charge falls through to 'success' (the money
+  // moved; the /app guard re-checks paid_at). Only an explicit unpaid result → 'error'.
   const onPaid = useCallback(async (paymentIntentId: string) => {
+    setResult('confirming');
     try {
       if (backend && !env.useMocks) {
-        await backend.api.verifyPayment({ payment_intent_id: paymentIntentId });
+        const res = await backend.api.verifyPayment({ payment_intent_id: paymentIntentId });
+        if (!res.paid) { setResult('error'); return; }
       }
       await refreshProfile();
+      setResult('success');
     } catch {
-      // Non-fatal — the guard will send them back to checkout if not yet paid.
+      setResult('success');
     }
-    navigate('/app', { replace: true });
-  }, [backend, refreshProfile, navigate]);
+  }, [backend, refreshProfile]);
+
+  const continueToApp = useCallback(() => navigate('/app', { replace: true }), [navigate]);
+
+  // On success, briefly hold the confirmation, then proceed automatically (the
+  // Continue button lets the user skip the wait).
+  useEffect(() => {
+    if (result !== 'success') return;
+    const t = window.setTimeout(() => navigate('/app', { replace: true }), 3500);
+    return () => window.clearTimeout(t);
+  }, [result, navigate]);
 
   const started = startedRef.current;
   const emailValid = EMAIL_RE.test(email);
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-bg px-0 py-0 sm:px-5 sm:py-8">
+      {result && (
+        <PaymentResultOverlay
+          state={result}
+          success={{
+            body: "You're all set — let's build your program.",
+            onContinue: continueToApp,
+            autoNote: 'Taking you there automatically…',
+          }}
+          error={{
+            title: "We're still confirming your payment",
+            body: "If you were charged, your spot is safe — this can take a moment. Continue to your account, or reach out and we'll help.",
+            primary: { label: 'Go to my account', onClick: continueToApp },
+            secondary: { label: 'Back to checkout', onClick: () => setResult(null) },
+          }}
+        />
+      )}
       <div className="grid w-full max-w-[960px] grid-cols-1 overflow-hidden bg-surface-plain shadow-lg sm:rounded-xl md:grid-cols-2">
         <ValuePanel />
 
@@ -290,6 +324,14 @@ export function CheckoutPage() {
                 <MockForm onPaid={onPaid} />
               )}
             </div>
+
+            {/* Consent — the payment action is the agreement; no checkbox needed. */}
+            <p className="mt-4 text-caption leading-relaxed text-ink-secondary">
+              By paying, you agree to our <LegalLink doc="terms">Terms of Service</LegalLink>,{' '}
+              <LegalLink doc="refunds">Refund &amp; Cancellation Policy</LegalLink>, and{' '}
+              <LegalLink doc="privacy">Privacy Policy</LegalLink>. Access is delivered per our{' '}
+              <LegalLink doc="delivery">Delivery Policy</LegalLink>.
+            </p>
 
             <TrustRow />
           </div>
