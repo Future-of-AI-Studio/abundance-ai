@@ -9,6 +9,7 @@ import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, enrollRequestSchema } from '../_shared/contract.ts';
 import { adminClient } from '../_shared/supabase.ts';
 import { stripeClient, stripeConfigured } from '../_shared/stripe.ts';
+import { freeWindowOpen, enrollAmountCents } from '../_shared/pricing.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -29,16 +30,17 @@ Deno.serve(async (req) => {
     // always free (price 0), or its time-limited free offer is enabled and hasn't
     // ended. This is the authoritative check — the client's `free` flag alone is
     // never trusted (it can't grant itself a $0 spot on a paid program).
-    const freeWindowOpen = program.free_offer_enabled === true &&
-      (!program.free_offer_until || new Date(program.free_offer_until).getTime() > Date.now());
-    const isFreeEnrollment = program.price_cents === 0 || (free === true && freeWindowOpen);
+    const windowOpen = freeWindowOpen(program);
+    const isFreeEnrollment = program.price_cents === 0 || (free === true && windowOpen);
 
     // Buyer asked to enroll free but the offer isn't open on a paid program.
     if (free === true && !isFreeEnrollment) {
       return errorResponse('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.', 409);
     }
 
-    const amountCents = isFreeEnrollment ? 0 : program.price_cents;
+    // Paid enrollments during the open window pay the discounted promo fee — the
+    // same figure enroll-session charged; the discount can't be spoofed here.
+    const amountCents = enrollAmountCents(program.price_cents, { isFree: isFreeEnrollment, windowOpen });
 
     // With real Stripe, confirm the charge succeeded before recording a paid spot.
     // Free enrollments and mock/demo payment ids (pi_mock_*) skip this — there's

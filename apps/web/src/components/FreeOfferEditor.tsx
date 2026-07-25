@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, TextInput } from '@/components/ui';
 import { CheckIcon } from '@/components/ui/icons';
+import { FREE_OFFER_DISCOUNT_PCT } from '@/lib/freeOffer';
 
 // Creator control for the free-enrollment offer, shown beside the price. When
 // ticked, buyers can join this (paid) program for free until the chosen date —
@@ -71,9 +72,9 @@ export function FreeOfferEditor({
           onChange={(e) => toggle(e.target.checked)}
         />
         <span>
-          <span className="text-body-sm font-medium text-ink">Let people try it free for a limited time</span>
+          <span className="text-body-sm font-medium text-ink">Let participants try the first session for free</span>
           <span className="mt-0.5 block text-caption text-ink-secondary">
-            Early visitors can sample the program (e.g. your first week). They'll choose "Try it free" or pay on your program page.
+            Until the date you pick, visitors choose "Try first session for free" or enroll now for {FREE_OFFER_DISCOUNT_PCT}% off the fee.
           </span>
         </span>
       </label>
@@ -81,7 +82,7 @@ export function FreeOfferEditor({
       {on && (
         <div className="mt-3 pl-[27px]">
           <TextInput
-            label="Free until"
+            label="First session Free until"
             type="date"
             min={todayInput()}
             helperText="Leave blank for no end date."

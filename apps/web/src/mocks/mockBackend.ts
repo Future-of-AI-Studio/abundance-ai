@@ -22,6 +22,7 @@ import type {
   Category,
 } from '@abundance/shared';
 import { AbundanceApiError, MARKETING_ROUNDS_PER_MONTH, marketingRoundsUsedThisMonth } from '@abundance/shared';
+import { freeOfferOpen, discountedPriceCents } from '@/lib/freeOffer';
 import { MOCK } from './mockData';
 
 const KEY = 'abundance_mock_state_v1';
@@ -272,7 +273,9 @@ export function createMockBackend(): Backend {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       // No real Stripe in the mock — the landing page shows the demo pay form.
-      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: p.price_cents, publishable_key: '', stripe_account: null, stripe: false };
+      // While the free-offer window is open, enrolling is discounted (mirrors live).
+      const chargeCents = freeOfferOpen(p) ? discountedPriceCents(p.price_cents) : p.price_cents;
+      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: chargeCents, publishable_key: '', stripe_account: null, stripe: false };
     },
     async enroll(req) {
       await delay(600);
@@ -282,13 +285,13 @@ export function createMockBackend(): Backend {
       }
       // Mirror the live function: honor a free enrollment only when the program
       // is free outright or its time-limited free offer is currently open.
-      const freeWindowOpen = p.free_offer_enabled === true &&
-        (!p.free_offer_until || new Date(p.free_offer_until).getTime() > Date.now());
-      const isFreeEnrollment = p.price_cents === 0 || (req.free === true && freeWindowOpen);
+      const windowOpen = freeOfferOpen(p);
+      const isFreeEnrollment = p.price_cents === 0 || (req.free === true && windowOpen);
       if (req.free === true && !isFreeEnrollment) {
         throw new AbundanceApiError('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.');
       }
-      const amountCents = isFreeEnrollment ? 0 : p.price_cents;
+      // Paid enrollments during the open window pay the discounted promo fee.
+      const amountCents = isFreeEnrollment ? 0 : (windowOpen ? discountedPriceCents(p.price_cents) : p.price_cents);
       state.enrollments.unshift({
         id: uid(), program_id: p.id, creator_id: p.user_id,
         name: req.name, email: req.email, contact: req.contact,

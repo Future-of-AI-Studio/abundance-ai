@@ -10,6 +10,7 @@ import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, enrollSessionRequestSchema } from '../_shared/contract.ts';
 import { adminClient } from '../_shared/supabase.ts';
 import { stripeClient, stripeConfigured, publishableKey, platformFeeCents } from '../_shared/stripe.ts';
+import { freeWindowOpen, enrollAmountCents } from '../_shared/pricing.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -19,15 +20,20 @@ Deno.serve(async (req) => {
 
     const { data: program } = await admin
       .from('programs')
-      .select('id, user_id, title, price_cents, status')
+      .select('id, user_id, title, price_cents, status, free_offer_enabled, free_offer_until')
       .eq('id', program_id)
       .maybeSingle();
     if (!program || program.status !== 'ready') {
       return errorResponse('not_found', "This program isn't available.", 404);
     }
 
+    // While the free-offer window is open, enrolling (rather than taking the free
+    // first session) is discounted — charge that promo fee, never the client's word.
+    const windowOpen = freeWindowOpen(program);
+    const chargeCents = enrollAmountCents(program.price_cents, { isFree: false, windowOpen });
+
     if (!stripeConfigured()) {
-      return json({ client_secret: null, payment_intent_id: '', amount_cents: program.price_cents, publishable_key: '', stripe_account: null, stripe: false });
+      return json({ client_secret: null, payment_intent_id: '', amount_cents: chargeCents, publishable_key: '', stripe_account: null, stripe: false });
     }
 
     // The buyer pays the creator directly: the charge lives on the creator's own
@@ -47,10 +53,10 @@ Deno.serve(async (req) => {
     }
 
     const stripe = stripeClient();
-    const feeCents = platformFeeCents(program.price_cents);
+    const feeCents = platformFeeCents(chargeCents);
     const pi = await stripe.paymentIntents.create(
       {
-        amount: program.price_cents,
+        amount: chargeCents,
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         receipt_email: email,
@@ -73,7 +79,7 @@ Deno.serve(async (req) => {
     return json({
       client_secret: pi.client_secret,
       payment_intent_id: pi.id,
-      amount_cents: program.price_cents,
+      amount_cents: chargeCents,
       publishable_key: publishableKey(),
       // The client must initialise Stripe.js with this account to confirm a
       // direct-charge PaymentIntent (the client_secret belongs to it).

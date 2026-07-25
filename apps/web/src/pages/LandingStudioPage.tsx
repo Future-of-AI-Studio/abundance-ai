@@ -128,7 +128,7 @@ export function LandingStudioPage() {
     try {
       await backend.api.programUpdate({ program_id: program.program.id, free_offer_enabled: enabled, free_offer_until: until });
       await refreshProgram();
-      toast.success(enabled ? 'Free offer saved.' : 'Free offer turned off.');
+      toast.success(enabled ? 'First session free offer saved.' : 'First session free offer turned off.');
     } catch {
       toast.error("Couldn't save that - try again.");
     }
