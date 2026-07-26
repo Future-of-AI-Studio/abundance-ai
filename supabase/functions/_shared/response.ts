@@ -11,7 +11,10 @@ export function json(body: unknown, status = 200): Response {
 }
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; field?: string };
+  // `detail` is an optional, non-user-facing diagnostic string (e.g. the AI finish
+  // reason + token counts) — safe to surface in logs / the Network tab to debug why
+  // a call failed, without changing the friendly `message`.
+  error: { code: string; message: string; field?: string; detail?: string };
 }
 
 export function errorResponse(
@@ -19,8 +22,11 @@ export function errorResponse(
   message: string,
   status = 400,
   field?: string,
+  detail?: string,
 ): Response {
-  const body: ApiErrorBody = { error: { code, message, ...(field ? { field } : {}) } };
+  const body: ApiErrorBody = {
+    error: { code, message, ...(field ? { field } : {}), ...(detail ? { detail } : {}) },
+  };
   return json(body, status);
 }
 
@@ -93,7 +99,7 @@ function mapStripeError(err: StripeLikeError): { code: string; message: string; 
 // Maps a thrown error to a calm, user-facing response. Never leaks internals.
 export function handleThrown(err: unknown): Response {
   if (err instanceof ApiHttpError) {
-    return errorResponse(err.code, err.message, err.status, err.field);
+    return errorResponse(err.code, err.message, err.status, err.field, err.detail);
   }
   const stripeErr = asStripeError(err);
   if (stripeErr) {
@@ -111,10 +117,12 @@ export class ApiHttpError extends Error {
   code: string;
   status: number;
   field?: string;
-  constructor(code: string, message: string, status = 400, field?: string) {
+  detail?: string;
+  constructor(code: string, message: string, status = 400, field?: string, detail?: string) {
     super(message);
     this.code = code;
     this.status = status;
     this.field = field;
+    this.detail = detail;
   }
 }
