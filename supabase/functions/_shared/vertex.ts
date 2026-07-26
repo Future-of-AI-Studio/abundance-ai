@@ -18,6 +18,8 @@ export interface VertexResult {
   promptTokens: number;
   completionTokens: number;
   mocked: boolean;
+  /** Gemini's finishReason ('STOP', 'MAX_TOKENS', 'SAFETY', …) — drives specific errors. */
+  finishReason?: string;
 }
 
 /** One turn of a multi-turn conversation. 'model' is Gemini's role for replies. */
@@ -79,7 +81,7 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
   if (!credsConfigured()) {
     console.warn('[vertex] No GOOGLE_VERTEX_SA_KEY/PROJECT — using local mock. Do NOT deploy without creds.');
     const text = args.mockText ?? '{}';
-    return { text, promptTokens: 0, completionTokens: 0, mocked: true };
+    return { text, promptTokens: 0, completionTokens: 0, mocked: true, finishReason: 'STOP' };
   }
 
   const client = await auth().getClient();
@@ -153,5 +155,6 @@ export async function callVertex(args: VertexCallArgs): Promise<VertexResult> {
     promptTokens: usage.promptTokenCount ?? 0,
     completionTokens: usage.candidatesTokenCount ?? 0,
     mocked: false,
+    finishReason,
   };
 }
