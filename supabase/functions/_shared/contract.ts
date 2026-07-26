@@ -45,6 +45,10 @@ export const contentUploadRequestSchema = z.object({
   duration_sec: z.number().int().nonnegative().nullable().optional(),
 });
 
+export const contentTranscribeRequestSchema = z.object({
+  content_source_id: z.string().uuid(),
+});
+
 // ── program ───────────────────────────────────────────────────────────────────
 // `module_count` is optional: when the expert picks a number in the UI it's honored
 // exactly (constrained to the 1–6 the program design supports); omitted = AI decides.
