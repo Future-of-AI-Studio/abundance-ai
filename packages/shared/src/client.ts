@@ -6,6 +6,8 @@ import type {
   VerifyPaymentResponse,
   ContentUploadRequest,
   ContentUploadResponse,
+  ContentTranscribeRequest,
+  ContentTranscribeResponse,
   ProgramBuildRequest,
   ProgramBuildResponse,
   ProgramUpdateRequest,
@@ -65,6 +67,8 @@ export interface AbundanceClient {
   checkoutSession(req: CheckoutSessionRequest): Promise<CheckoutSessionResponse>;
   verifyPayment(req: VerifyPaymentRequest): Promise<VerifyPaymentResponse>;
   contentUploadUrl(req: ContentUploadRequest): Promise<ContentUploadResponse>;
+  /** Transcribe an uploaded recording; the text is stored on the content_source. */
+  contentTranscribe(req: ContentTranscribeRequest): Promise<ContentTranscribeResponse>;
   programBuild(req: ProgramBuildRequest): Promise<ProgramBuildResponse>;
   programUpdate(req: ProgramUpdateRequest): Promise<ProgramUpdateResponse>;
   /** Make one of the user's retained builds the active "your program". */
@@ -136,6 +140,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     checkoutSession: (req) => call('checkout-session', req),
     verifyPayment: (req) => call('checkout-session/verify', req),
     contentUploadUrl: (req) => call('content-upload-url', req),
+    contentTranscribe: (req) => call('content-transcribe', req),
     programBuild: (req) => call('program-build', req),
     programUpdate: (req) => call('program-update', req, 'PATCH'),
     programActivate: (req) => call('program-activate', req, 'PATCH'),
