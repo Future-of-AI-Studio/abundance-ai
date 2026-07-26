@@ -89,6 +89,20 @@ export const contentUploadResponseSchema = z.object({
 });
 export type ContentUploadResponse = z.infer<typeof contentUploadResponseSchema>;
 
+// ── content: transcribe a recording ───────────────────────────────────────────
+// Fired right after a voice upload completes. The transcript is stored on the
+// content_source so program-build can stay text-only (no audio base64/inline).
+export const contentTranscribeRequestSchema = z.object({
+  content_source_id: z.string().uuid(),
+});
+export type ContentTranscribeRequest = z.infer<typeof contentTranscribeRequestSchema>;
+
+export const contentTranscribeResponseSchema = z.object({
+  transcribed: z.boolean(),
+  cached: z.boolean().optional(),
+});
+export type ContentTranscribeResponse = z.infer<typeof contentTranscribeResponseSchema>;
+
 // ── program-build ─────────────────────────────────────────────────────────────
 // `module_count` is optional: when the expert picks a number in the UI it's honored
 // exactly (constrained to the 1–6 the program design supports); omitted = AI decides.

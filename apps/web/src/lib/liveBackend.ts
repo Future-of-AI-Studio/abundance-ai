@@ -228,6 +228,12 @@ export function createLiveBackend(): Backend {
             contentType: file.type || 'application/octet-stream',
           });
         if (error) throw new Error('Upload failed.');
+        // Kick off transcription in the background for recordings, so program-build
+        // stays text-only and fast. Fire-and-forget: it's idempotent and program-build
+        // backfills any that don't finish, so a dropped request is harmless.
+        if (kind === 'voice') {
+          void api.contentTranscribe({ content_source_id: res.content_source_id }).catch(() => {});
+        }
         return { id: res.content_source_id, filename: file.name };
       },
       async uploadAvatar(file) {
