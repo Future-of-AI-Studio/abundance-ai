@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useApp } from '@/store';
+import { LEGAL_PAGES } from '@/pages/legal/LegalLayout';
 
 // [01] Landing — port of "AbundanceAI Landing v17.dc.html" (claude.ai/design
 // project 5affb7dc-41b7-49bc-a3d4-70c30615697f). The design is styled inline,
@@ -18,7 +19,7 @@ const ASSET = {
   pillarsDivider: '/landing/wave-divider-pillars.png',
   pricingTestiDivider: '/landing/wave-divider-pricing-testi.png',
   testiProgramsDivider: '/landing/wave-divider-testi-programs.png',
-  sunrise: '/landing/proof-sunrise-v6.png',
+  sunrise: '/landing/founder-wave.png',
 };
 
 const GOLD_GRAD = 'linear-gradient(799deg, #F59C30, #F8BF39)';
@@ -44,7 +45,7 @@ const blueBadge: React.CSSProperties = {
 
 // Nav tabs in page order; `section` is the element id the scroll-spy tracks.
 const NAV_LINKS = [
-  { label: 'Home', href: '#top', section: 'top' },
+  { label: 'Home', href: '#home', section: 'home' },
   { label: 'Who It’s For', href: '#community', section: 'community' },
   { label: 'How It Works', href: '#how', section: 'how' },
   { label: 'What You Get', href: '#pillars', section: 'pillars' },
@@ -104,7 +105,7 @@ const STEPS = [
     arrow: { color: '#88C4E0', glow: '#3FA9A0', top: 16 },
     body: (
       <>
-        The <b>AI structures</b> a <b>3-6 module program</b> that appears in minutes. Yours to shape.
+        <b>AI organizes your ideas</b> into a 2–6 session online mentoring program.
       </>
     ),
   },
@@ -113,12 +114,12 @@ const STEPS = [
     numColor: '#FFA0AA',
     numSize: 40,
     titleColor: '#FFA0AA',
-    title: 'Launch with Confidence',
+    title: 'Make it Yours',
     titleWidth: 270,
     arrow: { color: '#FFA0AA', glow: '#E05A3A', top: 16 },
     body: (
       <>
-        <b>Marketing written for you</b>, plus coaching at every wall.
+        Review, edit, and personalize everything to <b>reflect your voice</b>, style, and approach.
       </>
     ),
   },
@@ -131,7 +132,7 @@ const STEPS = [
     arrow: null,
     body: (
       <>
-        A <b>matched circle</b> and weekly expert talks keep you going.
+        <b>AI creates your emails</b>, social posts, and invitations so you can start reaching out.
       </>
     ),
   },
@@ -164,11 +165,11 @@ const PILLARS = [
   {
     gradId: 'lp17ArcLav',
     stop: '#FFA0AA',
-    label: 'PEER CIRCLES',
+    label: 'PEER GROUP',
     labelColor: '#FFA0AA',
     body: (
       <>
-        <b>A matched group of 3-5 people</b> on the same path, plus weekly expert talks.
+        Small peer group share ideas, build momentum, and <strong>bring your program to life.</strong>
       </>
     ),
   },
@@ -179,33 +180,34 @@ const TESTIMONIALS = [
     color: '#E8932C',
     quote: (
       <>
-        I finally turned what I know into <strong>a course I’m proud to sell</strong>, and making
-        income I love.
+        The whole process was incredibly easy. In under three hours, I had my program, marketing posts, 
+        and guidance setting up Stripe so could start taking payments.
       </>
     ),
-    name: 'Maya L.',
+    name: 'Victoria',
     role: 'Wellness Coach',
   },
   {
     color: '#88C4E0',
     quote: (
       <>
-        AbundanceAI gave me the <strong>structure and confidence</strong> to launch my first program
-        fast.
+        I went from an idea to a complete program page and marketing posts in half a day. 
+        I only shared eight minutes of audio and half a page of notes and hardly had to edit a thing.
       </>
     ),
-    name: 'Daniel T.',
+    name: 'Mary',
     role: 'Leadership Mentor',
   },
   {
     color: '#FFA0AA',
     quote: (
       <>
-        The support from my peer circle is everything, <strong>real feedback, real growth</strong>,
-        every single week.
+      I expected the technology to help me create my program.
+      What surprised me was the human warmth of the AbundanceAl Peer Community - 
+      and how thoughtful and deep the mindset coaching questions were.
       </>
     ),
-    name: 'Priya S.',
+    name: 'Christy',
     role: 'Creativity Guide',
   },
 ] as const;
@@ -213,76 +215,16 @@ const TESTIMONIALS = [
 const START_TODAY_INCLUDES = [
   'Your 1–6 module program, built by AI',
   'Social posts written and ready',
-  'Mindset coaching at every step',
-  'A peer circle & weekly expert talks',
+  'AI Mindset coaching at every step',
+  'A peer community support & start your program',
 ] as const;
 
 // Guide photo crops replicate the design's <image-slot> geometry: cover-fit
 // baseline in a 64px circle, then the stored per-slot pan (x in frame-%).
 const PROGRAMS = [
-  {
-    title: 'The Conscious Consumer',
-    sub: 'Unmasking Processed Foods for a Healthy Future',
-    cardStyle: { background: '#000000', border: '1px solid rgba(255,255,255,0.08)' },
-    titleColor: '#FFFFFF',
-    subColor: '#C9C9C9',
-    tagColor: '#FFD54F',
-    panelStyle: {
-      background: 'linear-gradient(160deg, #6E6E6E, #1A1A1A)',
-      border: '1px solid rgba(255,255,255,0.08)',
-    },
-    guideLabelColor: '#FFD54F',
-    guide: 'Mary Rocha',
-    guideColor: '#FFFFFF',
-    img: '/landing/prog-guide-1.webp',
-    imgBox: { width: '100%', height: '133.34%', left: '50%', top: '50%' },
-    checkColor: '#FFD54F',
-    bulletColor: '#cfcfcf',
-    bullets: ['4 live 75 minute Zoom meetings', 'Experiential', 'Learn to identify processed foods'],
-  },
-  {
-    title: 'The Sovereign Feminine',
-    sub: 'Reclaiming the Lost Wisdom of Mary Magdalene',
-    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
-    titleColor: '#1A1A1A',
-    subColor: '#4A4A52',
-    tagColor: '#2F6B57',
-    panelStyle: {
-      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
-      border: '1px solid rgba(178,90,52,0.14)',
-    },
-    guideLabelColor: '#B25A34',
-    guide: 'Christiane “Christy” Grace Michaels',
-    guideColor: '#1A1A1A',
-    img: '/landing/prog-guide-2.webp',
-    imgBox: { width: '150.59%', height: '100%', left: '32.5%', top: '50%' },
-    checkColor: '#2F6B57',
-    bulletColor: '#1A1A1A',
-    bullets: null, // design shows skeleton bars here
-  },
-  {
-    title: 'The Art of Becoming the Realized Self',
-    sub: 'A journey to conscious creation, flow and abundance.',
-    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
-    titleColor: '#1A1A1A',
-    subColor: '#4A4A52',
-    tagColor: '#2F6B57',
-    panelStyle: {
-      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
-      border: '1px solid rgba(178,90,52,0.14)',
-    },
-    guideLabelColor: '#B25A34',
-    guide: 'Victoria Marie von Gorski',
-    guideColor: '#1A1A1A',
-    img: '/landing/prog-guide-3.webp',
-    imgBox: { width: '150.59%', height: '100%', left: '58.13%', top: '50%' },
-    checkColor: '#2F6B57',
-    bulletColor: '#1A1A1A',
-    bullets: ['Special Introductory Rate', '4 Live group sessions', 'Group Chat Support'],
-  },
-  {
-    title: 'Your Group Mentoring Launchpad',
-    sub: 'Your idea. Your people. Your impact.',
+    {
+    title: 'Your Group Mentoring Launchpad: From Idea to Impact',
+    sub: 'You will clearly define your unique value as a mentor and identify your ideal target audience.',
     cardStyle: { background: '#FFFFFF', border: '1px solid rgba(26,26,26,0.08)' },
     titleColor: '#1A1A1A',
     subColor: '#4A4A52',
@@ -304,6 +246,67 @@ const PROGRAMS = [
       'Mindset Coaching 24/7 via AI',
     ],
   },
+  {
+    title: 'The Conscious Consumer: Unmasking Processed Foods for a Healthy Future',
+    sub: 'A step by step program to help you move forward into a healthier future',
+    cardStyle: { background: '#000000', border: '1px solid rgba(255,255,255,0.08)' },
+    titleColor: '#FFFFFF',
+    subColor: '#C9C9C9',
+    tagColor: '#FFD54F',
+    panelStyle: {
+      background: 'linear-gradient(160deg, #6E6E6E, #1A1A1A)',
+      border: '1px solid rgba(255,255,255,0.08)',
+    },
+    guideLabelColor: '#FFD54F',
+    guide: 'Mary Rocha',
+    guideColor: '#FFFFFF',
+    img: '/landing/prog-guide-1.webp',
+    imgBox: { width: '100%', height: '133.34%', left: '50%', top: '50%' },
+    checkColor: '#FFD54F',
+    bulletColor: '#cfcfcf',
+    bullets: ['4 live 75 minute Zoom meetings', 'Experiential', 'Learn to identify processed foods'],
+  },
+  {
+    title: 'The Sovereign Feminine: Reclaiming the Lost Wisdom of Mary Magdalene',
+    sub: 'Do you get triggered sometimes? Participants will learn the specific ways to heal triggers especially from patriarchal conditioning that has diminished our voice, intuition, and sense of worth.',
+    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
+    titleColor: '#1A1A1A',
+    subColor: '#4A4A52',
+    tagColor: '#2F6B57',
+    panelStyle: {
+      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      border: '1px solid rgba(178,90,52,0.14)',
+    },
+    guideLabelColor: '#B25A34',
+    guide: 'Christiane “Christy” Grace Michaels',
+    guideColor: '#1A1A1A',
+    img: '/landing/prog-guide-2.webp',
+    imgBox: { width: '150.59%', height: '100%', left: '32.5%', top: '50%' },
+    checkColor: '#2F6B57',
+    bulletColor: '#1A1A1A',
+    bullets: null, // design shows skeleton bars here
+  },
+  {
+    title: 'The Art of Becoming the Realized Self',
+    sub: 'Welcome to The Art of Becoming the Realized Self. Allow me to mentor you through the process of becoming a conscious creator and living your life in flow and abundance.',
+    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
+    titleColor: '#1A1A1A',
+    subColor: '#4A4A52',
+    tagColor: '#2F6B57',
+    panelStyle: {
+      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      border: '1px solid rgba(178,90,52,0.14)',
+    },
+    guideLabelColor: '#B25A34',
+    guide: 'Victoria Marie von Gorski',
+    guideColor: '#1A1A1A',
+    img: '/landing/prog-guide-3.webp',
+    imgBox: { width: '150.59%', height: '100%', left: '58.13%', top: '50%' },
+    checkColor: '#2F6B57',
+    bulletColor: '#1A1A1A',
+    bullets: ['Special Introductory Rate', '4 Live group sessions', 'Group Chat Support'],
+  },
+
 ] as const;
 
 const FOOT_COLS = [
@@ -312,68 +315,14 @@ const FOOT_COLS = [
     links: [
       { label: 'How It Works', href: '#how' },
       { label: 'Features', href: '#pillars' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Updates', href: '#' },
+      { label: 'Pricing', href: '#start-today' },
+      { label: 'Testimonials', href: '#pricing' },
     ],
   },
   {
-    heading: 'Community',
-    links: [
-      { label: 'Peer Circles', href: '#pillars' },
-      { label: 'Events', href: '#' },
-      { label: 'Success Stories', href: '#' },
-      { label: 'Blog', href: '#' },
-    ],
-  },
-  {
-    heading: 'Company',
-    links: [
-      { label: 'About', href: '#' },
-      { label: 'Mission', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'Contact', href: '#' },
-    ],
-  },
-] as const;
-
-const SOCIALS = [
-  {
-    label: 'Instagram',
-    path: (
-      <>
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-      </>
-    ),
-  },
-  {
-    label: 'YouTube',
-    path: (
-      <>
-        <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
-        <path d="m10 15 5-3-5-3z" />
-      </>
-    ),
-  },
-  {
-    label: 'LinkedIn',
-    path: (
-      <>
-        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-        <rect x="2" y="9" width="4" height="12" />
-        <circle cx="4" cy="4" r="2" />
-      </>
-    ),
-  },
-  {
-    label: 'Email',
-    path: (
-      <>
-        <rect x="2" y="4" width="20" height="16" rx="2" />
-        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-      </>
-    ),
+    heading: 'Policy',
+    // Same source of truth as the legal pages' own footer.
+    links: LEGAL_PAGES.map((page) => ({ label: page.label, href: page.path })),
   },
 ] as const;
 
@@ -398,8 +347,11 @@ const CSS = `
 .lp17 .lp17-balance { text-wrap:balance; }
 .lp17 .lp17-pretty { text-wrap:pretty; }
 
-.lp17 .who-card { border-radius:22px; margin:-14px; padding:22px 18px !important; border:1px solid transparent; background:transparent; backdrop-filter:blur(0px); -webkit-backdrop-filter:blur(0px); box-shadow:none; transition:background .7s ease, border-color .7s ease, box-shadow .7s ease, backdrop-filter .7s ease, transform .7s ease; }
-.lp17 .who-card:hover, .lp17 .who-card.seq-active { background:rgba(255,255,255,0.4); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); transform:translateY(-4px); }
+/* Permanent glass backing keeps card text legible over the wave art at every
+   viewport width (the art scales with the page and gets busy behind the cards
+   on wide screens); hover deepens it. */
+.lp17 .who-card { border-radius:22px; margin:-14px; padding:22px 18px !important; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.38); backdrop-filter:blur(12px) saturate(130%); -webkit-backdrop-filter:blur(12px) saturate(130%); box-shadow:0 8px 24px rgba(34,41,61,0.06); transition:background .7s ease, border-color .7s ease, box-shadow .7s ease, backdrop-filter .7s ease, transform .7s ease; }
+.lp17 .who-card:hover, .lp17 .who-card.seq-active { background:rgba(255,255,255,0.55); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); transform:translateY(-4px); }
 .lp17 .who-card-orange:hover, .lp17 .who-card-orange.seq-active { border-color:rgba(255,92,37,0.35); box-shadow:0 12px 34px rgba(255,92,37,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
 .lp17 .who-card-teal:hover, .lp17 .who-card-teal.seq-active { border-color:rgba(101,173,207,0.35); box-shadow:0 12px 34px rgba(101,173,207,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
 .lp17 .who-card-purple:hover, .lp17 .who-card-purple.seq-active { border-color:rgba(124,92,191,0.35); box-shadow:0 12px 34px rgba(124,92,191,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
@@ -440,12 +392,42 @@ const CSS = `
 .lp17 .testi-programs-flow { clip-path:inset(0 100% 0 0); }
 .lp17 .testi-programs-flow.wave-play { animation:lp17ClipReveal 3.2s ease-out 0.1s forwards; }
 
+.lp17 .lp17-programs-carousel { position: relative; height: 400px; }
 .lp17 .program-card { transition:transform 260ms cubic-bezier(.22,.61,.36,1), box-shadow 260ms ease, border-color 260ms ease; }
 .lp17 .program-card:hover { transform:translateY(-8px); box-shadow:0 26px 54px rgba(34,41,61,0.14); }
 .lp17 .lp17-guide-img { transition:transform 320ms cubic-bezier(.22,.61,.36,1); }
 .lp17 .program-card:hover .lp17-guide-img { transform:translate(-50%,-50%) scale(1.06); }
 
+/* Decorative wave dividers overlap real content via negative margins — they
+   must never intercept clicks/hover (the testi→programs band was swallowing
+   the carousel arrows' pointer events). */
+.lp17 .lp17-ribbon-v4-wrap, .lp17 .lp17-divider-flow-wrap, .lp17 .lp17-pillars-divider-wrap,
+.lp17 .lp17-pricing-divider-wrap, .lp17 .lp17-testi-programs-wrap { pointer-events: none; }
+
 /* Responsive: replaces the design's JS applyLayout(). */
+/* Testimonial carousel arrows: flank the quote on wide screens, sit below it
+   on narrower ones (the buttons stay in the row layout by default). */
+.lp17 .lp17-testi-nav button { transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease; }
+.lp17 .lp17-testi-nav button svg { transition: stroke 180ms ease; }
+.lp17 .lp17-testi-nav button:hover { background: linear-gradient(100deg, #F59C30, #F8BF39) !important; box-shadow: 0 14px 30px rgba(245,156,48,0.45) !important; transform: translateY(-2px); }
+.lp17 .lp17-testi-nav button:hover svg { stroke: #FFFFFF; }
+@media (min-width: 1100px) {
+  .lp17 .lp17-testi-nav { position: absolute; inset: 0; margin: 0 !important; pointer-events: none; }
+  .lp17 .lp17-testi-nav button { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: auto; }
+  /* compose the lift with the vertical centering so the button doesn't jump */
+  .lp17 .lp17-testi-nav button:hover { transform: translateY(calc(-50% - 2px)); }
+  .lp17 .lp17-testi-btn-prev { left: 0; }
+  .lp17 .lp17-testi-btn-next { right: 0; }
+}
+/* Mid widths (760–1199): the desktop divider transforms were tuned for ≥1240 —
+   their fixed-px translates detach the art from the page edges here, and the
+   deep pull-up margins overlap shorter content. Tame both; art stays visible. */
+@media (min-width: 760px) and (max-width: 1199px) {
+  .lp17 .lp17-testi-programs-wrap { margin-top: -140px !important; margin-bottom: -30px !important; }
+  .lp17 .lp17-testi-programs-wrap img { transform: scaleX(1.26) !important; }
+  .lp17 .lp17-pricing-divider-wrap { margin-top: -200px !important; }
+  .lp17 .lp17-pricing-divider-wrap img { transform: translate(0px, 20px) scaleX(1.38) !important; }
+}
 @media (max-width: 1099px) {
   .lp17 .lp17-who-grid { grid-template-columns: 1fr !important; justify-items: center; }
   .lp17 .lp17-who-vdiv { display: none; }
@@ -462,7 +444,7 @@ const CSS = `
   .lp17 .lp17-hero-block { height: auto !important; }
   .lp17 .lp17-hero-grid { grid-template-columns: 1fr !important; }
   .lp17 .lp17-hero-right { justify-self: center !important; margin-right: 0 !important; }
-  .lp17 .lp17-programs { grid-template-columns: 1fr !important; }
+  .lp17 .lp17-programs-carousel { height: 440px; }
 }
 @media (max-width: 859px) {
   .lp17 .lp17-steps { grid-template-columns: repeat(2,1fr) !important; }
@@ -471,14 +453,34 @@ const CSS = `
   .lp17 .lp17-pillars { grid-template-columns: repeat(2,1fr) !important; }
 }
 @media (max-width: 759px) {
-  .lp17 .lp17-hero-art { display: none; }
-  .lp17 .lp17-ribbon-v4-wrap, .lp17 .lp17-divider-flow-wrap, .lp17 .lp17-pillars-divider-wrap, .lp17 .lp17-pricing-divider-wrap, .lp17 .lp17-testi-programs-wrap { display: none; }
+  /* Hero art: anchor a smaller sweep behind the video panel instead of hiding it. */
+  .lp17 .lp17-hero-art {
+    top: auto !important;
+    bottom: -30px !important;
+    right: -35vw !important;
+    width: 170vw !important;
+    height: auto !important;
+    max-width: none !important;
+    transform: none !important;
+  }
+  /* Wave dividers: keep them visible on phones as clean full-width bands —
+     the desktop overlap system (big negative margins + oversized transforms)
+     is neutralized here so each ribbon just flows between sections. */
+  .lp17 .lp17-divider-flow-wrap { width: 100% !important; margin: -8px 0 -24px !important; }
+  .lp17 .lp17-divider-flow-wrap img { transform: scaleX(-1) !important; }
+  .lp17 .lp17-pillars-divider-wrap { margin: -16px 0 -16px !important; }
+  .lp17 .lp17-pillars-divider-wrap img { transform: none !important; }
+  .lp17 .lp17-pricing-divider-wrap { margin: -40px 0 -16px !important; }
+  .lp17 .lp17-pricing-divider-wrap img { width: 100% !important; margin-left: 0 !important; transform: none !important; }
+  /* Longhand only: the margin shorthand would wipe this wrapper's inline
+     margin-left:-50vw full-bleed shift. */
+  .lp17 .lp17-testi-programs-wrap { margin-top: -30px !important; margin-bottom: -16px !important; }
+  .lp17 .lp17-testi-programs-wrap img { transform: none !important; }
   .lp17 #how, .lp17 #why-now, .lp17 #pillars, .lp17 #start-today, .lp17 #pricing { margin-top: 0 !important; }
   .lp17 #start-today { padding-bottom: 60px !important; }
-  .lp17 .lp17-why-h2, .lp17 .lp17-why-p, .lp17 .lp17-hero-sub { height: auto !important; }
+  .lp17 .lp17-why-h2, .lp17 .lp17-why-p { height: auto !important; }
   .lp17 .lp17-pillars-h2 { width: auto !important; }
-  .lp17 .lp17-hero-tags span { height: auto !important; white-space: normal; }
-  .lp17 .lp17-hero-h1 { width: 100% !important; }
+  .lp17 .lp17-hero-tags span { white-space: normal; }
   .lp17 .why-card { width: 100% !important; }
   .lp17 .lp17-programs-eyebrow { white-space: normal !important; width: auto !important; max-width: 100%; text-align: center; }
   .lp17 .lp17-nav { padding: 16px 20px !important; }
@@ -498,7 +500,14 @@ const CSS = `
 @media (max-width: 519px) {
   .lp17 .lp17-steps { grid-template-columns: 1fr !important; }
   .lp17 .lp17-step-arrow { display: none; }
+  /* Single-column steps read as a centered list on phones. */
+  .lp17 .lp17-steps .step-item { text-align: center; }
+  .lp17 .lp17-steps .step-item > span { margin: 0 auto; }
+  .lp17 .lp17-steps .step-item h3 { margin-left: auto !important; margin-right: auto !important; }
+  .lp17 .lp17-steps .step-item p { margin-left: auto !important; margin-right: auto !important; }
   .lp17 .program-card { grid-template-columns: 1fr !important; }
+  .lp17 .lp17-programs-carousel { height: 610px; }
+  .lp17 .lp17-who-label { font-size: 13.5px !important; letter-spacing: 0.08em !important; }
   .lp17 .lp17-start-includes { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 419px) {
@@ -511,8 +520,10 @@ export function LandingPage() {
   const ready = useApp((s) => s.ready);
   const user = useApp((s) => s.user);
   const [scrolled, setScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>('top');
+  const [activeSection, setActiveSection] = useState<string>('home');
   const [testiIdx, setTestiIdx] = useState(0);
+  const [programIdx, setProgramIdx] = useState(0);
+  const progTouchX = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const start = () => navigate('/auth');
 
@@ -647,6 +658,13 @@ export function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Program carousel auto-advance — keyed on programIdx so any manual
+  // navigation (dot, side card, swipe) restarts the 7s countdown.
+  useEffect(() => {
+    const timer = setInterval(() => setProgramIdx((i) => (i + 1) % PROGRAMS.length), 5000);
+    return () => clearInterval(timer);
+  }, [programIdx]);
+
   // Returning signed-in user hitting the marketing page (e.g. a fresh tab) →
   // drop straight into the app. AppShell forwards unpaid accounts to /checkout.
   if (ready && user) return <Navigate to="/app" replace />;
@@ -676,7 +694,9 @@ export function LandingPage() {
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 60,
+          // Above every section — #how carries z-index 999 (design-inherited,
+          // needed over the community band art), so the nav must beat that.
+          zIndex: 1000,
           padding: '20px 44px',
           transition: 'background 240ms ease, box-shadow 240ms ease',
           background: scrolled
@@ -698,7 +718,7 @@ export function LandingPage() {
           }}
         >
           <a
-            href="#top"
+            href="#home"
             style={{
               textDecoration: 'none',
               display: 'inline-flex',
@@ -801,11 +821,12 @@ export function LandingPage() {
       {/* ===================== HERO ===================== */}
       <div className="lp17-hero-block" style={{ background: '#FFFFFF', height: 574 }}>
         <header
-          id="top"
+          id="home"
           style={{
             position: 'relative',
             padding: 'clamp(24px,3vw,46px) 44px clamp(40px,5vw,72px)',
             background: '#FFFFFF',
+            scrollMarginTop: 120,
           }}
         >
           {/* hero background: flowing wave ribbons sweeping in from the right */}
@@ -860,20 +881,19 @@ export function LandingPage() {
                   letterSpacing: '0.18em',
                 }}
               >
-                INCOME + IMPACT
+                IMPACT + INCOME
               </p>
               <h1
                 className="lp17-pretty lp17-hero-h1"
                 style={{
                   fontFamily: 'var(--display)',
                   fontWeight: 600,
-                  fontSize: 'clamp(54px,7vw,66px)',
+                  fontSize: 'clamp(42px,5.4vw,66px)',
                   lineHeight: 1,
                   letterSpacing: '0.01em',
                   color: '#1A1A1A',
                   margin: '0 0 34px',
-                  width: 540,
-                  maxWidth: '100%',
+                  maxWidth: 540,
                 }}
               >
                 What You Know is <span style={goldTextGrad}>Worth</span> Sharing
@@ -885,12 +905,11 @@ export function LandingPage() {
                   fontWeight: 600,
                   color: '#1A1A1A',
                   margin: '0 0 7px',
-                  height: 50,
                   lineHeight: 1.45,
                 }}
               >
                 You already have the knowledge. <br />
-                AbundanceAI gives you the tools to build a real program.
+                AbundanceAI gives you the tools to build a real online program.
               </p>
               <div
                 className="lp17-hero-tags"
@@ -902,10 +921,9 @@ export function LandingPage() {
                     fontSize: 16,
                     color: 'rgb(101,173,207)',
                     paddingRight: 20,
-                    height: 14,
                   }}
                 >
-                  No curriculum to create&nbsp; | No Marketing to write | No tech to learn
+                  No tech to learn | No Marketing to write | No curriculum to create&nbsp; 
                 </span>
               </div>
               <div
@@ -928,31 +946,28 @@ export function LandingPage() {
                     boxShadow: '0px 12px 28px 0px #F8BF397D',
                   }}
                 >
-                  Try it for $25 <span style={{ fontSize: 18 }}>→</span>
+                  Launch Your Program for $25 <span style={{ fontSize: 18 }}>→</span>
                 </a>
-                <a
+                {/* <a
                   href="#how"
                   style={{ textDecoration: 'none', color: '#1A1A1A', fontWeight: 600, fontSize: 16 }}
                 >
                   See how it Works →
-                </a>
+                </a> */}
               </div>
               <p style={{ fontSize: 14.5, fontWeight: 600, color: '#1A1A1A', margin: '0 0 7px' }}>
                 Introductory price. Regularly $88
               </p>
               <p style={{ fontSize: 14.5, color: '#1A1A1A59', margin: 0 }}>
-                90-day money-back guarantee.
+                Love it or get your money back within 90 days.
               </p>
             </div>
 
-            {/* RIGHT: video panel */}
+            {/* RIGHT: video panel — fixed aspect so the artwork never distorts */}
             <div
               className="reveal lp17-hero-right"
               style={{
                 position: 'relative',
-                minHeight: 'clamp(280px,32vw,390px)',
-                display: 'flex',
-                alignItems: 'center',
                 width: '100%',
                 maxWidth: 390,
                 justifySelf: 'end',
@@ -961,10 +976,10 @@ export function LandingPage() {
             >
               <div
                 style={{
-                  position: 'absolute',
+                  position: 'relative',
                   zIndex: 2,
                   width: '100%',
-                  height: 'clamp(270px,30vw,368px)',
+                  aspectRatio: '390 / 368',
                   borderRadius: 45,
                   overflow: 'hidden',
                   border: '3px solid rgba(255,255,255,0.9)',
@@ -979,7 +994,7 @@ export function LandingPage() {
                     inset: 0,
                     width: '100%',
                     height: '100%',
-                    objectFit: 'fill',
+                    objectFit: 'cover',
                     objectPosition: 'center top',
                   }}
                 />
@@ -1104,7 +1119,9 @@ export function LandingPage() {
                 position: 'relative',
                 zIndex: 3,
                 maxWidth: 900,
-                margin: 'clamp(220px,10vw,380px) auto clamp(36px,2vw,56px)',
+                margin: 'clamp(220px,17vw,340px) auto clamp(36px,2vw,56px)',
+                background:
+                  'radial-gradient(ellipse 62% 130% at 50% 42%, rgba(255,255,255,0.78), rgba(255,255,255,0) 72%)',
                 textAlign: 'center',
                 padding: '0 44px',
               }}
@@ -1172,15 +1189,15 @@ export function LandingPage() {
                     style={{ textAlign: 'center', width: card.width }}
                   >
                     <p
+                      className="lp17-who-label"
                       style={{
                         fontFamily: "'JetBrains Mono',monospace",
-                        fontSize: 19,
+                        fontSize: 17,
                         fontWeight: 700,
-                        letterSpacing: '0.14em',
+                        letterSpacing: '0.1em',
                         textTransform: 'uppercase',
                         color: '#FFFFFF',
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
+                        padding: '7px 14px',
                         margin: '0 0 22px',
                         background: card.labelGrad,
                         borderRadius: 6,
@@ -1256,6 +1273,26 @@ export function LandingPage() {
             >
               From What You Know to a <span style={goldTextGrad}>Launch-Ready</span> Program
             </h2>
+
+                                    <p
+              className="lp17-why-p"
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 600,
+                fontSize: 'clamp(20px,1vw,30px)',
+                lineHeight: 1.15,
+                color: '#1A1A1A',
+                margin: '10px auto 0',
+                maxWidth: '46ch',
+                height: 63,
+              }}
+            >
+              We walk you through everything, you just show up.{' '}
+              {/* <span style={{ ...goldTextGrad, position: 'relative', display: 'inline-block' }}>
+                human touch
+              </span> */}
+              {' '}
+            </p>
           </div>
 
           {/* steps: numerals with hand-drawn arrows between them */}
@@ -1363,6 +1400,28 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+
+          {/* closing line — same gold-gradient chip treatment as the who-card labels */}
+          <p
+            className="reveal scroll-fade"
+            style={{
+              display: 'table',
+              margin: 'clamp(40px,5vw,44px) auto 0',
+              fontFamily: "'JetBrains Mono',monospace",
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              color: '#FFFFFF',
+              background: GOLD_GRAD,
+              borderRadius: 10,
+              boxShadow: '6px 7px 14px 3px #00000026',
+              padding: '10px 22px',
+            }}
+          >
+            You never have to do it alone
+          </p>
         </div>
       </section>
 
@@ -1456,16 +1515,15 @@ export function LandingPage() {
                 color: '#1A1A1A',
                 margin: '34px auto 0',
                 maxWidth: '46ch',
-                height: 63,
               }}
             >
               You bring the{' '}
               <span style={{ ...goldTextGrad, position: 'relative', display: 'inline-block' }}>
-                human experience
+                human touch
               </span>{' '}
               people are craving.
             </p>
-            <div
+            {/* <div
               style={{
                 display: 'flex',
                 flexDirection: 'row',
@@ -1485,7 +1543,31 @@ export function LandingPage() {
                   {line}
                 </span>
               ))}
-            </div>
+            </div> */}
+                        <p
+              className="lp17-why-p"
+            style={{
+              display: 'table',
+              margin: '20px auto 0',
+              fontFamily: "'JetBrains Mono',monospace",
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              color: '#FFFFFF',
+              background: GOLD_GRAD,
+              borderRadius: 10,
+              boxShadow: '6px 7px 14px 3px #00000026',
+              padding: '10px 22px',
+            }}
+            >
+              Your programs gives them  a real person to learn from and a group to grow with{' '}
+              {/* <span style={{ ...goldTextGrad, position: 'relative', display: 'inline-block' }}>
+                human touch
+              </span> */}
+              {' '}
+            </p>
           </div>
         </div>
       </section>
@@ -1759,8 +1841,8 @@ export function LandingPage() {
                 maxWidth: '44ch',
               }}
             >
-              So small it removes all hesitation - and backed by a 90-day money-back guarantee. Build
-              something you’re proud of, or you don’t pay.
+              Backed by a 90-day money-back guarantee. Build
+              something you’re proud of.
             </p>
             <div
               className="lp17-start-includes"
@@ -1949,9 +2031,10 @@ export function LandingPage() {
                 </p>
               </div>
 
+              <div className="lp17-testi-carousel" style={{ position: 'relative' }}>
               <div
                 className="reveal"
-                style={{ position: 'relative', minHeight: 260, maxWidth: 820, margin: '0 auto', textAlign: 'center' }}
+                style={{ position: 'relative', minHeight: 220, maxWidth: 820, margin: '0 auto', textAlign: 'center' }}
               >
                 {TESTIMONIALS.map((t, i) => (
                   <div
@@ -1966,7 +2049,7 @@ export function LandingPage() {
                     <span
                       style={{
                         fontFamily: 'var(--display)',
-                        fontSize: 72,
+                        fontSize: 54,
                         lineHeight: 1,
                         color: t.color,
                         display: 'block',
@@ -1980,10 +2063,10 @@ export function LandingPage() {
                       style={{
                         fontFamily: 'var(--display)',
                         fontWeight: 500,
-                        fontSize: 'clamp(26px,3.2vw,38px)',
-                        lineHeight: 1.38,
+                        fontSize: 'clamp(20px,2.4vw,28px)',
+                        lineHeight: 1.45,
                         color: '#1A1A1A',
-                        margin: '0 0 32px',
+                        margin: '0 0 28px',
                       }}
                     >
                       {t.quote}
@@ -2002,10 +2085,11 @@ export function LandingPage() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 32 }}>
+              <div className="lp17-testi-nav" style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 32 }}>
                 <button
                   type="button"
                   aria-label="Previous testimonial"
+                  className="lp17-testi-btn-prev"
                   onClick={() => testiNav(-1)}
                   style={{
                     width: 56,
@@ -2036,6 +2120,7 @@ export function LandingPage() {
                 <button
                   type="button"
                   aria-label="Next testimonial"
+                  className="lp17-testi-btn-next"
                   onClick={() => testiNav(1)}
                   style={{
                     width: 56,
@@ -2064,9 +2149,10 @@ export function LandingPage() {
                   </svg>
                 </button>
               </div>
-              <p style={{ fontSize: 14, color: '#1A1A1A80', margin: '12px 0 0', textAlign: 'center' }}>
+              </div>
+              {/* <p style={{ fontSize: 14, color: '#1A1A1A80', margin: '12px 0 0', textAlign: 'center' }}>
                 Check other testimonials
-              </p>
+              </p> */}
             </div>
 
             {/* flowing divider into the programs */}
@@ -2145,19 +2231,56 @@ export function LandingPage() {
               >
                 Real <span style={goldTextGrad}>group programs</span>, built by real people.
               </h2>
+              {/* Cover-flow carousel: active card centered, neighbours tucked
+                  behind in grayscale; dots + side-card clicks + swipe navigate. */}
               <div
                 data-role="programs"
-                className="lp17-programs"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2,minmax(0,1fr))',
-                  gridAutoRows: '1fr',
-                  alignItems: 'stretch',
-                  gap: 'clamp(24px,3vw,44px)',
+                className="lp17-programs-carousel"
+                onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  if (t) progTouchX.current = t.clientX;
+                }}
+                onTouchEnd={(e) => {
+                  const t = e.changedTouches[0];
+                  if (!t) return;
+                  const dx = t.clientX - progTouchX.current;
+                  if (Math.abs(dx) > 45) {
+                    setProgramIdx((i) => (i + (dx < 0 ? 1 : -1) + PROGRAMS.length) % PROGRAMS.length);
+                  }
                 }}
               >
-                {PROGRAMS.map((prog) => (
-                  <div key={prog.title}>
+                {PROGRAMS.map((prog, i) => {
+                  const n = PROGRAMS.length;
+                  const r = (((i - programIdx) % n) + n) % n;
+                  const rel = r === n - 1 ? -1 : r; // -1 left, 0 center, 1 right, 2 hidden
+                  const transforms: Record<number, string> = {
+                    [-1]: 'translateX(calc(-50% - 56%)) scale(0.8)',
+                    0: 'translateX(-50%) scale(1)',
+                    1: 'translateX(calc(-50% + 56%)) scale(0.8)',
+                    2: 'translateX(-50%) scale(0.66)',
+                  };
+                  return (
+                    <div
+                      key={prog.title}
+                      aria-hidden={rel === 2 || undefined}
+                      onClick={rel === 0 ? undefined : () => setProgramIdx(i)}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: 0,
+                        width: 'min(640px, 88vw)',
+                        height: '100%',
+                        transform: transforms[rel],
+                        zIndex: rel === 0 ? 3 : rel === 2 ? 0 : 2,
+                        opacity: rel === 2 ? 0 : rel === 0 ? 1 : 0.9,
+                        filter: rel === 0 ? 'none' : 'grayscale(1)',
+                        pointerEvents: rel === 2 ? 'none' : 'auto',
+                        cursor: rel === 0 ? 'default' : 'pointer',
+                        transition:
+                          'transform .55s cubic-bezier(.22,.61,.36,1), opacity .55s ease, filter .55s ease',
+                        willChange: 'transform',
+                      }}
+                    >
                     <div
                       className="program-card"
                       style={{
@@ -2281,7 +2404,32 @@ export function LandingPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* carousel dots */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 28 }}>
+                {PROGRAMS.map((prog, i) => (
+                  <button
+                    key={prog.title}
+                    type="button"
+                    aria-label={`Show ${prog.title}`}
+                    aria-current={i === programIdx || undefined}
+                    onClick={() => setProgramIdx(i)}
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      background: i === programIdx ? '#F59C30' : 'rgba(26,26,26,0.18)',
+                      transform: i === programIdx ? 'scale(1.3)' : 'none',
+                      transition: 'background .25s ease, transform .25s ease',
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -2389,14 +2537,14 @@ export function LandingPage() {
             className="lp17-foot-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1.5fr',
+              gridTemplateColumns: '1.6fr 1fr 1fr 1.5fr',
               gap: 'clamp(24px,2.6vw,48px)',
               position: 'relative',
             }}
           >
             <div>
               <a
-                href="#top"
+                href="#home"
                 style={{
                   textDecoration: 'none',
                   display: 'inline-flex',
@@ -2412,39 +2560,6 @@ export function LandingPage() {
               <p style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A52', margin: '0 0 18px', maxWidth: '24ch' }}>
                 Build your knowledge. Impact more lives.
               </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                {SOCIALS.map((social) => (
-                  <a
-                    key={social.label}
-                    href="#"
-                    aria-label={social.label}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 9,
-                      border: '1px solid rgba(74,74,82,0.22)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#4A4A52',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    <svg
-                      width={17}
-                      height={17}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      {social.path}
-                    </svg>
-                  </a>
-                ))}
-              </div>
             </div>
             {FOOT_COLS.map((col) => (
               <div key={col.heading}>
@@ -2452,16 +2567,27 @@ export function LandingPage() {
                   {col.heading}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                  {col.links.map((link) => (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      className="footlink"
-                      style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52' }}
-                    >
-                      {link.label}
-                    </a>
-                  ))}
+                  {col.links.map((link) =>
+                    link.href.startsWith('/') ? (
+                      <Link
+                        key={link.label}
+                        to={link.href}
+                        className="footlink"
+                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52' }}
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        className="footlink"
+                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52' }}
+                      >
+                        {link.label}
+                      </a>
+                    ),
+                  )}
                 </div>
               </div>
             ))}
@@ -2525,24 +2651,7 @@ export function LandingPage() {
               position: 'relative',
             }}
           >
-            <span style={{ fontSize: 13, color: '#7A7A82' }}>© 2025 AbundanceAI. All rights reserved.</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 26px' }}>
-              <Link to="/privacy" className="footlink" style={{ textDecoration: 'none', fontSize: 13, color: '#7A7A82' }}>
-                Privacy Policy
-              </Link>
-              <Link to="/terms" className="footlink" style={{ textDecoration: 'none', fontSize: 13, color: '#7A7A82' }}>
-                Terms of Service
-              </Link>
-              <Link to="/cookies" className="footlink" style={{ textDecoration: 'none', fontSize: 13, color: '#7A7A82' }}>
-                Cookie Policy
-              </Link>
-              <Link to="/delivery" className="footlink" style={{ textDecoration: 'none', fontSize: 13, color: '#7A7A82' }}>
-                Delivery Policy
-              </Link>
-              <Link to="/refunds" className="footlink" style={{ textDecoration: 'none', fontSize: 13, color: '#7A7A82' }}>
-                Refund & Cancellation
-              </Link>
-            </div>
+            <span style={{ fontSize: 13, color: '#7A7A82' }}>© 2026 AbundanceAI. All rights reserved.</span>
           </div>
         </div>
       </footer>
