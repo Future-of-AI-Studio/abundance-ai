@@ -50,11 +50,14 @@ import type { JourneyState } from './schemas/entities.js';
 export class AbundanceApiError extends Error {
   code: string;
   field?: string;
-  constructor(code: string, message: string, field?: string) {
+  /** Optional non-user-facing diagnostic (e.g. AI finish reason + token counts). */
+  detail?: string;
+  constructor(code: string, message: string, field?: string, detail?: string) {
     super(message);
     this.name = 'AbundanceApiError';
     this.code = code;
     this.field = field;
+    this.detail = detail;
   }
 }
 
@@ -118,13 +121,14 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
       if (anyErr.context && typeof anyErr.context.json === 'function') {
         try {
           const payload = (await anyErr.context.json()) as {
-            error?: { code?: string; message?: string; field?: string };
+            error?: { code?: string; message?: string; field?: string; detail?: string };
           };
           if (payload?.error) {
             throw new AbundanceApiError(
               payload.error.code ?? 'unknown',
               payload.error.message ?? error.message,
               payload.error.field,
+              payload.error.detail,
             );
           }
         } catch (e) {

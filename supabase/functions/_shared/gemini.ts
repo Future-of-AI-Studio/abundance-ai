@@ -1,7 +1,86 @@
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { callVertex, VERTEX_MODEL, type VertexMessage, type VertexMediaPart } from './vertex.ts';
+import { callVertex, VERTEX_MODEL, type VertexMessage, type VertexMediaPart, type VertexResult } from './vertex.ts';
 import { ApiHttpError } from './response.ts';
+
+type AiFailureKind = 'empty' | 'incomplete' | 'unparseable' | 'schema';
+
+const PARSE_FAILED = Symbol('parse_failed');
+
+// Gemini in JSON mode occasionally emits RAW control characters (a literal newline
+// or tab) INSIDE a string value instead of the escaped \n / \t that JSON requires.
+// The structure is otherwise valid, but JSON.parse rejects it (unexpected control
+// char in string) — the real, intermittent cause of program-build's ai_bad_output.
+// Walk the text and escape any control char that appears inside a string literal.
+function escapeControlCharsInStrings(text: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) { out += ch; escaped = false; continue; } // char after a backslash, verbatim
+    if (inString) {
+      if (ch === '\\') { out += ch; escaped = true; continue; }
+      if (ch === '"') { out += ch; inString = false; continue; }
+      const code = text.charCodeAt(i);
+      if (code < 0x20) {
+        out += ch === '\n' ? '\\n' : ch === '\r' ? '\\r' : ch === '\t' ? '\\t'
+          : '\\u' + code.toString(16).padStart(4, '0');
+        continue;
+      }
+      out += ch;
+      continue;
+    }
+    if (ch === '"') { inString = true; }
+    out += ch;
+  }
+  return out;
+}
+
+// Parse Gemini's text into JSON, tolerating the two ways it drifts from strict JSON:
+// wrapping the object in a ```json code fence, and raw control chars inside strings.
+function parseLenient(text: string): unknown | typeof PARSE_FAILED {
+  const bases = [text, text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim()];
+  for (const base of bases) {
+    for (const attempt of [base, escapeControlCharsInStrings(base)]) {
+      try { return JSON.parse(attempt); } catch { /* try the next repair */ }
+    }
+  }
+  return PARSE_FAILED;
+}
+
+// Finish reasons that mean Gemini blocked the content rather than answered.
+const BLOCKED_REASONS = ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION'];
+
+// Build a specific ai_* error from a failed Gemini call. The friendly `message`
+// names the failure mode so it's actionable; `detail` carries the diagnostics
+// (finish reason, token counts, a snippet) for the logs and the Network tab.
+function aiError(feature: AiFeature, result: VertexResult, kind: AiFailureKind, extra = ''): ApiHttpError {
+  const fr = result.finishReason ?? 'none';
+  const snippet = result.text ? ` snippet="${result.text.slice(0, 160).replace(/\s+/g, ' ')}"` : '';
+  const detail =
+    `feature=${feature}; cause=${kind}; finishReason=${fr}; ` +
+    `promptTokens=${result.promptTokens}; completionTokens=${result.completionTokens}` +
+    `${extra ? `; ${extra}` : ''}${snippet}`;
+
+  let code = 'ai_bad_output';
+  let message: string;
+  if (BLOCKED_REASONS.includes(fr)) {
+    code = 'ai_blocked';
+    message = `The AI stopped because the content was flagged (${fr.toLowerCase().replace(/_/g, ' ')}). Try rephrasing or removing whatever might have tripped the filter, then build again.`;
+  } else if (fr === 'MAX_TOKENS' || kind === 'incomplete') {
+    code = 'ai_truncated';
+    message = 'The AI ran out of room and its response was cut off before it finished. Please try again — if it keeps happening, shorten your content or ask for fewer modules.';
+  } else if (kind === 'empty') {
+    code = 'ai_empty';
+    message = 'The AI returned an empty response. Please try again.';
+  } else if (kind === 'unparseable') {
+    message = 'The AI returned output that could not be read. Please try again.';
+  } else {
+    message = `The AI response was missing or malformed fields (${extra || 'unknown field'}). Please try again.`;
+  }
+  return new ApiHttpError(code, message, 502, undefined, detail);
+}
 
 /**
  * The one place every Gemini call flows through. It:
@@ -78,24 +157,26 @@ export async function callGemini<T>(args: CallGeminiArgs<T>): Promise<CallGemini
     mockText: args.mockText,
   });
 
-  let value: unknown;
-  try {
-    value = JSON.parse(result.text);
-  } catch {
-    // Tolerate code-fenced JSON.
-    const cleaned = result.text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-    try {
-      value = JSON.parse(cleaned);
-    } catch {
-      console.error(`[callGemini:${feature}] unparseable output (len=${result.text.length}):`, result.text.slice(0, 500));
-      throw new ApiHttpError('ai_bad_output', 'The AI returned something unexpected. Please try again.', 502);
-    }
+  // The model finished for a reason other than a clean stop (or returned nothing) —
+  // that's the actual cause, so name it. MAX_TOKENS truncates the JSON; SAFETY et al.
+  // block it; either way the parse/schema step below would otherwise report a vague
+  // "unexpected output" that hides why.
+  if (!result.text.trim() || (result.finishReason && result.finishReason !== 'STOP')) {
+    throw aiError(feature, result, result.text.trim() ? 'incomplete' : 'empty');
+  }
+
+  const value = parseLenient(result.text);
+  if (value === PARSE_FAILED) {
+    console.error(`[callGemini:${feature}] unparseable output (len=${result.text.length}):`, result.text.slice(0, 500));
+    throw aiError(feature, result, 'unparseable');
   }
 
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const where = issue ? `${issue.path.join('.') || '(root)'}: ${issue.message}` : 'unknown field';
     console.error(`[callGemini:${feature}] schema mismatch:`, JSON.stringify(parsed.error.issues.slice(0, 5)));
-    throw new ApiHttpError('ai_bad_output', 'The AI returned something unexpected. Please try again.', 502);
+    throw aiError(feature, result, 'schema', where);
   }
 
   // (c) usage log
