@@ -189,6 +189,9 @@ export const contentSourceSchema = z.object({
   storage_path: z.string(),
   filename: z.string(),
   duration_sec: z.number().int().nullable(),
+  // Stored transcript for audio sources (null until transcribed). Lets program-build
+  // feed the model plain text instead of inlining the raw recording.
+  transcript: z.string().nullable().optional(),
   created_at: timestamp,
 });
 export type ContentSource = z.infer<typeof contentSourceSchema>;

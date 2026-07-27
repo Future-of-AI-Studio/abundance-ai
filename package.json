@@ -20,7 +20,13 @@
     "db:reset": "supabase db reset",
     "db:seed": "supabase db reset",
     "functions:serve": "supabase functions serve --no-verify-jwt --env-file supabase/functions/.env",
-    "functions:deploy": "supabase functions deploy"
+    "functions:deploy": "supabase functions deploy",
+    "check:landing": "node scripts/check-landing.mjs"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "google-auth-library": "^9.15.1",
+    "pg": "^8.22.0",
+    "puppeteer-core": "^25.3.0"
+  }
 }

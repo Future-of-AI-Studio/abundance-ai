@@ -148,6 +148,10 @@ export function createMockBackend(): Backend {
       await delay(150);
       return { content_source_id: uid(), storage_path: `mock/${req.filename}`, signed_url: 'mock://upload', token: 'mock' };
     },
+    async contentTranscribe() {
+      await delay(80);
+      return { transcribed: true, cached: false };
+    },
     async programBuild(req) {
       await delay(2600); // narrated loader has time to breathe
       // We retain up to 8 builds — at the cap, no further builds can be created.
@@ -477,6 +481,9 @@ export function createMockBackend(): Backend {
         return state.user!;
       },
       async signInWithMagicLink() {
+        await delay(300);
+      },
+      async sendPasswordReset() {
         await delay(300);
       },
       async updatePassword() {

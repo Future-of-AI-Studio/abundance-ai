@@ -7,6 +7,7 @@ import { AppShell } from '@/layouts/AppShell';
 
 import { LandingPage } from '@/pages/LandingPage';
 import { AuthPage } from '@/pages/AuthPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { WelcomePage } from '@/pages/WelcomePage';
 import { ProgramLandingPage } from '@/pages/ProgramLandingPage';
@@ -42,6 +43,7 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/gallery" element={<GalleryPage />} />

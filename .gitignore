@@ -43,3 +43,4 @@ coverage/
 # Vite / web
 apps/web/.vite/
 apps/web/stats.html
+scripts/screenshots/

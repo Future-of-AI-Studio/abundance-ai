@@ -58,6 +58,12 @@ export function createLiveBackend(): Backend {
         });
         if (error) throw error;
       },
+      async sendPasswordReset(email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+      },
       async updatePassword(newPassword) {
         const { error } = await supabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
@@ -228,6 +234,12 @@ export function createLiveBackend(): Backend {
             contentType: file.type || 'application/octet-stream',
           });
         if (error) throw new Error('Upload failed.');
+        // Kick off transcription in the background for recordings, so program-build
+        // stays text-only and fast. Fire-and-forget: it's idempotent and program-build
+        // backfills any that don't finish, so a dropped request is harmless.
+        if (kind === 'voice') {
+          void api.contentTranscribe({ content_source_id: res.content_source_id }).catch(() => {});
+        }
         return { id: res.content_source_id, filename: file.name };
       },
       async uploadAvatar(file) {

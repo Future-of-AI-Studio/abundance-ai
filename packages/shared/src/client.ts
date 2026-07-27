@@ -6,6 +6,8 @@ import type {
   VerifyPaymentResponse,
   ContentUploadRequest,
   ContentUploadResponse,
+  ContentTranscribeRequest,
+  ContentTranscribeResponse,
   ProgramBuildRequest,
   ProgramBuildResponse,
   ProgramUpdateRequest,
@@ -48,11 +50,14 @@ import type { JourneyState } from './schemas/entities.js';
 export class AbundanceApiError extends Error {
   code: string;
   field?: string;
-  constructor(code: string, message: string, field?: string) {
+  /** Optional non-user-facing diagnostic (e.g. AI finish reason + token counts). */
+  detail?: string;
+  constructor(code: string, message: string, field?: string, detail?: string) {
     super(message);
     this.name = 'AbundanceApiError';
     this.code = code;
     this.field = field;
+    this.detail = detail;
   }
 }
 
@@ -65,6 +70,8 @@ export interface AbundanceClient {
   checkoutSession(req: CheckoutSessionRequest): Promise<CheckoutSessionResponse>;
   verifyPayment(req: VerifyPaymentRequest): Promise<VerifyPaymentResponse>;
   contentUploadUrl(req: ContentUploadRequest): Promise<ContentUploadResponse>;
+  /** Transcribe an uploaded recording; the text is stored on the content_source. */
+  contentTranscribe(req: ContentTranscribeRequest): Promise<ContentTranscribeResponse>;
   programBuild(req: ProgramBuildRequest): Promise<ProgramBuildResponse>;
   programUpdate(req: ProgramUpdateRequest): Promise<ProgramUpdateResponse>;
   /** Make one of the user's retained builds the active "your program". */
@@ -114,13 +121,14 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
       if (anyErr.context && typeof anyErr.context.json === 'function') {
         try {
           const payload = (await anyErr.context.json()) as {
-            error?: { code?: string; message?: string; field?: string };
+            error?: { code?: string; message?: string; field?: string; detail?: string };
           };
           if (payload?.error) {
             throw new AbundanceApiError(
               payload.error.code ?? 'unknown',
               payload.error.message ?? error.message,
               payload.error.field,
+              payload.error.detail,
             );
           }
         } catch (e) {
@@ -136,6 +144,7 @@ export function createApiClient(supabase: SupabaseClient): AbundanceClient {
     checkoutSession: (req) => call('checkout-session', req),
     verifyPayment: (req) => call('checkout-session/verify', req),
     contentUploadUrl: (req) => call('content-upload-url', req),
+    contentTranscribe: (req) => call('content-transcribe', req),
     programBuild: (req) => call('program-build', req),
     programUpdate: (req) => call('program-update', req, 'PATCH'),
     programActivate: (req) => call('program-activate', req, 'PATCH'),
