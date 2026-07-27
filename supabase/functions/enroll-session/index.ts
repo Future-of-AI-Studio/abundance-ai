@@ -10,7 +10,7 @@ import { json, errorResponse, handleThrown } from '../_shared/response.ts';
 import { parseBody, enrollSessionRequestSchema } from '../_shared/contract.ts';
 import { adminClient } from '../_shared/supabase.ts';
 import { stripeClient, stripeConfigured, publishableKey, platformFeeCents } from '../_shared/stripe.ts';
-import { freeWindowOpen, enrollAmountCents } from '../_shared/pricing.ts';
+import { enrollAmountCents } from '../_shared/pricing.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -27,10 +27,9 @@ Deno.serve(async (req) => {
       return errorResponse('not_found', "This program isn't available.", 404);
     }
 
-    // While the free-offer window is open, enrolling (rather than taking the free
-    // first session) is discounted — charge that promo fee, never the client's word.
-    const windowOpen = freeWindowOpen(program);
-    const chargeCents = enrollAmountCents(program.price_cents, { isFree: false, windowOpen });
+    // Enrolling with payment always pays the full program fee — the free offer
+    // only adds a $0 "try the first session free" option, never a discount.
+    const chargeCents = enrollAmountCents(program.price_cents, { isFree: false });
 
     if (!stripeConfigured()) {
       return json({ client_secret: null, payment_intent_id: '', amount_cents: chargeCents, publishable_key: '', stripe_account: null, stripe: false });

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, TextInput } from '@/components/ui';
 import { CheckIcon } from '@/components/ui/icons';
-import { FREE_OFFER_DISCOUNT_PCT } from '@/lib/freeOffer';
 
 // Creator control for the free-enrollment offer, shown beside the price. When
 // ticked, buyers can join this (paid) program for free until the chosen date —
@@ -74,7 +73,7 @@ export function FreeOfferEditor({
         <span>
           <span className="text-body-sm font-medium text-ink">Let participants try the first session for free</span>
           <span className="mt-0.5 block text-caption text-ink-secondary">
-            Until the date you pick, visitors choose "Try first session for free" or enroll now for {FREE_OFFER_DISCOUNT_PCT}% off the fee.
+            Until the date you pick, visitors choose "Try first session for free" or enroll for the full program fee.
           </span>
         </span>
       </label>
