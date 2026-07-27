@@ -81,6 +81,7 @@ export function AuthPage() {
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'signin' ? 'signin' : 'signup');
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   // Resolver reads the latest mode via ref so toggling swaps validation rules.
   const modeRef = useRef<Mode>(mode);
@@ -97,7 +98,7 @@ export function AuthPage() {
     return { values: {} as FormValues, errors: errors as never };
   };
 
-  const { register, handleSubmit, watch, formState: { errors }, setError, clearErrors } = useForm<FormValues>({
+  const { register, handleSubmit, watch, getValues, formState: { errors }, setError, clearErrors } = useForm<FormValues>({
     resolver,
     defaultValues: { firstName: '', email: '', category: '', categoryOther: '', password: '', confirmPassword: '', terms: false },
   });
@@ -119,6 +120,27 @@ export function AuthPage() {
   const onGoogle = () => {
     // OAuth isn't wired into the backend seam yet — keep the entry point honest.
     toast.info('Google sign-in is coming soon - continue with email for now.');
+  };
+
+  // Forgot password — email a reset link for whatever's in the email field.
+  const onForgotPassword = async () => {
+    if (!backend || sendingReset) return;
+    const email = getValues('email').trim();
+    if (!z.string().email().safeParse(email).success) {
+      setError('email', { message: 'Enter your email above and we\'ll send a reset link.' });
+      return;
+    }
+    clearErrors('email');
+    setSendingReset(true);
+    try {
+      await backend.auth.sendPasswordReset(email);
+      // Don't confirm whether the address exists — just say it's on its way.
+      toast.success('If that email has an account, a reset link is on its way.');
+    } catch {
+      toast.error('Network hiccup - give it another try.');
+    } finally {
+      setSendingReset(false);
+    }
   };
 
   const onSubmit = handleSubmit(async (data) => {
@@ -324,10 +346,11 @@ export function AuthPage() {
                 {!isSignup && (
                   <button
                     type="button"
-                    onClick={() => toast.info("Enter your email above and we'll send a reset link.")}
-                    className="text-caption font-medium text-primary"
+                    onClick={onForgotPassword}
+                    disabled={sendingReset}
+                    className="text-caption font-medium text-primary disabled:opacity-60"
                   >
-                    Forgot?
+                    {sendingReset ? 'Sending…' : 'Forgot?'}
                   </button>
                 )}
               </div>
