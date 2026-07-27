@@ -6,6 +6,7 @@ import { Skeleton, Avatar } from '@/components/ui';
 import { ArrowRight, CheckIcon, LockIcon, CloseIcon, SparkleIcon, HeartIcon, MegaphoneIcon, ProgramIcon, UsersIcon } from '@/components/ui/icons';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { formatPrice } from '@/lib/money';
+import { env } from '@/lib/env';
 import { cn } from '@/lib/cn';
 
 // [04] Journey Home — the post-login dashboard. A warm greeting + day counter, a
@@ -34,7 +35,7 @@ function timeAgo(iso: string): string {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { ready, journey, program, posts, session, profile, enrollments, stats, latestCheckin, refreshEnrollments, refreshStats } = useApp();
+  const { ready, journey, program, posts, session, profile, enrollments, stats, latestCheckin, payments, refreshEnrollments, refreshStats } = useApp();
 
   useEffect(() => {
     // Live counts power the snapshot + activity feed; both are non-blocking.
@@ -80,6 +81,9 @@ export function HomePage() {
   const enrollThisWeek = enrollments.filter((e) => now - new Date(e.created_at).getTime() < WEEK_MS).length;
   const revenueCents = enrollments.reduce((sum, e) => sum + (e.amount_cents ?? 0), 0);
   const conversion = stats.views > 0 ? (enrollCount / stats.views) * 100 : null;
+  // The shareable /p/:id link is hidden until Stripe is connected — enforced in
+  // PRODUCTION only, so the test/beta site keeps links open. Same guard as StudentsPage.
+  const canShare = (payments?.connected ?? false) || env.environment !== 'production';
 
   const metrics: Array<{ label: string; value: string; hint: string; to?: string }> = [
     {
@@ -232,7 +236,9 @@ export function HomePage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         {/* Left column */}
         <div className="space-y-6">
-          {/* Grow your program — share the link */}
+          {/* Grow your program — share the link. Hidden until Stripe is connected
+              (production only): sharing before payouts work would let a participant
+              enroll on a program whose payment can't go through. Matches StudentsPage. */}
           {program.program && (
             <section className="rounded-lg border border-line bg-surface-plain p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
@@ -241,13 +247,31 @@ export function HomePage() {
                   {enrollCount} enrolled
                 </span>
               </div>
-              <h3 className="mt-2 font-serif text-h3 font-medium text-ink">
-                {enrollCount > 0 ? 'Keep sharing to grow your program.' : 'Share your link to get your first students.'}
-              </h3>
-              <p className="mt-1.5 text-body-sm text-ink-secondary">
-                Post it anywhere - social, your bio, a DM. Anyone who opens it can preview your program and enroll.
-              </p>
-              <ShareProgramLink programId={program.program.id} className="mt-4" />
+              {canShare ? (
+                <>
+                  <h3 className="mt-2 font-serif text-h3 font-medium text-ink">
+                    {enrollCount > 0 ? 'Keep sharing to grow your program.' : 'Share your link to get your first students.'}
+                  </h3>
+                  <p className="mt-1.5 text-body-sm text-ink-secondary">
+                    Post it anywhere - social, your bio, a DM. Anyone who opens it can preview your program and enroll.
+                  </p>
+                  <ShareProgramLink programId={program.program.id} className="mt-4" />
+                </>
+              ) : (
+                <>
+                  <h3 className="mt-2 font-serif text-h3 font-medium text-ink">Connect Stripe to share your program.</h3>
+                  <p className="mt-1.5 text-body-sm text-ink-secondary">
+                    Connect your Stripe account first so enrollments can pay you. Your link stays hidden until then — sharing it before you can accept payment would leave participants unable to enroll.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/app/onboarding/payments')}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-caption font-semibold text-white hover:bg-primary/90"
+                  >
+                    Connect Stripe to get your link <ArrowRight width={16} height={16} />
+                  </button>
+                </>
+              )}
             </section>
           )}
 
