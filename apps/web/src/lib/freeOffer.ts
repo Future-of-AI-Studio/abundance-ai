@@ -14,18 +14,6 @@ export function freeOfferOpen(program: FreeOfferState): boolean {
   return new Date(program.free_offer_until).getTime() > Date.now();
 }
 
-// While the offer window is open, a buyer who chooses to enroll (rather than take
-// the free first session) gets this much off the program fee, as an incentive.
-// Mirrored server-side in supabase/functions/_shared/pricing.ts — keep in lockstep.
-export const FREE_OFFER_DISCOUNT_PCT = 10;
-
-// The program fee a buyer pays while the offer is open: the full price minus the
-// promo discount, in whole cents. The enroll Edge Functions re-compute the same
-// figure server-side, so the discount can't be spoofed from the client.
-export function discountedPriceCents(priceCents: number): number {
-  return priceCents - Math.round((priceCents * FREE_OFFER_DISCOUNT_PCT) / 100);
-}
-
 // The badge shown on the landing page while the offer is open, e.g.
 // "Try for free until Jul 28" (or plain "Try for free" when there's no end date).
 export function tryFreeLabel(until: string | null): string {
