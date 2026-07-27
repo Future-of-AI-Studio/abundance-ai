@@ -43,6 +43,13 @@ export interface BackendAuth {
   }): Promise<{ user: AuthUser | null; needsConfirmation: boolean }>;
   signInWithPassword(args: { email: string; password: string }): Promise<AuthUser>;
   signInWithMagicLink(email: string): Promise<void>;
+  /**
+   * Email a password-reset link. The link returns the user to /reset-password
+   * in a short-lived recovery session, where they set a new password via
+   * updatePassword. No-op-looking by design: never reveals whether the email
+   * belongs to an account.
+   */
+  sendPasswordReset(email: string): Promise<void>;
   /** Set a new password for the signed-in user. */
   updatePassword(newPassword: string): Promise<void>;
   /**
