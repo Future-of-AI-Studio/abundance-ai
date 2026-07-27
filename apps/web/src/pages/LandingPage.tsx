@@ -20,6 +20,7 @@ const ASSET = {
   pricingTestiDivider: '/landing/wave-divider-pricing-testi.png',
   testiProgramsDivider: '/landing/wave-divider-testi-programs.png',
   sunrise: '/landing/founder-wave.png',
+  star: '/landing/star.png',
 };
 
 const GOLD_GRAD = 'linear-gradient(799deg, #F59C30, #F8BF39)';
@@ -36,7 +37,7 @@ const blueBadge: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#65ADCF',
+  color: '#24729b',
   backgroundColor: '#65ADCF1F',
   border: '1px solid #65ADCF47',
   borderRadius: 999,
@@ -46,10 +47,11 @@ const blueBadge: React.CSSProperties = {
 // Nav tabs in page order; `section` is the element id the scroll-spy tracks.
 const NAV_LINKS = [
   { label: 'Home', href: '#home', section: 'home' },
-  { label: 'Who It’s For', href: '#community', section: 'community' },
+  { label: 'Who It’s For', href: '#who-is-this-for', section: 'who-is-this-for' },
   { label: 'How It Works', href: '#how', section: 'how' },
   { label: 'What You Get', href: '#pillars', section: 'pillars' },
   { label: 'Pricing', href: '#start-today', section: 'start-today' },
+  { label: 'Community', href: '#join-community', section: 'join-community' },
 ] as const;
 
 const WHO_CARDS = [
@@ -92,7 +94,7 @@ const STEPS = [
     arrow: { color: '#E8932C', glow: '#E8932C', top: 13 },
     body: (
       <>
-        Upload your notes or just talk. Messy is fine, the <b>AI listens</b>.
+        Upload your notes <b>or just talk.</b> Messy or unorganize is fine.
       </>
     ),
   },
@@ -132,7 +134,7 @@ const STEPS = [
     arrow: null,
     body: (
       <>
-        <b>AI creates your emails</b>, social posts, and invitations so you can start reaching out.
+        <b>AI creates your emails</b> and <b>social posts</b> for you to invite your participants.
       </>
     ),
   },
@@ -165,11 +167,11 @@ const PILLARS = [
   {
     gradId: 'lp17ArcLav',
     stop: '#FFA0AA',
-    label: 'PEER GROUP',
+    label: 'PEER SUPPORT CIRCLES',
     labelColor: '#FFA0AA',
     body: (
       <>
-        Small peer group share ideas, build momentum, and <strong>bring your program to life.</strong>
+        Peer groups to help you build momentum and <strong>bring your program to life.</strong>
       </>
     ),
   },
@@ -196,7 +198,7 @@ const TESTIMONIALS = [
       </>
     ),
     name: 'Mary',
-    role: 'Leadership Mentor',
+    role: 'Elementary Teacher',
   },
   {
     color: '#FFA0AA',
@@ -213,29 +215,31 @@ const TESTIMONIALS = [
 ] as const;
 
 const START_TODAY_INCLUDES = [
-  'Your 1–6 module program, built by AI',
+  'Your 2–6 module program, built by AI',
   'Social posts written and ready',
   'AI Mindset coaching at every step',
-  'A peer community support & start your program',
+  'A peer community support',
 ] as const;
 
 // Guide photo crops replicate the design's <image-slot> geometry: cover-fit
 // baseline in a 64px circle, then the stored per-slot pan (x in frame-%).
 const PROGRAMS = [
     {
-    title: 'Your Group Mentoring Launchpad: From Idea to Impact',
-    sub: 'You will clearly define your unique value as a mentor and identify your ideal target audience.',
-    cardStyle: { background: '#FFFFFF', border: '1px solid rgba(26,26,26,0.08)' },
-    titleColor: '#1A1A1A',
+    title: 'Your Group Mentoring Launchpad',
+    sub: 'From Idea to Impact',
+    cardStyle: { background: 'linear-gradient(168deg, rgba(232,240,231,0.72), rgba(246,232,222,0.72))' },
+    titleColor: '#2c2b2a',
     subColor: '#4A4A52',
     tagColor: '#FF7F50',
     panelStyle: {
-      background: 'linear-gradient(160deg, #FDF7F5, #FBEEE8)',
-      border: '1px solid rgba(255,127,80,0.16)',
+      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      border: '1px solid rgba(178,90,52,0.14)',
     },
-    guideLabelColor: '#FF7F50',
+    guideLabelColor: '#24729b',
     guide: 'Ruby Yeh',
-    guideColor: '#1A1A1A',
+    firstName: 'Ruby',
+    url: 'https://www.abundanceai.net/p/1c0831ad-e00f-4af7-a624-535c724ea61c',
+    guideColor: '#24729b',
     img: '/landing/prog-guide-4.webp',
     imgBox: { width: '100%', height: '100%', left: '50%', top: '50%' },
     checkColor: '#FF7F50',
@@ -247,19 +251,21 @@ const PROGRAMS = [
     ],
   },
   {
-    title: 'The Conscious Consumer: Unmasking Processed Foods for a Healthy Future',
-    sub: 'A step by step program to help you move forward into a healthier future',
-    cardStyle: { background: '#000000', border: '1px solid rgba(255,255,255,0.08)' },
-    titleColor: '#FFFFFF',
+    title: 'The Conscious Consumer',
+    sub: 'Unmasking Processed Foods for a Healthy Future',
+    cardStyle: { background: 'linear-gradient(168deg, rgba(232,240,231,0.72), rgba(246,232,222,0.72))' },
+    titleColor: '#2c2b2a',
     subColor: '#C9C9C9',
     tagColor: '#FFD54F',
     panelStyle: {
-      background: 'linear-gradient(160deg, #6E6E6E, #1A1A1A)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      border: '1px solid rgba(178,90,52,0.14)',
     },
-    guideLabelColor: '#FFD54F',
+    guideLabelColor: '#24729b',
     guide: 'Mary Rocha',
-    guideColor: '#FFFFFF',
+    firstName: 'Mary',
+    url: 'https://www.abundanceai.net/p/ea722fc4-532f-433b-8619-88c9d8108552',
+    guideColor: '#24729b',
     img: '/landing/prog-guide-1.webp',
     imgBox: { width: '100%', height: '133.34%', left: '50%', top: '50%' },
     checkColor: '#FFD54F',
@@ -267,19 +273,21 @@ const PROGRAMS = [
     bullets: ['4 live 75 minute Zoom meetings', 'Experiential', 'Learn to identify processed foods'],
   },
   {
-    title: 'The Sovereign Feminine: Reclaiming the Lost Wisdom of Mary Magdalene',
-    sub: 'Do you get triggered sometimes? Participants will learn the specific ways to heal triggers especially from patriarchal conditioning that has diminished our voice, intuition, and sense of worth.',
-    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
-    titleColor: '#1A1A1A',
+    title: 'The Sovereign Feminine',
+    sub: 'Reclaiming the Lost Wisdom of Mary Magdalene',
+    cardStyle: { background: 'linear-gradient(168deg, rgba(232,240,231,0.72), rgba(246,232,222,0.72))' },
+    titleColor: '#2c2b2a',
     subColor: '#4A4A52',
     tagColor: '#2F6B57',
     panelStyle: {
       background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
       border: '1px solid rgba(178,90,52,0.14)',
     },
-    guideLabelColor: '#B25A34',
+    guideLabelColor: '#24729b',
     guide: 'Christiane “Christy” Grace Michaels',
-    guideColor: '#1A1A1A',
+    firstName: 'Christy',
+    url: 'https://www.abundanceai.net/p/b6f38d0e-d9e2-4122-b279-2a38d2d338cd',
+    guideColor: '#24729b',
     img: '/landing/prog-guide-2.webp',
     imgBox: { width: '150.59%', height: '100%', left: '32.5%', top: '50%' },
     checkColor: '#2F6B57',
@@ -288,18 +296,20 @@ const PROGRAMS = [
   },
   {
     title: 'The Art of Becoming the Realized Self',
-    sub: 'Welcome to The Art of Becoming the Realized Self. Allow me to mentor you through the process of becoming a conscious creator and living your life in flow and abundance.',
-    cardStyle: { background: '#FBF6F1', border: '1px solid rgba(178,90,52,0.14)' },
-    titleColor: '#1A1A1A',
+    sub: 'A journey to conscious creation, flow and abundance.',
+    cardStyle: { background: 'linear-gradient(168deg, rgba(232,240,231,0.72), rgba(246,232,222,0.72))' },
+    titleColor: '#2c2b2a',
     subColor: '#4A4A52',
     tagColor: '#2F6B57',
     panelStyle: {
-      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      background: 'linear-gradient(160deg, rgb(230, 237, 228), rgb(243, 228, 218))',
       border: '1px solid rgba(178,90,52,0.14)',
     },
-    guideLabelColor: '#B25A34',
+    guideLabelColor: '#24729b',
     guide: 'Victoria Marie von Gorski',
-    guideColor: '#1A1A1A',
+    firstName: 'Victoria',
+    url: 'https://www.abundanceai.net/p/ce398efa-ed14-4b50-8800-b397ecdd163d',
+    guideColor: '#24729b',
     img: '/landing/prog-guide-3.webp',
     imgBox: { width: '150.59%', height: '100%', left: '58.13%', top: '50%' },
     checkColor: '#2F6B57',
@@ -313,6 +323,7 @@ const FOOT_COLS = [
   {
     heading: 'Product',
     links: [
+      // { label: 'FAQ', href: '#' },
       { label: 'How It Works', href: '#how' },
       { label: 'Features', href: '#pillars' },
       { label: 'Pricing', href: '#start-today' },
@@ -320,7 +331,7 @@ const FOOT_COLS = [
     ],
   },
   {
-    heading: 'Policy',
+    heading: 'LEGAL',
     // Same source of truth as the legal pages' own footer.
     links: LEGAL_PAGES.map((page) => ({ label: page.label, href: page.path })),
   },
@@ -350,7 +361,7 @@ const CSS = `
 /* Permanent glass backing keeps card text legible over the wave art at every
    viewport width (the art scales with the page and gets busy behind the cards
    on wide screens); hover deepens it. */
-.lp17 .who-card { border-radius:22px; margin:-14px; padding:22px 18px !important; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.38); backdrop-filter:blur(12px) saturate(130%); -webkit-backdrop-filter:blur(12px) saturate(130%); box-shadow:0 8px 24px rgba(34,41,61,0.06); transition:background .7s ease, border-color .7s ease, box-shadow .7s ease, backdrop-filter .7s ease, transform .7s ease; }
+.lp17 .who-card { border-radius:22px; margin:-14px; padding:22px 18px !important; transition:background .7s ease, border-color .7s ease, box-shadow .7s ease, backdrop-filter .7s ease, transform .7s ease; cursor:pointer }
 .lp17 .who-card:hover, .lp17 .who-card.seq-active { background:rgba(255,255,255,0.55); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); transform:translateY(-4px); }
 .lp17 .who-card-orange:hover, .lp17 .who-card-orange.seq-active { border-color:rgba(255,92,37,0.35); box-shadow:0 12px 34px rgba(255,92,37,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
 .lp17 .who-card-teal:hover, .lp17 .who-card-teal.seq-active { border-color:rgba(101,173,207,0.35); box-shadow:0 12px 34px rgba(101,173,207,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
@@ -392,7 +403,20 @@ const CSS = `
 .lp17 .testi-programs-flow { clip-path:inset(0 100% 0 0); }
 .lp17 .testi-programs-flow.wave-play { animation:lp17ClipReveal 3.2s ease-out 0.1s forwards; }
 
-.lp17 .lp17-programs-carousel { position: relative; height: 400px; }
+/* Hero play button: gold fill + white triangle on hover, matching the
+   testimonial arrows. The lift composes with the centering translate. */
+.lp17 .lp17-play-btn { transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease; }
+.lp17 .lp17-play-btn span { transition: border-left-color 200ms ease; }
+.lp17 .lp17-play-btn:hover { transform: translate(-50%,-50%) scale(1.09) !important; background: linear-gradient(100deg, #F59C30, #F8BF39) !important; box-shadow: 0 18px 40px rgba(245,156,48,0.48) !important; }
+.lp17 .lp17-play-btn:hover span { border-left-color: #FFFFFF !important; }
+.lp17 .lp17-play-btn:active { transform: translate(-50%,-50%) scale(1.03) !important; }
+
+/* Cards are a soft portrait panel; stage height tracks card width × ratio. */
+.lp17 .lp17-programs-carousel { position: relative; height: calc(min(280px, 64vw) * 1.3 + 14px); }
+.lp17 .lp17-tg-btn { transition: filter 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
+.lp17 .lp17-tg-btn:hover { filter: brightness(1.06); transform: translateY(-2px); box-shadow: 0 18px 38px rgba(34,158,217,0.44) !important; }
+.lp17 .lp17-prog-cta { transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
+.lp17 .lp17-prog-cta:hover { background: linear-gradient(100deg, #F59C30, #F8BF39) !important; border-color: transparent !important; color: #FFFFFF !important; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(245,156,48,0.38); }
 .lp17 .program-card { transition:transform 260ms cubic-bezier(.22,.61,.36,1), box-shadow 260ms ease, border-color 260ms ease; }
 .lp17 .program-card:hover { transform:translateY(-8px); box-shadow:0 26px 54px rgba(34,41,61,0.14); }
 .lp17 .lp17-guide-img { transition:transform 320ms cubic-bezier(.22,.61,.36,1); }
@@ -425,7 +449,7 @@ const CSS = `
 @media (min-width: 760px) and (max-width: 1199px) {
   .lp17 .lp17-testi-programs-wrap { margin-top: -140px !important; margin-bottom: -30px !important; }
   .lp17 .lp17-testi-programs-wrap img { transform: scaleX(1.26) !important; }
-  .lp17 .lp17-pricing-divider-wrap { margin-top: -200px !important; }
+  .lp17 .lp17-pricing-divider-wrap { margin-top: -486px !important; margin-bottom: -65px !important; }
   .lp17 .lp17-pricing-divider-wrap img { transform: translate(0px, 20px) scaleX(1.38) !important; }
 }
 @media (max-width: 1099px) {
@@ -444,7 +468,6 @@ const CSS = `
   .lp17 .lp17-hero-block { height: auto !important; }
   .lp17 .lp17-hero-grid { grid-template-columns: 1fr !important; }
   .lp17 .lp17-hero-right { justify-self: center !important; margin-right: 0 !important; }
-  .lp17 .lp17-programs-carousel { height: 440px; }
 }
 @media (max-width: 859px) {
   .lp17 .lp17-steps { grid-template-columns: repeat(2,1fr) !important; }
@@ -466,6 +489,10 @@ const CSS = `
   /* Wave dividers: keep them visible on phones as clean full-width bands —
      the desktop overlap system (big negative margins + oversized transforms)
      is neutralized here so each ribbon just flows between sections. */
+  /* The how-ribbon's desktop transform/overlap is tuned in fixed px — reset
+     on phones so the band shows at its natural size in normal flow. */
+  .lp17 .lp17-ribbon-v4-wrap { margin: 0 !important; }
+  .lp17 .lp17-ribbon-v4-wrap img { transform: none !important; height: auto !important; }
   .lp17 .lp17-divider-flow-wrap { width: 100% !important; margin: -8px 0 -24px !important; }
   .lp17 .lp17-divider-flow-wrap img { transform: scaleX(-1) !important; }
   .lp17 .lp17-pillars-divider-wrap { margin: -16px 0 -16px !important; }
@@ -486,6 +513,8 @@ const CSS = `
   .lp17 .lp17-nav { padding: 16px 20px !important; }
   .lp17 .lp17-nav-inner, .lp17 .lp17-nav-actions { gap: 12px !important; }
   .lp17 .lp17-logo-text { font-size: 26px !important; }
+  .lp17 .lp17-logo-star { width: 56px !important; height: 56px !important; margin-left: -12px !important; margin-right: -15px !important; transform: translateY(-17px) !important; }
+  .lp17 .lp17-logo-star-footer { transform: translateY(-14px) !important; }
   .lp17 .lp17-join-btn { padding: 10px 16px !important; font-size: 13px !important; }
 }
 @media (max-width: 619px) {
@@ -505,8 +534,6 @@ const CSS = `
   .lp17 .lp17-steps .step-item > span { margin: 0 auto; }
   .lp17 .lp17-steps .step-item h3 { margin-left: auto !important; margin-right: auto !important; }
   .lp17 .lp17-steps .step-item p { margin-left: auto !important; margin-right: auto !important; }
-  .lp17 .program-card { grid-template-columns: 1fr !important; }
-  .lp17 .lp17-programs-carousel { height: 610px; }
   .lp17 .lp17-who-label { font-size: 13.5px !important; letter-spacing: 0.08em !important; }
   .lp17 .lp17-start-includes { grid-template-columns: 1fr !important; }
 }
@@ -722,35 +749,55 @@ export function LandingPage() {
             style={{
               textDecoration: 'none',
               display: 'inline-flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 2,
+              alignItems: 'center',
+              gap: 10,
               position: 'relative',
             }}
           >
-            <span
-              className="lp17-logo-text"
+            {/* The source PNG carries ~20% transparent padding each side, so the
+                negative margins pull the wordmark in against the visible star. */}
+            <img
+              className="lp17-logo-star"
+              src={ASSET.star}
+              alt=""
+              aria-hidden="true"
               style={{
-                fontFamily: 'var(--display)',
-                fontWeight: 700,
-                fontSize: 32,
-                letterSpacing: '-0.01em',
-                color: 'var(--ink)',
+                width: 72,
+                height: 72,
+                flex: '0 0 auto',
+                objectFit: 'contain',
+                marginLeft: -15,
+                marginRight: -26,
+                // Centring against the logo+tagline column drops the star below
+                // the wordmark; lift it so its right ray lines up with the "A".
+                transform: 'translateY(-10px)',
               }}
-            >
-              Abundance<span style={{ color: '#F59C30' }}>AI</span>
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--body)',
-                fontWeight: 600,
-                fontSize: 10,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                color: 'var(--ink-2)',
-              }}
-            >
-              A Human-First AI Platform
+            />
+            <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+              <span
+                className="lp17-logo-text"
+                style={{
+                  fontFamily: 'var(--display)',
+                  fontWeight: 700,
+                  fontSize: 32,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--ink)',
+                }}
+              >
+                Abundance<span style={{ color: '#F59C30' }}>AI</span>
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontWeight: 1000,
+                  fontSize: 10,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'var(--ink-2)',
+                }}
+              >
+                <b>A Human-First AI Platform</b>
+              </span>
             </span>
           </a>
           <div className="lp17-navlinks" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
@@ -904,7 +951,7 @@ export function LandingPage() {
                   fontSize: 14.5,
                   fontWeight: 600,
                   color: '#1A1A1A',
-                  margin: '0 0 7px',
+                  margin: '0 0 10px',
                   lineHeight: 1.45,
                 }}
               >
@@ -1000,6 +1047,7 @@ export function LandingPage() {
                 />
                 <button
                   aria-label="Play video"
+                  className="lp17-play-btn"
                   style={{
                     position: 'absolute',
                     left: '50%',
@@ -1029,7 +1077,7 @@ export function LandingPage() {
                     }}
                   />
                 </button>
-                <div
+                {/* <div
                   style={{
                     position: 'absolute',
                     left: 16,
@@ -1056,8 +1104,8 @@ export function LandingPage() {
                       display: 'inline-block',
                     }}
                   />
-                  Watch Ruby’s story · 2 min
-                </div>
+                  Watch Founder's story · 2 min
+                </div> */}
               </div>
             </div>
           </div>
@@ -1066,7 +1114,7 @@ export function LandingPage() {
 
       {/* ===================== WHO IS THIS FOR ===================== */}
       <section
-        id="community"
+        id="who-is-this-for"
         style={{
           position: 'relative',
           padding: '0 44px 0',
@@ -1279,12 +1327,12 @@ export function LandingPage() {
               style={{
                 fontFamily: 'var(--display)',
                 fontWeight: 600,
-                fontSize: 'clamp(20px,1vw,30px)',
+                fontSize: 'clamp(23px, 1vw, 30px)',
                 lineHeight: 1.15,
                 color: '#1A1A1A',
-                margin: '10px auto 0',
+                margin: '32px auto 0',
                 maxWidth: '46ch',
-                height: 63,
+                height: 19,
               }}
             >
               We walk you through everything, you just show up.{' '}
@@ -1301,7 +1349,7 @@ export function LandingPage() {
             className="steps-wrap lp17-steps"
             style={{
               position: 'relative',
-              marginTop: 'clamp(48px,5.4vw,76px)',
+              marginTop: 'clamp(3px, 0.5vw, 5px)',
               display: 'grid',
               gridTemplateColumns: 'repeat(4,1fr)',
               gap: 'clamp(28px,3.4vw,58px)',
@@ -1385,7 +1433,9 @@ export function LandingPage() {
                   style={{
                     fontFamily: 'var(--display)',
                     fontWeight: 600,
-                    fontSize: 'clamp(22px,1.9vw,27px)',
+                    // Sized so the longest title ("Invite Your First Group")
+                    // stays on one line in its column at desktop widths.
+                    fontSize: 'clamp(17px,1.7vw,23px)',
                     lineHeight: 1.18,
                     color: step.titleColor,
                     margin: '20px 0 14px',
@@ -1402,26 +1452,22 @@ export function LandingPage() {
           </div>
 
           {/* closing line — same gold-gradient chip treatment as the who-card labels */}
-          <p
+          {/* <p
             className="reveal scroll-fade"
-            style={{
-              display: 'table',
-              margin: 'clamp(40px,5vw,44px) auto 0',
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: 14,
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              textAlign: 'center',
-              color: '#FFFFFF',
-              background: GOLD_GRAD,
-              borderRadius: 10,
-              boxShadow: '6px 7px 14px 3px #00000026',
-              padding: '10px 22px',
-            }}
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 600,
+                fontSize: 'clamp(23px, 1vw, 30px)',
+                lineHeight: 1.15,
+                color: '#1A1A1A',
+                margin: '35px auto 0',
+                maxWidth: '46ch',
+                height: 63,
+                textAlign: 'center'
+              }}
           >
             You never have to do it alone
-          </p>
+          </p> */}
         </div>
       </section>
 
@@ -1429,7 +1475,7 @@ export function LandingPage() {
       <div
         aria-hidden="true"
         className="lp17-ribbon-v4-wrap"
-        style={{ width: '100%', overflow: 'hidden', lineHeight: 0, margin: '16px 0', position: 'relative', zIndex: 2 }}
+        style={{ width: '100%', overflow: 'hidden', lineHeight: 0, margin: '-100px 0 0', position: 'relative', zIndex: 1 }}
       >
         <img
           className="how-divider-flow"
@@ -1438,9 +1484,16 @@ export function LandingPage() {
           style={{
             display: 'block',
             width: '100%',
-            height: 'auto',
+            // Cap the band's height so the 16:9 art doesn't fill the whole
+            // screen on wide viewports; cover-crop keeps it a wide ribbon.
+            height: 'clamp(235px, 59vw, 644px)',
+            objectFit: 'cover',
             opacity: 0.85,
-            transform: 'scaleX(1.21)',
+            transform: 'translate(44px, -94px) scale(1.27, 0.58)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, transparent 0%, black 18%, black 78%, transparent 100%)',
+            maskImage:
+              'linear-gradient(to bottom, transparent 0%, black 18%, black 78%, transparent 100%)',
             clipPath: 'inset(0 100% 0 0)',
           }}
         />
@@ -1454,7 +1507,7 @@ export function LandingPage() {
           padding: '0 44px 0',
           scrollMarginTop: 80,
           overflow: 'hidden',
-          background: '#FFFFFF',
+          background: 'transparent',
           marginTop: -266,
         }}
       >
@@ -1473,7 +1526,7 @@ export function LandingPage() {
             borderRadius: 32,
             border: '4px solid rgba(23,36,115,0)',
             background: 'rgba(255,255,255,0)',
-            padding: 'clamp(28px,4vw,48px)',
+            padding: 'clamp(13px, 4vw, 14px)',
             overflow: 'hidden',
           }}
         >
@@ -1496,11 +1549,11 @@ export function LandingPage() {
                 fontFamily: 'var(--display)',
                 fontWeight: 600,
                 fontSize: 'clamp(30px,4.4vw,42px)',
-                lineHeight: 1.6,
+                lineHeight: 1.2,
                 letterSpacing: '-0.01em',
                 color: '#1A1A1A',
                 margin: '0 0 28px',
-                height: 35,
+                height: 32,
               }}
             >
               AI helps you build your mentor program.
@@ -1510,7 +1563,7 @@ export function LandingPage() {
               style={{
                 fontFamily: 'var(--display)',
                 fontWeight: 600,
-                fontSize: 'clamp(24px,3vw,34px)',
+                fontSize: 'clamp(30px, 4.4vw, 41px)',
                 lineHeight: 1.05,
                 color: '#1A1A1A',
                 margin: '34px auto 0',
@@ -1548,21 +1601,21 @@ export function LandingPage() {
               className="lp17-why-p"
             style={{
               display: 'table',
-              margin: '20px auto 0',
-              fontFamily: "'JetBrains Mono',monospace",
-              fontSize: 14,
+              margin: '7px auto 0',
+              fontFamily: 'var(--display)',
+              fontSize: 22,
               fontWeight: 700,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
+              // letterSpacing: '0.14em',
+              // textTransform: 'uppercase',
               textAlign: 'center',
-              color: '#FFFFFF',
-              background: GOLD_GRAD,
-              borderRadius: 10,
-              boxShadow: '6px 7px 14px 3px #00000026',
+              color: '#000000',
+              // background: GOLD_GRAD,
+              // borderRadius: 10,
+              // boxShadow: '6px 7px 14px 3px #00000026',
               padding: '10px 22px',
             }}
             >
-              Your programs gives them  a real person to learn from and a group to grow with{' '}
+              Your programs gives them  a real person to learn from and a group to grow with.{' '}
               {/* <span style={{ ...goldTextGrad, position: 'relative', display: 'inline-block' }}>
                 human touch
               </span> */}
@@ -1583,7 +1636,7 @@ export function LandingPage() {
             overflow: 'hidden',
             lineHeight: 0,
             position: 'relative',
-            marginTop: -8,
+            marginTop: -108,
             marginBottom: -80,
           }}
         >
@@ -1595,7 +1648,11 @@ export function LandingPage() {
               display: 'block',
               width: '100%',
               height: 'auto',
-              transform: 'translate(166px, -5px) scaleX(-1.32)',
+              transform: 'translate(166px, -113px) scale(-2.68, 0.7)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
             }}
           />
         </div>
@@ -1608,7 +1665,7 @@ export function LandingPage() {
             padding: 'clamp(4px,1vw,12px) 44px clamp(44px,5vw,72px)',
             scrollMarginTop: 80,
             background: 'transparent',
-            marginTop: -440,
+            marginTop: -560,
           }}
         >
           <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto' }}>
@@ -1638,6 +1695,23 @@ export function LandingPage() {
                 Everything you need to <span style={goldTextGrad}>thrive</span>: create, launch, and
                 grow.
               </h2>
+
+                          <p
+            className="reveal scroll-fade"
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 600,
+                fontSize: 'clamp(23px, 1vw, 30px)',
+                lineHeight: 1.15,
+                color: '#1A1A1A',
+                margin: '35px auto 0',
+                maxWidth: '46ch',
+                height: 5,
+                textAlign: 'center'
+              }}
+          >
+            You never have to do it alone
+          </p>
             </div>
             <div
               data-role="pillars"
@@ -1721,9 +1795,11 @@ export function LandingPage() {
                     className="pillar-text"
                     style={{
                       fontFamily: "'JetBrains Mono',monospace",
-                      fontSize: 22,
+                      // Tracking/size tuned so "PEER SUPPORT CIRCLES" fits on
+                      // one line in its column at desktop widths.
+                      fontSize: 'clamp(17px,1.5vw,21px)',
                       fontWeight: 700,
-                      letterSpacing: '0.14em',
+                      letterSpacing: '0.1em',
                       textTransform: 'uppercase',
                       color: pillar.labelColor,
                       margin: '0 0 20px',
@@ -1753,6 +1829,22 @@ export function LandingPage() {
                 </div>
               ))}
             </div>
+                      {/* <p
+            className="reveal scroll-fade"
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 600,
+                fontSize: 'clamp(23px, 1vw, 30px)',
+                lineHeight: 1.15,
+                color: '#1A1A1A',
+                margin: '35px auto 0',
+                maxWidth: '46ch',
+                height: 63,
+                textAlign: 'center'
+              }}
+          >
+            You never have to do it alone
+          </p> */}
           </div>
         </section>
 
@@ -1760,7 +1852,7 @@ export function LandingPage() {
         <div
           aria-hidden="true"
           className="lp17-pillars-divider-wrap"
-          style={{ position: 'relative', width: '100%', overflow: 'hidden', lineHeight: 0, margin: '-70px 0 -70px', zIndex: 1 }}
+          style={{ position: 'relative', width: '100%', overflow: 'hidden', lineHeight: 0, margin: '-155px 0 -70px', zIndex: 1 }}
         >
           <img
             className="pillars-divider-flow"
@@ -1771,7 +1863,11 @@ export function LandingPage() {
               width: '100%',
               height: 'auto',
               opacity: 0.7,
-              transform: 'translate(0px, -75px) scaleY(0.74)',
+              transform: 'translate(89px, -115px) scale(1.21, 0.64)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
               clipPath: 'inset(0 100% 0 0)',
             }}
           />
@@ -1783,8 +1879,8 @@ export function LandingPage() {
           style={{
             position: 'relative',
             zIndex: 10,
-            marginTop: -420,
-            padding: 'clamp(56px,6vw,90px) 44px clamp(120px,12vw,180px)',
+            marginTop: -555,
+            padding: 'clamp(56px,6vw,90px) 44px clamp(28px,3.4vw,52px)',
             scrollMarginTop: 80,
             background: 'transparent',
           }}
@@ -1803,7 +1899,7 @@ export function LandingPage() {
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: '0.18em',
-                margin: '0 0 22px',
+                margin: '0 0 35px',
               }}
             >
               Start Today
@@ -1841,8 +1937,8 @@ export function LandingPage() {
                 maxWidth: '44ch',
               }}
             >
-              Backed by a 90-day money-back guarantee. Build
-              something you’re proud of.
+              Backed by a 90-day money-back guarantee. 
+              <br/>Build something you’re proud of.
             </p>
             <div
               className="lp17-start-includes"
@@ -1911,11 +2007,118 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* ===================== COMMUNITY / TELEGRAM =====================
+            NB: the "Who It's For" band already owns id="community", so this
+            section uses its own id to keep the nav scroll-spy correct. */}
+        <section
+          id="join-community"
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            padding: 'clamp(115px, 7vw, 217px) 44px clamp(40px, 5vw, 72px)',
+            scrollMarginTop: 80,
+            background: 'transparent',
+          }}
+        >
+          <div
+            className="reveal scroll-fade"
+            style={{ position: 'relative', zIndex: 2, maxWidth: 720, margin: '0 auto', textAlign: 'center' }}
+          >
+            <p
+              className="eyebrow"
+              style={{
+                ...blueBadge,
+                // Sits centered on the wave art (by design) rather than plain
+                // background, so it needs more than the usual 12% tint to
+                // stay legible against the brightest part of the sweep.
+                backgroundColor: 'rgba(255,255,255,0.55)',
+                border: '1px solid rgba(101,173,207,0.4)',
+                backdropFilter: 'blur(8px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(8px) saturate(140%)',
+                boxShadow: '0 4px 16px rgba(34,41,61,0.08)',
+                padding: '9px 22px',
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: '0.18em',
+                margin: '0 0 20px',
+              }}
+            >
+              Community
+            </p>
+            <h2
+              className="lp17-balance"
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 600,
+                fontSize: 'clamp(28px,3.8vw,44px)',
+                lineHeight: 1.12,
+                letterSpacing: '-0.01em',
+                color: '#1A1A1A',
+                margin: '0 0 16px',
+              }}
+            >
+              You never have to build <span style={goldTextGrad}>alone</span>.
+            </h2>
+            <p
+              className="lp17-pretty"
+              style={{
+                fontSize: 'clamp(16px,1.7vw,19px)',
+                lineHeight: 1.55,
+                color: '#1A1A1AE4',
+                margin: '0 auto 30px',
+                maxWidth: '48ch',
+              }}
+            >
+              Join our Telegram community to meet other mentors, ask questions, and share what
+              you’re building.
+            </p>
+            <a
+              className="lp17-tg-btn"
+              href="https://t.me/AbundanceAI"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 11,
+                textDecoration: 'none',
+                color: '#FFFFFF',
+                fontWeight: 600,
+                fontSize: 'clamp(15px,1.4vw,17px)',
+                padding: '15px 32px',
+                borderRadius: 999,
+                background: 'linear-gradient(100deg, #2AABEE, #229ED9)',
+                boxShadow: '0 12px 28px rgba(34,158,217,0.34)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width={21} height={21} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M21.94 4.6l-3.02 14.25c-.23 1.01-.83 1.26-1.68.78l-4.65-3.43-2.24 2.16c-.25.25-.46.46-.94.46l.33-4.73 8.6-7.77c.37-.33-.08-.52-.58-.19L6.17 12.9 1.6 11.47c-.99-.31-1.01-.99.21-1.47l17.87-6.89c.83-.3 1.55.2 1.26 1.49z" />
+              </svg>
+              Join us on Telegram
+            </a>
+          </div>
+        </section>
+
         {/* flowing divider into the testimonials */}
         <div
           aria-hidden="true"
           className="lp17-pricing-divider-wrap"
-          style={{ position: 'relative', width: '100%', overflow: 'hidden', lineHeight: 0, margin: '-360px 0 -60px', zIndex: 1 }}
+          style={{
+            position: 'relative',
+            width: '100%',
+            // overflow:hidden here would clip the transformed image to this
+            // element's untransformed (pre-transform) layout box, cutting it
+            // mid-wave — the root's overflowX:clip already guards against
+            // horizontal bleed, so this can stay visible and rely on the
+            // mask below for soft top/bottom edges instead of a hard clip.
+            overflow: 'visible',
+            lineHeight: 0,
+            margin: '-405px 0 -531px',
+            zIndex: 1,
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 86%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 86%, transparent 100%)',
+          }}
         >
           <img
             className="pricing-divider-flow pricing-divider-flow-anim"
@@ -1925,10 +2128,14 @@ export function LandingPage() {
               display: 'block',
               width: '118%',
               maxWidth: 'none',
-              marginLeft: '-18%',
+              marginLeft: '-13%',
               height: 'auto',
               opacity: 0.8,
-              transform: 'translate(-216px, 20px) scaleX(1.38)',
+              transform: 'translate(100px, -99px) scale(-1.68, 1)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0%, black 16%, black 74%, transparent 96%)',
             }}
           />
         </div>
@@ -1942,7 +2149,7 @@ export function LandingPage() {
             scrollMarginTop: 80,
             overflow: 'visible',
             background: 'transparent',
-            marginTop: -220,
+            marginTop: 0,
           }}
         >
           <div
@@ -1982,10 +2189,10 @@ export function LandingPage() {
           </svg>
 
           <div style={{ position: 'relative', zIndex: 2, maxWidth: 1180, margin: '0 auto' }}>
-            <div className="testi-wrap" style={{ padding: 'clamp(120px,10vw,180px) 0 clamp(140px,7vw,100px)' }}>
+            <div className="testi-wrap" style={{ padding: 'clamp(59px, 4vw, 168px) 0px clamp(46px, 3vw, 54px);' }}>
               <div
                 className="reveal scroll-fade"
-                style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto clamp(48px,5.6vw,72px)', position: 'relative' }}
+                style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto clamp(30px, 4.6vw, 34px)', position: 'relative' }}
               >
                 <p
                   className="eyebrow"
@@ -2025,7 +2232,7 @@ export function LandingPage() {
                     zIndex: 1,
                   }}
                 >
-                  Here’s what other users had to say about{' '}
+                  Here’s what other mentors had to say about{' '}
                   <strong style={{ color: '#1A1A1A' }}>Abundance</strong>
                   <strong style={{ color: '#F59C30' }}>AI</strong>.
                 </p>
@@ -2034,7 +2241,7 @@ export function LandingPage() {
               <div className="lp17-testi-carousel" style={{ position: 'relative' }}>
               <div
                 className="reveal"
-                style={{ position: 'relative', minHeight: 220, maxWidth: 820, margin: '0 auto', textAlign: 'center' }}
+                style={{ position: 'relative', minHeight: 220, maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}
               >
                 {TESTIMONIALS.map((t, i) => (
                   <div
@@ -2046,7 +2253,7 @@ export function LandingPage() {
                       transition: 'opacity .5s ease',
                     }}
                   >
-                    <span
+                    {/* <span
                       style={{
                         fontFamily: 'var(--display)',
                         fontSize: 54,
@@ -2057,7 +2264,7 @@ export function LandingPage() {
                       }}
                     >
                       “
-                    </span>
+                    </span> */}
                     <p
                       className="lp17-pretty"
                       style={{
@@ -2204,7 +2411,7 @@ export function LandingPage() {
                   justifyContent: 'center',
                   width: 'max-content',
                   margin: '0 auto 20px',
-                  color: '#65ADCF',
+                  color: '#24729b',
                   background: 'rgba(101,173,207,0.12)',
                   border: '1px solid rgba(101,173,207,0.28)',
                   borderRadius: 999,
@@ -2229,7 +2436,7 @@ export function LandingPage() {
                   textAlign: 'center',
                 }}
               >
-                Real <span style={goldTextGrad}>group programs</span>, built by real people.
+                Real <span style={goldTextGrad}>mentor programs</span>, built by real people.
               </h2>
               {/* Cover-flow carousel: active card centered, neighbours tucked
                   behind in grayscale; dots + side-card clicks + swipe navigate. */}
@@ -2268,8 +2475,10 @@ export function LandingPage() {
                         position: 'absolute',
                         left: '50%',
                         top: 0,
-                        width: 'min(640px, 88vw)',
-                        height: '100%',
+                        width: 'min(280px, 64vw)',
+                        // Keep the stage height in the CSS above in sync with
+                        // this width × ratio, or the carousel reserves dead space.
+                        aspectRatio: '1 / 1.3',
                         transform: transforms[rel],
                         zIndex: rel === 0 ? 3 : rel === 2 ? 0 : 2,
                         opacity: rel === 2 ? 0 : rel === 0 ? 1 : 0.9,
@@ -2284,125 +2493,119 @@ export function LandingPage() {
                     <div
                       className="program-card"
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 0.95fr',
-                        gap: 20,
-                        alignItems: 'stretch',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        textAlign: 'center',
+                        gap: 'clamp(8px,2.5%,16px)',
                         height: '100%',
-                        borderRadius: 16,
-                        padding: 24,
+                        borderRadius: 20,
+                        border: 'none',
+                        boxShadow: '0 18px 44px rgba(34,41,61,0.07)',
+                        backdropFilter: 'blur(6px)',
+                        WebkitBackdropFilter: 'blur(6px)',
+                        padding: 'clamp(18px,6%,28px)',
                         ...prog.cardStyle,
                       }}
                     >
-                      <div>
-                        <p
+                       <p
+                        style={{
+                          fontSize: 'clamp(15px,1.2vw,18px)',
+                          fontWeight: 700,
+                          letterSpacing: '0.05em',
+                          lineHeight: 1.28,
+                          color: prog.guideColor,
+                          margin: 0,
+                        }}
+                      >
+                        {prog.guide}
+                      </p>
+                      <div
+                        style={{
+                          width: 'clamp(104px,45%,150px)',
+                          aspectRatio: '1 / 1',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          background: 'rgba(0,0,0,0.05)',
+                          flex: '0 0 auto',
+                        }}
+                      >
+                        
+                        <img
+                          className="lp17-guide-img"
+                          src={prog.img}
+                          alt={prog.guide}
                           style={{
-                            fontFamily: "'JetBrains Mono',monospace",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            letterSpacing: '0.14em',
-                            textTransform: 'uppercase',
-                            color: prog.tagColor,
-                            margin: '0 0 14px',
+                            position: 'absolute',
+                            maxWidth: 'none',
+                            transform: 'translate(-50%,-50%)',
+                            ...prog.imgBox,
                           }}
-                        >
-                          Live Group Program
-                        </p>
+                        />
+                      </div>
+                     
+                      {/* Title + sub read as one left-aligned block. */}
+                      <div style={{ width: '100%', textAlign: 'center' }}>
                         <h3
+                          className="lp17-pretty"
                           style={{
                             fontFamily: 'var(--display)',
                             fontWeight: 600,
-                            fontSize: 26,
-                            lineHeight: 1.16,
+                            fontSize: 'clamp(19px,1.7vw,20px)',
+                            lineHeight: 1.18,
                             color: prog.titleColor,
-                            margin: '0 0 12px',
+                            margin: '0 0 7px',
                           }}
                         >
                           {prog.title}
                         </h3>
-                        <p style={{ fontSize: 14.5, lineHeight: 1.5, color: prog.subColor, margin: 0 }}>
+                        <p
+                          className="lp17-pretty"
+                          style={{
+                            fontFamily: 'var(--display)',
+                            fontWeight: 400,
+                            fontSize: 'clamp(12px,1.05vw,14.5px)',
+                            lineHeight: 1.34,
+                            color: prog.titleColor,
+                            opacity: 0.86,
+                            margin: 0,
+                          }}
+                        >
                           {prog.sub}
                         </p>
                       </div>
-                      <div style={{ borderRadius: 12, padding: 16, ...prog.panelStyle }}>
-                        <p
-                          style={{
-                            fontFamily: "'JetBrains Mono',monospace",
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            letterSpacing: '0.13em',
-                            textTransform: 'uppercase',
-                            color: prog.guideLabelColor,
-                            margin: '0 0 12px',
-                          }}
-                        >
-                          Meet Your Guide
-                        </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 14, alignItems: 'center' }}>
-                          <div
-                            style={{
-                              width: 64,
-                              height: 64,
-                              borderRadius: '50%',
-                              overflow: 'hidden',
-                              position: 'relative',
-                              background: 'rgba(0,0,0,0.04)',
-                            }}
-                          >
-                            <img
-                              className="lp17-guide-img"
-                              src={prog.img}
-                              alt={prog.guide}
-                              style={{
-                                position: 'absolute',
-                                maxWidth: 'none',
-                                transform: 'translate(-50%,-50%)',
-                                ...prog.imgBox,
-                              }}
-                            />
-                          </div>
-                          <p style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, color: prog.guideColor, margin: 0 }}>
-                            {prog.guide}
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
-                          {(prog.bullets ?? [null, null, null]).map((bullet, bi) => (
-                            <span
-                              key={bi}
-                              style={
-                                bullet
-                                  ? { display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 10, lineHeight: 1.4, color: prog.bulletColor }
-                                  : { display: 'flex', alignItems: 'center', gap: 10 }
-                              }
-                            >
-                              <svg
-                                width={13}
-                                height={13}
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke={prog.checkColor}
-                                strokeWidth={3.2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                style={bullet ? { flex: '0 0 auto', marginTop: 2 } : { flex: '0 0 auto' }}
-                              >
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                              {bullet ?? (
-                                <span
-                                  style={{
-                                    flex: 1,
-                                    height: 7,
-                                    borderRadius: 99,
-                                    background: '#E3D9D1',
-                                    ...(bi === 2 ? { width: '80%' } : {}),
-                                  }}
-                                />
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                      <a
+                        className="lp17-prog-cta"
+                        href={prog.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        // Only the centred card is interactive; the side cards
+                        // act as "bring me to front" targets.
+                        tabIndex={rel === 0 ? undefined : -1}
+                        onClick={(e) => {
+                          if (rel !== 0) e.preventDefault();
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          textDecoration: 'none',
+                          fontSize: 'clamp(13px,1.05vw,15px)',
+                          fontWeight: 700,
+                          color: prog.guideColor,
+                          background: 'rgba(255,255,255,0.72)',
+                          border: '1px solid rgba(36,114,155,0.28)',
+                          borderRadius: 12,
+                          padding: '11px 18px',
+                          width: '100%',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {prog.firstName}’s Program <span aria-hidden="true">→</span>
+                      </a>
                     </div>
                     </div>
                   );
@@ -2549,17 +2752,34 @@ export function LandingPage() {
                   textDecoration: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  position: 'relative',
-                  marginBottom: 16,
+                  gap: 9,
+                  position: 'relative'
                 }}
               >
-                <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 22, color: '#4A4A52' }}>
-                  Abundance<span style={{ color: '#F59C30' }}>AI</span>
+                <img
+                  className="lp17-logo-star lp17-logo-star-footer"
+                  src={ASSET.star}
+                  alt=""
+                  aria-hidden="true"
+                  style={{
+                    width: 66,
+                    height: 66,
+                    flex: '0 0 auto',
+                    objectFit: 'contain',
+                    marginLeft: -14,
+                    marginRight: -26,
+                    transform: 'translateY(-11px)',
+                  }}
+                />
+                <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 29, color: '#4A4A52', margin: '0 0 5px' }}>
+                    Abundance<span style={{ color: '#F59C30' }}>AI</span>
+                  </span>
+                  <span style={{ fontSize: 14, lineHeight: 1, color: '#4A4A52', maxWidth: '24ch' }}>
+                    A Human-First AI Platform
+                  </span>
                 </span>
               </a>
-              <p style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A52', margin: '0 0 18px', maxWidth: '24ch' }}>
-                Build your knowledge. Impact more lives.
-              </p>
             </div>
             {FOOT_COLS.map((col) => (
               <div key={col.heading}>
@@ -2573,7 +2793,7 @@ export function LandingPage() {
                         key={link.label}
                         to={link.href}
                         className="footlink"
-                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52' }}
+                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52', }}
                       >
                         {link.label}
                       </Link>
@@ -2582,7 +2802,7 @@ export function LandingPage() {
                         key={link.label}
                         href={link.href}
                         className="footlink"
-                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52' }}
+                        style={{ textDecoration: 'none', fontSize: 14, color: '#4A4A52', }}
                       >
                         {link.label}
                       </a>
@@ -2593,11 +2813,11 @@ export function LandingPage() {
             ))}
             <div>
               <p className="eyebrow" style={{ color: '#65ADCF', margin: '0 0 16px' }}>
-                Stay Inspired
+                Stay Updated
               </p>
-              <p style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A52', margin: '0 0 14px' }}>
+              {/* <p style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A52', margin: '0 0 14px' }}>
                 Get tips, stories, and updates to grow your impact.
-              </p>
+              </p> */}
               <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="email"
