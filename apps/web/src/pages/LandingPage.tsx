@@ -51,7 +51,7 @@ const NAV_LINKS = [
   { label: 'How It Works', href: '#how', section: 'how' },
   { label: 'What You Get', href: '#pillars', section: 'pillars' },
   { label: 'Pricing', href: '#start-today', section: 'start-today' },
-  { label: 'Community', href: '#join-community', section: 'join-community' },
+  { label: 'Community', href: 'https://t.me/AbundanceAI' },
 ] as const;
 
 const WHO_CARDS = [
@@ -2010,7 +2010,7 @@ export function LandingPage() {
         {/* ===================== COMMUNITY / TELEGRAM =====================
             NB: the "Who It's For" band already owns id="community", so this
             section uses its own id to keep the nav scroll-spy correct. */}
-        <section
+        {/* <section
           id="join-community"
           style={{
             position: 'relative',
@@ -2098,7 +2098,7 @@ export function LandingPage() {
               Join us on Telegram
             </a>
           </div>
-        </section>
+        </section> */}
 
         {/* flowing divider into the testimonials */}
         <div
