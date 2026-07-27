@@ -9,7 +9,7 @@ import { Logo } from '@/layouts/PublicLayout';
 import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { priceLabel } from '@/lib/money';
-import { freeOfferOpen, tryFreeLabel, discountedPriceCents, FREE_OFFER_DISCOUNT_PCT } from '@/lib/freeOffer';
+import { freeOfferOpen, tryFreeLabel } from '@/lib/freeOffer';
 import { env } from '@/lib/env';
 import { resolveLanding, landingBackground, landingRadii, externalHref, heroGradient } from '@/lib/landingTheme';
 import { LegalLink } from '@/components/LegalLink';
@@ -113,9 +113,8 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
   const price = priceLabel(program.price_cents);
   // A time-limited offer on a paid program — advertised beside the price so
   // visitors know both options exist before they open the sheet: try the first
-  // session free, or enroll now for a discount off the full fee.
+  // session free, or enroll at the full program fee.
   const freeOpen = freeOfferOpen(program) && program.price_cents > 0;
-  const enrollPrice = priceLabel(freeOpen ? discountedPriceCents(program.price_cents) : program.price_cents);
   const subtitle = settings.tagline?.trim()
     || modules[0]?.outcome
     || `A step-by-step program from ${creator.first_name}, built to move you forward.`;
@@ -160,28 +159,18 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
             </div>
 
             {freeOpen && (
-              <div className="mt-5 flex flex-wrap items-center gap-2">
+              <div className="mt-5">
                 <span
                   className="inline-flex items-center rounded-pill px-3 py-1 text-caption font-semibold uppercase tracking-wide"
                   style={{ backgroundColor: `${t.accent}1A`, color: t.accent }}
                 >
                   {tryFreeLabel(program.free_offer_until)}
                 </span>
-                <span
-                  className="inline-flex items-center rounded-pill px-3 py-1 text-caption font-semibold uppercase tracking-wide"
-                  style={{ backgroundColor: `${t.accent}1A`, color: t.accent }}
-                >
-                  or enroll now · {FREE_OFFER_DISCOUNT_PCT}% off
-                </span>
               </div>
             )}
 
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              <span className="flex items-baseline gap-2">
-                <span className={`text-display ${headingFont}`} style={{ color: t.primary }}>{enrollPrice}</span>
-                {/* Original fee struck through while the enroll discount is live. */}
-                {freeOpen && <span className="text-h3 line-through" style={{ color: t.inkSoft }}>{price}</span>}
-              </span>
+              <span className={`text-display ${headingFont}`} style={{ color: t.primary }}>{price}</span>
               <div className="w-full max-w-[220px]">
                 <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel}</Button>
               </div>
@@ -271,7 +260,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
       <section className="mx-auto max-w-[1200px] px-6 lg:px-8 pt-6 pb-16 text-center">
         <h2 className={`mx-auto max-w-xl text-h1 ${headingFont}`} style={{ color: t.inkDeep }}>{closingHeading}</h2>
         <div className="mx-auto mt-6 max-w-[280px]">
-          <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel} · {enrollPrice}</Button>
+          <Button size="lg" style={btnStyle} iconRight={<ArrowRight width={20} height={20} />} onClick={onEnroll}>{ctaLabel} · {price}</Button>
         </div>
       </section>
 
@@ -312,18 +301,15 @@ function EnrollSheet({
   const useStripeFlow = !env.useMocks && !!env.stripePublishableKey;
   const isFullyFree = data.program.price_cents === 0;
   // A paid program whose time-limited free offer is open → the buyer gets to
-  // choose: try the first session free, or enroll now for a discount off the fee.
+  // choose: try the first session free, or enroll at the full program fee.
   // (A fully-free program has no choice; neither does a paid program with no open offer.)
   const hasChoice = !isFullyFree && freeOfferOpen(data.program);
-  const fullPrice = priceLabel(data.program.price_cents);
-  // What the buyer actually pays to enroll: discounted while the offer is open,
-  // full price otherwise. The server re-computes this, so it can't be spoofed.
-  const price = priceLabel(hasChoice ? discountedPriceCents(data.program.price_cents) : data.program.price_cents);
+  const price = priceLabel(data.program.price_cents);
   const payLabel = hasChoice ? `Enroll · ${price}` : `Pay ${price}`;
   const headerSummary = isFullyFree
     ? 'Free'
     : hasChoice
-      ? `Try the first session free, or enroll for ${price} (${FREE_OFFER_DISCOUNT_PCT}% off)`
+      ? `Try the first session free, or enroll for ${price}`
       : `${price} one-time`;
 
   // Return to the contact step, dropping any half-created payment session.
@@ -483,9 +469,7 @@ function EnrollSheet({
         <>
           <p className="text-caption font-medium uppercase tracking-wide text-accent">Payment</p>
           <p className="mt-1 text-body-sm text-ink-secondary">
-            {price}
-            {hasChoice && <span className="ml-1.5 text-ink-secondary/70 line-through">{fullPrice}</span>}
-            {' · '}{data.program.title}
+            {price}{' · '}{data.program.title}
           </p>
           <div className="mt-4">
             {stripeReady ? (

@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
       return errorResponse('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.', 409);
     }
 
-    // Paid enrollments during the open window pay the discounted promo fee — the
-    // same figure enroll-session charged; the discount can't be spoofed here.
-    const amountCents = enrollAmountCents(program.price_cents, { isFree: isFreeEnrollment, windowOpen });
+    // Free enrollments record $0; paid enrollments record the full program fee
+    // (the free offer adds a $0 option, not a discount).
+    const amountCents = enrollAmountCents(program.price_cents, { isFree: isFreeEnrollment });
 
     // With real Stripe, confirm the charge succeeded before recording a paid spot.
     // Free enrollments and mock/demo payment ids (pi_mock_*) skip this — there's

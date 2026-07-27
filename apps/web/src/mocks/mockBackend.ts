@@ -22,7 +22,7 @@ import type {
   Category,
 } from '@abundance/shared';
 import { AbundanceApiError, MARKETING_ROUNDS_PER_MONTH, marketingRoundsUsedThisMonth } from '@abundance/shared';
-import { freeOfferOpen, discountedPriceCents } from '@/lib/freeOffer';
+import { freeOfferOpen } from '@/lib/freeOffer';
 import { MOCK } from './mockData';
 
 const KEY = 'abundance_mock_state_v1';
@@ -277,9 +277,8 @@ export function createMockBackend(): Backend {
         throw new AbundanceApiError('not_found', "This program isn't available.");
       }
       // No real Stripe in the mock — the landing page shows the demo pay form.
-      // While the free-offer window is open, enrolling is discounted (mirrors live).
-      const chargeCents = freeOfferOpen(p) ? discountedPriceCents(p.price_cents) : p.price_cents;
-      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: chargeCents, publishable_key: '', stripe_account: null, stripe: false };
+      // Enrolling pays the full program fee (the free offer only adds a $0 option).
+      return { client_secret: null, payment_intent_id: `pi_mock_${Date.now()}`, amount_cents: p.price_cents, publishable_key: '', stripe_account: null, stripe: false };
     },
     async enroll(req) {
       await delay(600);
@@ -294,8 +293,7 @@ export function createMockBackend(): Backend {
       if (req.free === true && !isFreeEnrollment) {
         throw new AbundanceApiError('free_offer_closed', 'The free enrollment window has closed — please enroll with payment.');
       }
-      // Paid enrollments during the open window pay the discounted promo fee.
-      const amountCents = isFreeEnrollment ? 0 : (windowOpen ? discountedPriceCents(p.price_cents) : p.price_cents);
+      const amountCents = isFreeEnrollment ? 0 : p.price_cents;
       state.enrollments.unshift({
         id: uid(), program_id: p.id, creator_id: p.user_id,
         name: req.name, email: req.email, contact: req.contact,
