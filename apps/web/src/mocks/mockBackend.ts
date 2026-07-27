@@ -483,6 +483,9 @@ export function createMockBackend(): Backend {
       async signInWithMagicLink() {
         await delay(300);
       },
+      async sendPasswordReset() {
+        await delay(300);
+      },
       async updatePassword() {
         await delay(400);
       },
