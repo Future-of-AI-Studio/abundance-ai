@@ -177,23 +177,23 @@ export function LandingStudioPage() {
             Make the page participants see yours - colors, style, and the words that greet them.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {liveReady && (
             liveUrl ? (
-              <a href={liveUrl} target="_blank" rel="noreferrer">
-                <Button variant="secondary" size="md" fullWidth={false} iconRight={<ArrowRight width={16} height={16} />}>
-                  View live program page
+              <a href={liveUrl} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none">
+                <Button variant="secondary" size="md" iconRight={<ArrowRight width={16} height={16} />}>
+                  View live page
                 </Button>
               </a>
             ) : (
-              <Tooltip label="Connect your Stripe account first so enrollments can pay you, then your program page goes live.">
-                <Button variant="secondary" size="md" fullWidth={false} disabled iconLeft={<LockIcon width={15} height={15} />} iconRight={<ArrowRight width={16} height={16} />}>
-                  View live program page
+              <Tooltip label="Connect your Stripe account first so enrollments can pay you, then your program page goes live." className="flex-1 sm:flex-none">
+                <Button variant="secondary" size="md" disabled iconLeft={<LockIcon width={15} height={15} />} iconRight={<ArrowRight width={16} height={16} />}>
+                  View live page
                 </Button>
               </Tooltip>
             )
           )}
-          <Button size="md" fullWidth={false} loading={saving} disabled={!dirty} onClick={save}>
+          <Button size="md" fullWidth={false} loading={saving} disabled={!dirty} onClick={save} className="flex-1 sm:flex-none">
             {dirty ? 'Save changes' : 'Saved'}
           </Button>
         </div>
@@ -407,7 +407,7 @@ export function LandingStudioPage() {
               <span className="text-caption text-ink-secondary">Showing sample content until your program is ready</span>
             )}
           </div>
-          <div className="overflow-hidden rounded-xl border border-line shadow-sm lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto">
+          <div className="max-h-[70dvh] overflow-y-auto rounded-xl border border-line shadow-sm lg:max-h-[calc(100dvh-10rem)]">
             <ScaledPreview>
               <LandingView data={previewData} onEnroll={() => { /* preview only */ }} />
             </ScaledPreview>
@@ -453,38 +453,66 @@ function ChoiceRow<V extends string>({
   );
 }
 
-// Renders children at desktop width (1200px) scaled down to fit the pane, so the
-// preview shows the real desktop layout. Height tracks the scaled content.
-const PREVIEW_W = 1200;
+// Reactive media-query hook — true while the query matches. Used to pick the
+// preview's device width so it tracks the editor's own breakpoint.
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const onChange = () => setMatches(mql.matches);
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, [query]);
+  return matches;
+}
+
+// Renders the real landing page at a fixed logical width, scaled to fit the pane.
+// LandingView's responsive classes key off the *viewport* (not this width), so a
+// phone-sized editor already lays the page out for mobile — we just size the
+// canvas to a phone (390px, ~1:1) instead of cramming the 1200px desktop canvas
+// into the narrow pane. On desktop (lg+) we keep the 1200px canvas, scaled to
+// fill the pane. Height tracks the scaled content; the phone canvas is centered.
+const DESKTOP_W = 1200;
+const MOBILE_W = 390;
 
 function ScaledPreview({ children }: { children: ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.5);
-  const [height, setHeight] = useState(600);
+  const [dims, setDims] = useState({ scale: 0.5, height: 600, width: 0 });
+  // Same 1024px cutover as Tailwind's `lg:` — where LandingView flips to desktop.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const deviceW = isDesktop ? DESKTOP_W : MOBILE_W;
 
   useLayoutEffect(() => {
     const measure = () => {
-      const w = outerRef.current?.clientWidth ?? PREVIEW_W;
-      const s = w / PREVIEW_W;
-      setScale(s);
-      setHeight((innerRef.current?.offsetHeight ?? 1200) * s);
+      const w = outerRef.current?.clientWidth ?? deviceW;
+      // Desktop fills the pane; the phone canvas never magnifies past 1:1.
+      const scale = isDesktop ? w / deviceW : Math.min(1, w / deviceW);
+      setDims({
+        scale,
+        height: (innerRef.current?.offsetHeight ?? deviceW) * scale,
+        width: deviceW * scale,
+      });
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (outerRef.current) ro.observe(outerRef.current);
     if (innerRef.current) ro.observe(innerRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [deviceW, isDesktop]);
 
   return (
     <div ref={outerRef} className="w-full overflow-hidden">
-      <div style={{ height }}>
+      {/* Centered so the phone canvas sits mid-pane when the pane is wider than it. */}
+      <div className="mx-auto" style={{ height: dims.height, width: dims.width || undefined }}>
         <div
           ref={innerRef}
           className="pointer-events-none select-none"
           aria-hidden
-          style={{ width: PREVIEW_W, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+          style={{ width: deviceW, transform: `scale(${dims.scale})`, transformOrigin: 'top left' }}
         >
           {children}
         </div>

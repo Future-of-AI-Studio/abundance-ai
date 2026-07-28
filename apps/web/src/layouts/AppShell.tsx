@@ -2,6 +2,7 @@ import { Outlet, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useApp } from '@/store';
 import { useUnsaved } from '@/store/unsaved';
 import { Avatar, Button, Sheet, Spinner, BottomTabBar, SideNav } from '@/components/ui';
+import { HelpIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 
 // Authenticated shell. Mobile: top greeting bar (avatar→Account) + persistent
@@ -51,12 +52,23 @@ export function AppShell() {
           <p className="text-body-sm text-ink-secondary">
             Good to see you, <span className="font-medium text-ink">{firstName}</span>
           </p>
-          <button
-            onClick={() => { if (!guard(() => navigate('/app/account'))) navigate('/app/account'); }}
-            aria-label="Account"
-          >
-            <Avatar name={firstName} src={profile?.avatar_url} size={36} />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Guidance — the side rail carries it on desktop; on mobile it lives
+                here beside the avatar (Account) as the header's secondary actions. */}
+            <button
+              onClick={() => { if (!guard(() => navigate('/app/help'))) navigate('/app/help'); }}
+              aria-label="Guidance"
+              className="flex h-9 w-9 items-center justify-center rounded-pill text-ink-secondary transition-colors hover:bg-surface hover:text-ink"
+            >
+              <HelpIcon width={22} height={22} />
+            </button>
+            <button
+              onClick={() => { if (!guard(() => navigate('/app/account'))) navigate('/app/account'); }}
+              aria-label="Account"
+            >
+              <Avatar name={firstName} src={profile?.avatar_url} size={36} />
+            </button>
+          </div>
         </div>
       </header>
 
