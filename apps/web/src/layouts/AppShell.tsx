@@ -15,11 +15,15 @@ export function AppShell() {
   const location = useLocation();
   const { ready, user, profile } = useApp();
   const { pending, guard, confirmPending, cancelPending } = useUnsaved();
-  // Full-height routes (the Mindset conversation) manage their own scrolling: on
-  // desktop the shell becomes a fixed-viewport flex column with a padding-less
-  // main, so the page's header/thread/composer can flex-fill the screen with no
-  // leftover bands. The page supplies its own padding.
+  // Full-height routes (the Mindset conversation) manage their own scrolling: the
+  // shell becomes a fixed-viewport flex column with a padding-less main — on every
+  // breakpoint — so the page's header/thread/composer flex-fill the screen with no
+  // leftover bands and the composer stays pinned above the mobile tab bar. The page
+  // supplies its own padding.
   const fullHeight = location.pathname === '/app/mindset';
+  // Home has its own greeting header (name + day counter + account avatar), so the
+  // generic mobile greeting bar would duplicate it — suppress it on that route.
+  const isHome = location.pathname === '/app';
 
   const loading = (
     <div className="flex min-h-[100dvh] items-center justify-center bg-bg text-primary">
@@ -37,11 +41,12 @@ export function AppShell() {
   const firstName = profile?.first_name ?? 'there';
 
   return (
-    <div className={cn('min-h-[100dvh] bg-bg', fullHeight && 'lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden')}>
+    <div className={cn('min-h-[100dvh] bg-bg', fullHeight && 'flex h-[100dvh] flex-col overflow-hidden')}>
       <SideNav firstName={firstName} avatarUrl={profile?.avatar_url} />
 
-      {/* Mobile-only greeting bar — the side rail carries identity on desktop. */}
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur lg:hidden">
+      {/* Mobile-only greeting bar — the side rail carries identity on desktop, and
+          Home carries its own greeting header, so it's hidden there. */}
+      <header className={cn('sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur lg:hidden', isHome && 'hidden')}>
         <div className="mx-auto flex max-w-frame items-center justify-between px-5 py-3">
           <p className="text-body-sm text-ink-secondary">
             Good to see you, <span className="font-medium text-ink">{firstName}</span>
@@ -57,11 +62,11 @@ export function AppShell() {
 
       {/* Reserve the rail width on desktop, then let content fill the space beside
           it (capped so line lengths stay sane on ultra-wide monitors). */}
-      <div className={cn('lg:pl-64', fullHeight && 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col')}>
+      <div className={cn('lg:pl-64', fullHeight && 'flex min-h-0 flex-1 flex-col')}>
         <main
           className={cn(
             fullHeight
-              ? 'w-full lg:flex lg:min-h-0 lg:flex-1 lg:flex-col'
+              ? 'flex w-full min-h-0 flex-1 flex-col'
               : 'mx-auto w-full max-w-[1720px] px-5 pb-28 pt-4 lg:px-8 lg:pb-16 lg:pt-12',
           )}
         >

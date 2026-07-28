@@ -8,7 +8,7 @@ import { HomeIcon, ProgramIcon, UsersIcon, HeartIcon, CircleTabIcon } from './ic
 const TABS = [
   { to: '/app', label: 'Home', Icon: HomeIcon, end: true },
   { to: '/app/program', label: 'Program', Icon: ProgramIcon, end: false },
-  { to: '/app/students', label: 'Students', Icon: UsersIcon, end: false },
+  { to: '/app/students', label: 'Participants', Icon: UsersIcon, end: false },
   { to: '/app/mindset', label: 'Mindset', Icon: HeartIcon, end: false },
   { to: '/app/circle', label: 'Circle', Icon: CircleTabIcon, end: false },
 ];

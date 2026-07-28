@@ -223,29 +223,28 @@ export function MindsetPage() {
       ?? 'New conversation';
 
     return (
-      <div className="flex flex-col bg-bg lg:min-h-0 lg:flex-1">
+      <div className="flex min-h-0 flex-1 flex-col bg-bg">
         {/* Header — back · title · save */}
-        <header className="flex items-center gap-3 border-b border-line bg-surface-plain px-5 py-3.5 lg:px-8">
-          <div className="flex flex-1 justify-start">
-            <button onClick={closeChat} className="inline-flex items-center gap-1.5 text-body-sm text-ink-secondary hover:text-ink">
-              <ArrowLeft width={18} height={18} /> Back
-            </button>
-          </div>
-          <div className="min-w-0 max-w-[55%] text-center">
+        <header className="flex items-center gap-2 border-b border-line bg-surface-plain px-4 py-3 sm:gap-3 sm:px-5 sm:py-3.5 lg:px-8">
+          <button onClick={closeChat} aria-label="Back" className="inline-flex shrink-0 items-center gap-1.5 text-body-sm text-ink-secondary hover:text-ink">
+            <ArrowLeft width={18} height={18} /> <span className="hidden sm:inline">Back</span>
+          </button>
+          <div className="min-w-0 flex-1 text-center">
             <p className="font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Mindset conversation</p>
             <p className="truncate text-body font-semibold text-ink">&ldquo;{chatTitle}&rdquo;</p>
           </div>
-          <div className="flex flex-1 justify-end">
-            {canSave && (
-              <Button size="sm" variant="secondary" fullWidth={false} loading={saving} onClick={saveReflection}>
-                Save as reflection
-              </Button>
-            )}
-          </div>
+          {canSave ? (
+            <Button size="sm" variant="secondary" fullWidth={false} aria-label="Save as reflection" className="shrink-0 whitespace-nowrap" loading={saving} onClick={saveReflection}>
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Save as reflection</span>
+            </Button>
+          ) : (
+            <span className="w-7 shrink-0" aria-hidden />
+          )}
         </header>
 
         {/* Thread */}
-        <div className="overflow-y-auto px-5 py-6 lg:min-h-0 lg:flex-1 lg:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 lg:px-8">
           <div className="mx-auto flex max-w-3xl flex-col gap-5">
             <div className="flex justify-center">
               <span className="rounded-pill bg-surface px-3 py-1 text-caption text-ink-secondary">
@@ -260,7 +259,7 @@ export function MindsetPage() {
             {messages.map((m) => (
               m.role === 'user' ? (
                 <div key={m.id} className="flex justify-end">
-                  <div className="max-w-[80%] whitespace-pre-wrap rounded-lg bg-primary px-4 py-2.5 text-body text-white">
+                  <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-lg bg-primary px-4 py-2.5 text-body text-white">
                     {m.content}
                   </div>
                 </div>
@@ -271,7 +270,7 @@ export function MindsetPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="mb-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-accent">Mindset</p>
-                    <div className="whitespace-pre-wrap rounded-lg border border-line bg-surface-plain px-4 py-3 text-body text-ink shadow-sm">
+                    <div className="whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-plain px-4 py-3 text-body text-ink shadow-sm">
                       {m.content}
                     </div>
                   </div>
@@ -293,9 +292,9 @@ export function MindsetPage() {
           </div>
         </div>
 
-        {/* Composer — pinned to the bottom on desktop; on mobile it flows with
-            room to clear the fixed tab bar. */}
-        <div className="border-t border-line bg-surface-plain px-5 pb-28 pt-4 lg:px-8 lg:pb-4">
+        {/* Composer — pinned to the bottom of the full-height column on every
+            breakpoint; extra bottom padding on mobile clears the fixed tab bar. */}
+        <div className="border-t border-line bg-surface-plain px-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-4">
           <div className="mx-auto max-w-3xl">
             {saveNotice && (
               <Card variant="plain" className="mb-3 border-accent/20 bg-success-bg/40 text-center">
@@ -329,7 +328,7 @@ export function MindsetPage() {
                   onSubmit={(e) => { e.preventDefault(); void sendChat(chatInput); }}
                 >
                   <TextInput
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                     placeholder="Type a message…"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
@@ -354,7 +353,7 @@ export function MindsetPage() {
   return (
     // Non-chat surface scrolls inside the shell's full-height main. The dashboard
     // spreads wide; the focused states stay in a calm reading column.
-    <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className={cn('mx-auto w-full px-5 pb-28 pt-4 lg:px-8 lg:pb-16 lg:pt-12', isDashboard ? 'max-w-[1720px]' : 'max-w-calm')}>
         <Eyebrow className="mb-2 text-accent">Mindset</Eyebrow>
 
@@ -414,7 +413,7 @@ export function MindsetPage() {
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
               {/* Main — talk it through + the recommended reflection */}
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 {/* Talk it through — open a free-form conversation with the coach */}
                 <Card className="bg-surface-plain">
                   <Eyebrow className="text-accent">Talk it through</Eyebrow>
@@ -425,7 +424,7 @@ export function MindsetPage() {
                     onSubmit={(e) => { e.preventDefault(); if (chatInput.trim()) openNewChat(chatInput.trim()); }}
                   >
                     <TextInput
-                      className="flex-1"
+                      className="min-w-0 flex-1"
                       placeholder="Type a message…"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
@@ -462,7 +461,7 @@ export function MindsetPage() {
               </div>
 
               {/* Rail — weekly progress, recent reflections, past conversations */}
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <Card variant="plain" className="p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-body-sm font-semibold text-ink">Check-ins this week</p>

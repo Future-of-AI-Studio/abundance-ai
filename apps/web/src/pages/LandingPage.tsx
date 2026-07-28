@@ -316,6 +316,30 @@ const PROGRAMS = [
     bulletColor: '#1A1A1A',
     bullets: ['Special Introductory Rate', '4 Live group sessions', 'Group Chat Support'],
   },
+  {
+    title: 'Tired of Being Tired?',
+    sub: 'Understanding What Drains You and Reclaiming Your Energy from the Inside Out',
+    cardStyle: { background: 'linear-gradient(168deg, rgba(232,240,231,0.72), rgba(246,232,222,0.72))' },
+    titleColor: '#2c2b2a',
+    subColor: '#4A4A52',
+    tagColor: '#FF7F50',
+    panelStyle: {
+      background: 'linear-gradient(160deg, #E6EDE4, #F3E4DA)',
+      border: '1px solid rgba(178,90,52,0.14)',
+    },
+    guideLabelColor: '#24729b',
+    guide: 'Karen Weismantle, MD',
+    firstName: 'Karen',
+    url: 'https://www.abundanceai.net/p/2927ec2b-e437-4f19-a69a-000056fb8160',
+    guideColor: '#24729b',
+    img: '/landing/prog-guide-5.webp',
+    // Portrait 3:4 source (2316×3088): width fills, height overflows to cover
+    // the circular frame with a centered vertical crop.
+    imgBox: { width: '100%', height: '133.34%', left: '50%', top: '50%' },
+    checkColor: '#FF7F50',
+    bulletColor: '#1A1A1A',
+    bullets: null,
+  },
 
 ] as const;
 
@@ -412,11 +436,9 @@ const CSS = `
 .lp17 .lp17-play-btn:active { transform: translate(-50%,-50%) scale(1.03) !important; }
 
 /* Cards are a soft portrait panel; stage height tracks card width × ratio. */
-.lp17 .lp17-programs-carousel { position: relative; height: calc(min(280px, 64vw) * 1.3 + 14px); }
+.lp17 .lp17-programs-carousel { position: relative; height: calc(min(280px, 64vw) * 1.22 + 14px); }
 .lp17 .lp17-tg-btn { transition: filter 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
 .lp17 .lp17-tg-btn:hover { filter: brightness(1.06); transform: translateY(-2px); box-shadow: 0 18px 38px rgba(34,158,217,0.44) !important; }
-.lp17 .lp17-prog-cta { transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
-.lp17 .lp17-prog-cta:hover { background: linear-gradient(100deg, #F59C30, #F8BF39) !important; border-color: transparent !important; color: #FFFFFF !important; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(245,156,48,0.38); }
 .lp17 .program-card { transition:transform 260ms cubic-bezier(.22,.61,.36,1), box-shadow 260ms ease, border-color 260ms ease; }
 .lp17 .program-card:hover { transform:translateY(-8px); box-shadow:0 26px 54px rgba(34,41,61,0.14); }
 .lp17 .lp17-guide-img { transition:transform 320ms cubic-bezier(.22,.61,.36,1); }
@@ -468,6 +490,10 @@ const CSS = `
   .lp17 .lp17-hero-block { height: auto !important; }
   .lp17 .lp17-hero-grid { grid-template-columns: 1fr !important; }
   .lp17 .lp17-hero-right { justify-self: center !important; margin-right: 0 !important; }
+  /* The who-band's ~220px top margin reserved room for the desktop wave art;
+     once the band's min-height is dropped on mobile it just reads as dead space,
+     so pull the title up to sit close under the hero. */
+  .lp17 .lp17-who-header { margin-top: clamp(48px, 12vw, 120px) !important; }
 }
 @media (max-width: 859px) {
   .lp17 .lp17-steps { grid-template-columns: repeat(2,1fr) !important; }
@@ -504,7 +530,14 @@ const CSS = `
   .lp17 .lp17-testi-programs-wrap { margin-top: -30px !important; margin-bottom: -16px !important; }
   .lp17 .lp17-testi-programs-wrap img { transform: none !important; }
   .lp17 #how, .lp17 #why-now, .lp17 #pillars, .lp17 #start-today, .lp17 #pricing { margin-top: 0 !important; }
+  /* The who-grid's 141px bottom padding + the band's bottom padding + #how's top
+     padding stacked into dead space here once #how loses its desktop pull-up on
+     phones — trim all three so the sections sit close. */
+  .lp17 .lp17-who-grid { padding-top: 24px !important; padding-bottom: 16px !important; }
+  .lp17 .lp17-who-band { padding-bottom: 24px !important; }
+  .lp17 #how { padding-top: 32px !important; }
   .lp17 #start-today { padding-bottom: 60px !important; }
+  .lp17 .lp17-start-cta { font-size: 17px !important; padding: 16px 32px !important; }
   .lp17 .lp17-why-h2, .lp17 .lp17-why-p { height: auto !important; }
   .lp17 .lp17-pillars-h2 { width: auto !important; }
   .lp17 .lp17-hero-tags span { white-space: normal; }
@@ -537,8 +570,30 @@ const CSS = `
   .lp17 .lp17-who-label { font-size: 13.5px !important; letter-spacing: 0.08em !important; }
   .lp17 .lp17-start-includes { grid-template-columns: 1fr !important; }
 }
-@media (max-width: 419px) {
+@media (max-width: 479px) {
+  /* Two footer columns can't fit here: the brand block (~200px) + the
+     non-wrapping "Stay Updated" eyebrow (~130px) + gap overflow the width and
+     push the email form off-screen. Stack to one column instead. */
   .lp17 .lp17-foot-grid { grid-template-columns: 1fr !important; }
+}
+/* Small phones (iPhone SE / 375 and below): the nav has no links here (hidden
+   ≤1039), so only logo + Join + Log In remain — tighten them so they never
+   crowd or clip, and reclaim the hero's fixed side padding for the long CTA. */
+@media (max-width: 440px) {
+  .lp17 .lp17-nav { padding: 12px 16px !important; }
+  .lp17 .lp17-nav-inner { gap: 10px !important; }
+  .lp17 .lp17-nav-actions { gap: 12px !important; }
+  .lp17 .lp17-logo-text { font-size: 22px !important; }
+  .lp17 .lp17-logo-tagline { display: none !important; }
+  .lp17 .lp17-logo-star {
+    width: 44px !important; height: 44px !important;
+    margin-left: -8px !important; margin-right: -12px !important;
+    transform: translateY(-2px) !important;
+  }
+  .lp17 .lp17-join-btn { padding: 9px 14px !important; font-size: 12px !important; }
+  .lp17 #home { padding-left: 20px !important; padding-right: 20px !important; }
+  .lp17 .lp17-hero-cta { padding: 14px 22px !important; font-size: 15px !important; }
+  .lp17 .lp17-start-cta { font-size: 15px !important; padding: 14px 24px !important; }
 }
 `;
 
@@ -623,7 +678,7 @@ export function LandingPage() {
     }
 
     // "Who is this for": card highlight sequence + wave art reveal.
-    const whoHeader = root.querySelector('#community .scroll-fade');
+    const whoHeader = root.querySelector('#who-is-this-for .scroll-fade');
     if (whoHeader) {
       let played = false;
       const io = new IntersectionObserver(
@@ -787,6 +842,7 @@ export function LandingPage() {
                 Abundance<span style={{ color: '#F59C30' }}>AI</span>
               </span>
               <span
+                className="lp17-logo-tagline"
                 style={{
                   fontFamily: 'var(--body)',
                   fontWeight: 1000,
@@ -955,7 +1011,7 @@ export function LandingPage() {
                   lineHeight: 1.45,
                 }}
               >
-                You already have the knowledge. <br />
+                You already have the knowledge. <br /><br />
                 AbundanceAI gives you the tools to build a real online program.
               </p>
               <div
@@ -978,7 +1034,7 @@ export function LandingPage() {
               >
                 <a
                   href="#start-today"
-                  className="btn-gold"
+                  className="btn-gold lp17-hero-cta"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1162,7 +1218,7 @@ export function LandingPage() {
             }}
           >
             <div
-              className="reveal scroll-fade"
+              className="reveal scroll-fade lp17-who-header"
               style={{
                 position: 'relative',
                 zIndex: 3,
@@ -1975,7 +2031,7 @@ export function LandingPage() {
             </div>
             <button
               onClick={start}
-              className="btn-gold"
+              className="btn-gold lp17-start-cta"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -2459,7 +2515,11 @@ export function LandingPage() {
                 {PROGRAMS.map((prog, i) => {
                   const n = PROGRAMS.length;
                   const r = (((i - programIdx) % n) + n) % n;
-                  const rel = r === n - 1 ? -1 : r; // -1 left, 0 center, 1 right, 2 hidden
+                  // -1 left, 0 center, 1 right, 2 hidden-behind. Anything that
+                  // isn't the center or an immediate neighbour collapses to the
+                  // hidden slot, so the strip works for any card count (n ≥ 5
+                  // now has multiple hidden cards, not just one).
+                  const rel = r === 0 ? 0 : r === 1 ? 1 : r === n - 1 ? -1 : 2;
                   const transforms: Record<number, string> = {
                     [-1]: 'translateX(calc(-50% - 56%)) scale(0.8)',
                     0: 'translateX(-50%) scale(1)',
@@ -2470,7 +2530,26 @@ export function LandingPage() {
                     <div
                       key={prog.title}
                       aria-hidden={rel === 2 || undefined}
-                      onClick={rel === 0 ? undefined : () => setProgramIdx(i)}
+                      // Center card is a link to the guide's program; side cards
+                      // bring themselves to the front.
+                      role={rel === 0 ? 'link' : undefined}
+                      tabIndex={rel === 0 ? 0 : undefined}
+                      aria-label={rel === 0 ? `Open ${prog.firstName}’s program` : undefined}
+                      onClick={
+                        rel === 0
+                          ? () => window.open(prog.url, '_blank', 'noopener,noreferrer')
+                          : () => setProgramIdx(i)
+                      }
+                      onKeyDown={
+                        rel === 0
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                window.open(prog.url, '_blank', 'noopener,noreferrer');
+                              }
+                            }
+                          : undefined
+                      }
                       style={{
                         position: 'absolute',
                         left: '50%',
@@ -2478,13 +2557,13 @@ export function LandingPage() {
                         width: 'min(280px, 64vw)',
                         // Keep the stage height in the CSS above in sync with
                         // this width × ratio, or the carousel reserves dead space.
-                        aspectRatio: '1 / 1.3',
+                        aspectRatio: '1 / 1.22',
                         transform: transforms[rel],
                         zIndex: rel === 0 ? 3 : rel === 2 ? 0 : 2,
                         opacity: rel === 2 ? 0 : rel === 0 ? 1 : 0.9,
                         filter: rel === 0 ? 'none' : 'grayscale(1)',
                         pointerEvents: rel === 2 ? 'none' : 'auto',
-                        cursor: rel === 0 ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         transition:
                           'transform .55s cubic-bezier(.22,.61,.36,1), opacity .55s ease, filter .55s ease',
                         willChange: 'transform',
@@ -2496,7 +2575,7 @@ export function LandingPage() {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
+                        justifyContent: 'center',
                         textAlign: 'center',
                         gap: 'clamp(8px,2.5%,16px)',
                         height: '100%',
@@ -2523,7 +2602,7 @@ export function LandingPage() {
                       </p>
                       <div
                         style={{
-                          width: 'clamp(104px,45%,150px)',
+                          width: 'clamp(96px,42%,140px)',
                           aspectRatio: '1 / 1',
                           borderRadius: '50%',
                           overflow: 'hidden',
@@ -2576,36 +2655,6 @@ export function LandingPage() {
                           {prog.sub}
                         </p>
                       </div>
-                      <a
-                        className="lp17-prog-cta"
-                        href={prog.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        // Only the centred card is interactive; the side cards
-                        // act as "bring me to front" targets.
-                        tabIndex={rel === 0 ? undefined : -1}
-                        onClick={(e) => {
-                          if (rel !== 0) e.preventDefault();
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          textDecoration: 'none',
-                          fontSize: 'clamp(13px,1.05vw,15px)',
-                          fontWeight: 700,
-                          color: prog.guideColor,
-                          background: 'rgba(255,255,255,0.72)',
-                          border: '1px solid rgba(36,114,155,0.28)',
-                          borderRadius: 12,
-                          padding: '11px 18px',
-                          width: '100%',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {prog.firstName}’s Program <span aria-hidden="true">→</span>
-                      </a>
                     </div>
                     </div>
                   );

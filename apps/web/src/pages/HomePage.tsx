@@ -235,7 +235,7 @@ export function HomePage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         {/* Left column */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Grow your program — share the link. Hidden until Stripe is connected
               (production only): sharing before payouts work would let a participant
               enroll on a program whose payment can't go through. Matches StudentsPage. */}
@@ -324,7 +324,7 @@ export function HomePage() {
         </div>
 
         {/* Right rail */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Recent activity */}
           <section className="rounded-lg border border-line bg-surface-plain p-5 shadow-sm">
             <p className="mb-3 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Recent activity</p>
@@ -336,7 +336,7 @@ export function HomePage() {
                       {a.icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-body-sm text-ink-secondary">{a.title}</p>
+                      <p className="break-words text-body-sm text-ink-secondary">{a.title}</p>
                       <p className="truncate text-caption text-ink-secondary">
                         {timeAgo(a.ts)}{a.meta ? ` · ${a.meta}` : ''}
                       </p>
