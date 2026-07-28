@@ -26,6 +26,7 @@ import { CirclePage } from '@/pages/CirclePage';
 import { AccountPage } from '@/pages/AccountPage';
 import { GalleryPage } from '@/pages/GalleryPage';
 import { HelpPage } from '@/pages/HelpPage';
+import { FaqPage } from '@/pages/FaqPage';
 import { PrivacyPolicyPage } from '@/pages/legal/PrivacyPolicyPage';
 import { TermsOfServicePage } from '@/pages/legal/TermsOfServicePage';
 import { CookiePolicyPage } from '@/pages/legal/CookiePolicyPage';
@@ -49,6 +50,8 @@ export default function App() {
           <Route path="/gallery" element={<GalleryPage />} />
           {/* Public program landing page — the link a creator shares to sell. */}
           <Route path="/p/:programId" element={<ProgramLandingPage />} />
+          {/* Frequently Asked Questions */}
+          <Route path="/faq" element={<FaqPage />} />
           {/* Legal policies */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />

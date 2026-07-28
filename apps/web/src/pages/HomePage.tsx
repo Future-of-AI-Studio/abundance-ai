@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNextStep, trail as journeyTrail } from '@abundance/shared';
 import { useApp } from '@/store';
 import { Skeleton, Avatar } from '@/components/ui';
-import { ArrowRight, CheckIcon, LockIcon, CloseIcon, SparkleIcon, HeartIcon, MegaphoneIcon, ProgramIcon, UsersIcon } from '@/components/ui/icons';
+import { ArrowRight, CheckIcon, LockIcon, CloseIcon, SparkleIcon, HeartIcon, MegaphoneIcon, ProgramIcon, UsersIcon, HelpIcon } from '@/components/ui/icons';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { formatPrice } from '@/lib/money';
 import { env } from '@/lib/env';
@@ -188,9 +188,19 @@ export function HomePage() {
           <h1 className="font-serif text-h1 font-medium text-ink">{greeting}, {firstName}</h1>
           <p className="mt-0.5 font-mono text-eyebrow uppercase tracking-[0.14em] text-ink-secondary">Day {dayCount} of your journey</p>
         </div>
-        <button onClick={() => navigate('/app/account')} aria-label="Account" className="shrink-0">
-          <Avatar name={firstName} src={profile?.avatar_url} size={44} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {/* Guidance — mobile only (the desktop side rail carries it). */}
+          <button
+            onClick={() => navigate('/app/help')}
+            aria-label="Guidance"
+            className="flex h-10 w-10 items-center justify-center rounded-pill text-ink-secondary transition-colors hover:bg-surface hover:text-ink lg:hidden"
+          >
+            <HelpIcon width={22} height={22} />
+          </button>
+          <button onClick={() => navigate('/app/account')} aria-label="Account">
+            <Avatar name={firstName} src={profile?.avatar_url} size={44} />
+          </button>
+        </div>
       </header>
 
       {/* Hero — the single next best step */}
@@ -235,7 +245,7 @@ export function HomePage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         {/* Left column */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Grow your program — share the link. Hidden until Stripe is connected
               (production only): sharing before payouts work would let a participant
               enroll on a program whose payment can't go through. Matches StudentsPage. */}
@@ -324,7 +334,7 @@ export function HomePage() {
         </div>
 
         {/* Right rail */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Recent activity */}
           <section className="rounded-lg border border-line bg-surface-plain p-5 shadow-sm">
             <p className="mb-3 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Recent activity</p>
@@ -336,7 +346,7 @@ export function HomePage() {
                       {a.icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-body-sm text-ink-secondary">{a.title}</p>
+                      <p className="break-words text-body-sm text-ink-secondary">{a.title}</p>
                       <p className="truncate text-caption text-ink-secondary">
                         {timeAgo(a.ts)}{a.meta ? ` · ${a.meta}` : ''}
                       </p>
