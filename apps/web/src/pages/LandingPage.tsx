@@ -2586,6 +2586,15 @@ export function LandingPage() {
                         WebkitBackdropFilter: 'blur(6px)',
                         padding: 'clamp(18px,6%,28px)',
                         ...prog.cardStyle,
+                        // The centered/active card gets the site-blue wash;
+                        // side cards keep their own tint (they render grayscale
+                        // anyway, so this only shows on whichever card is active).
+                        ...(rel === 0
+                          ? {
+                              background:
+                                'linear-gradient(168deg, rgba(150,208,214,0.82), rgba(199,231,233,0.82))',
+                            }
+                          : null),
                       }}
                     >
                        <p
