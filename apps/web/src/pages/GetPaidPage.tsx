@@ -282,7 +282,7 @@ export function GetPaidPage() {
 
             <div className="space-y-2">
               <Button size="lg" iconLeft={<UsersIcon width={18} height={18} />} onClick={() => navigate('/app/students')}>
-                View my students
+                View participants
               </Button>
               <Button size="lg" variant="secondary" loading={openingDashboard} iconLeft={<ShieldIcon width={18} height={18} />} onClick={openDashboard}>
                 Manage on Stripe
