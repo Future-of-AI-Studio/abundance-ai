@@ -347,7 +347,7 @@ const FOOT_COLS = [
   {
     heading: 'Product',
     links: [
-      // { label: 'FAQ', href: '#' },
+      { label: 'FAQ', href: '/faq' },
       { label: 'How It Works', href: '#how' },
       { label: 'Features', href: '#pillars' },
       { label: 'Pricing', href: '#start-today' },
