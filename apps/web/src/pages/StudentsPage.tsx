@@ -95,7 +95,7 @@ export function StudentsPage() {
 
       {/* Share + summary — two columns on desktop */}
       <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-stretch">
-        <Card variant="plain">
+        <Card variant="plain" className="min-w-0">
           <h2 className="text-h3 font-semibold text-ink">Share your program</h2>
           {canShare ? (
             <>
@@ -116,16 +116,16 @@ export function StudentsPage() {
           )}
         </Card>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
-          <Card variant="plain">
-            <p className="font-serif text-display text-ink-deep">{enrollments.length}</p>
+        <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
+          <Card variant="plain" className="min-w-0">
+            <p className="truncate font-serif text-display text-ink-deep">{enrollments.length}</p>
             <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">{enrollments.length === 1 ? 'Participant' : 'Participants'}</p>
             {freeCount > 0 && (
               <p className="mt-1.5 text-caption text-ink-secondary">{paidCount} paid · {freeCount} free</p>
             )}
           </Card>
-          <Card variant="surface">
-            <p className="font-serif text-display text-primary">{formatPrice(total)}</p>
+          <Card variant="surface" className="min-w-0">
+            <p className="truncate font-serif text-display text-primary">{formatPrice(total)}</p>
             <p className="mt-1 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">Enrolled value</p>
           </Card>
         </div>

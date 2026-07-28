@@ -309,8 +309,8 @@ export function AccountPage() {
               </span>
             )}
           </div>
-          <Button variant="secondary" size="md" fullWidth={false} iconLeft={<PencilIcon width={16} height={16} />} onClick={() => { setName(profile?.first_name ?? ''); setCategory(profile?.category ?? 'other'); setCategoryOther(profile?.category_other ?? ''); setBio(profile?.bio ?? ''); setEditOpen(true); }}>
-            Edit profile
+          <Button variant="secondary" size="md" fullWidth={false} aria-label="Edit profile" className="shrink-0 max-sm:gap-0 max-sm:px-3" iconLeft={<PencilIcon width={16} height={16} />} onClick={() => { setName(profile?.first_name ?? ''); setCategory(profile?.category ?? 'other'); setCategoryOther(profile?.category_other ?? ''); setBio(profile?.bio ?? ''); setEditOpen(true); }}>
+            <span className="hidden sm:inline">Edit profile</span>
           </Button>
         </div>
 
@@ -330,7 +330,7 @@ export function AccountPage() {
       {/* Two-column dashboard */}
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         {/* ---- Left column ---- */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Your path */}
           <section>
             <Eyebrow className="mb-3">Your path</Eyebrow>
@@ -384,7 +384,7 @@ export function AccountPage() {
         </div>
 
         {/* ---- Right column ---- */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Account & security */}
           <section>
             <Eyebrow className="mb-3">Account &amp; security</Eyebrow>
