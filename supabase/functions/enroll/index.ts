@@ -10,6 +10,7 @@ import { parseBody, enrollRequestSchema } from '../_shared/contract.ts';
 import { adminClient } from '../_shared/supabase.ts';
 import { stripeClient, stripeConfigured } from '../_shared/stripe.ts';
 import { freeWindowOpen, enrollAmountCents } from '../_shared/pricing.ts';
+import { sendEnrollmentConfirmation } from '../_shared/enrollmentEmails.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
 
     const { data: creator } = await admin
       .from('profiles')
-      .select('first_name')
+      .select('first_name, email')
       .eq('id', program.user_id)
       .maybeSingle();
 
@@ -86,10 +87,26 @@ Deno.serve(async (req) => {
       return errorResponse('enroll_failed', 'We could not complete your enrollment. Please try again.', 502);
     }
 
+    const hostName = creator?.first_name ?? 'your host';
+
+    // Send the confirmation. Two versions — the free-trial email vs the paid
+    // email — are chosen inside sendEnrollmentConfirmation by amount_cents. This
+    // is awaited but never allowed to fail the enrollment: the enrollment row is
+    // already committed, so a send error is logged and swallowed (and is a no-op
+    // when email isn't configured on this project).
+    await sendEnrollmentConfirmation({
+      to: email,
+      participantName: name,
+      programTitle: program.title,
+      hostName,
+      amountCents,
+      replyToHost: creator?.email || undefined,
+    });
+
     return json({
       ok: true,
       program_title: program.title,
-      creator_first_name: creator?.first_name ?? 'your host',
+      creator_first_name: hostName,
       amount_cents: amountCents,
     });
   } catch (err) {
