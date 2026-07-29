@@ -12,7 +12,6 @@ import {
   LockIcon,
   EyeIcon,
   EyeOffIcon,
-  GoogleIcon,
 } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -115,11 +114,6 @@ export function AuthPage() {
     if (next === 'signin') p.set('mode', 'signin');
     else p.delete('mode');
     setParams(p, { replace: true });
-  };
-
-  const onGoogle = () => {
-    // OAuth isn't wired into the backend seam yet — keep the entry point honest.
-    toast.info('Google sign-in is coming soon - continue with email for now.');
   };
 
   // Forgot password — email a reset link for whatever's in the email field.
@@ -252,23 +246,6 @@ export function AuthPage() {
           <p className="mb-6 mt-1.5 text-body-sm text-ink-secondary">
             {isSignup ? 'Then continue to secure $25 checkout.' : 'Pick up right where you left off.'}
           </p>
-
-          {/* Google */}
-          <button
-            type="button"
-            onClick={onGoogle}
-            className="flex w-full items-center justify-center gap-2.5 rounded-[11px] border border-line-strong bg-surface-plain py-3 text-body-sm font-semibold text-ink transition-colors hover:bg-bg"
-          >
-            <GoogleIcon width={18} height={18} />
-            Continue with Google
-          </button>
-
-          {/* divider */}
-          <div className="my-5 flex items-center gap-3.5">
-            <span className="h-px flex-1 bg-line" />
-            <span className="font-mono text-eyebrow uppercase tracking-[0.1em] text-ink-secondary">or with email</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
 
           <form onSubmit={onSubmit} className="flex flex-col" noValidate>
             {/* name (signup only) */}
