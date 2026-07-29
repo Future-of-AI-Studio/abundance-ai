@@ -81,6 +81,7 @@ export const landingPageSettingsSchema = z.object({
   included: z.array(z.string().max(100)).max(8).default([]),
   // Social links shown in the guide card (handle or full URL; empty = hidden).
   social_instagram: z.string().max(200).nullable().default(null),
+  social_facebook: z.string().max(200).nullable().default(null),
   social_linkedin: z.string().max(200).nullable().default(null),
   social_website: z.string().max(200).nullable().default(null),
 });

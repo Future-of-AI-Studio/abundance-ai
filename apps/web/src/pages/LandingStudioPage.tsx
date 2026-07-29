@@ -75,6 +75,7 @@ export function LandingStudioPage() {
     inside_heading: draft.inside_heading?.trim() || null,
     closing_heading: draft.closing_heading?.trim() || null,
     social_instagram: draft.social_instagram?.trim() || null,
+    social_facebook: draft.social_facebook?.trim() || null,
     social_linkedin: draft.social_linkedin?.trim() || null,
     social_website: draft.social_website?.trim() || null,
   };
@@ -378,6 +379,13 @@ export function LandingStudioPage() {
                 maxLength={200}
                 value={draft.social_instagram ?? ''}
                 onChange={(e) => set('social_instagram', e.target.value)}
+              />
+              <TextInput
+                label="Facebook"
+                placeholder="facebook.com/you"
+                maxLength={200}
+                value={draft.social_facebook ?? ''}
+                onChange={(e) => set('social_facebook', e.target.value)}
               />
               <TextInput
                 label="LinkedIn"
