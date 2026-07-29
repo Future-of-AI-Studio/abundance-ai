@@ -6,7 +6,7 @@ import type { Category, ProgramPublicResponse, EnrollResponse } from '@abundance
 import { AbundanceApiError } from '@abundance/shared';
 import { Button, TextInput, Avatar, Sheet, Spinner } from '@/components/ui';
 import { Logo } from '@/layouts/PublicLayout';
-import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
+import { CheckIcon, ShieldIcon, LockIcon, ArrowRight, MailIcon, SparkleIcon, InstagramIcon, FacebookIcon, LinkedInIcon, GlobeIcon } from '@/components/ui/icons';
 import { useApp } from '@/store';
 import { priceLabel } from '@/lib/money';
 import { freeOfferOpen, tryFreeLabel } from '@/lib/freeOffer';
@@ -122,6 +122,7 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
   const included = settings.included.map((s) => s.trim()).filter(Boolean);
   const socials = [
     { label: 'Instagram', value: settings.social_instagram, Icon: InstagramIcon },
+    { label: 'Facebook', value: settings.social_facebook, Icon: FacebookIcon },
     { label: 'LinkedIn', value: settings.social_linkedin, Icon: LinkedInIcon },
     { label: 'Website', value: settings.social_website, Icon: GlobeIcon },
   ].filter((s): s is typeof s & { value: string } => !!s.value?.trim());
