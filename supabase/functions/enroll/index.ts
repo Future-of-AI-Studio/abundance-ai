@@ -10,7 +10,7 @@ import { parseBody, enrollRequestSchema } from '../_shared/contract.ts';
 import { adminClient } from '../_shared/supabase.ts';
 import { stripeClient, stripeConfigured } from '../_shared/stripe.ts';
 import { freeWindowOpen, enrollAmountCents } from '../_shared/pricing.ts';
-import { sendEnrollmentConfirmation } from '../_shared/enrollmentEmails.ts';
+import { sendEnrollmentConfirmation, sendCreatorEnrollmentNotification } from '../_shared/enrollmentEmails.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
@@ -102,6 +102,23 @@ Deno.serve(async (req) => {
       amountCents,
       replyToHost: creator?.email || undefined,
     });
+
+    // Also notify the creator that someone enrolled — free or paid — so they can
+    // follow up. Only when we have their email. Same swallow-on-failure contract as
+    // the participant confirmation: the enrollment is already committed, so a send
+    // error is logged and swallowed (no-op when email isn't configured).
+    if (creator?.email) {
+      await sendCreatorEnrollmentNotification({
+        to: creator.email,
+        hostName,
+        participantName: name,
+        participantEmail: email,
+        participantContact: contact,
+        programTitle: program.title,
+        amountCents,
+        replyToParticipant: email,
+      });
+    }
 
     return json({
       ok: true,
