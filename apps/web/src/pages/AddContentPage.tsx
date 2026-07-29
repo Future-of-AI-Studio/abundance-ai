@@ -381,6 +381,11 @@ export function AddContentPage() {
           ideal participants, why you care, what makes you unique, and how you want to help. AbundanceAI will structure
           and organize it for you.
         </p>
+
+        <p className="mt-5 text-body-sm font-semibold text-ink">The modules are your working guides</p>
+        <p className="mt-1.5 text-body-sm text-ink-secondary">
+          Your module content is for your own reference as you prepare for and lead each live session. <b>Participants will only see the portions you choose to share with them, so there is no need to over-edit or polish it.</b>
+        </p>
       </Card>
 
       {!editing && (
