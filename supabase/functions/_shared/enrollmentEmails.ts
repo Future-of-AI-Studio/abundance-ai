@@ -171,6 +171,78 @@ The AbundanceAI team`;
   return { subject, html: shell({ preheader: `Your enrollment in ${p.programTitle} is confirmed.`, heading: "You're enrolled! 🎉", bodyHtml }), text };
 }
 
+// ── Creator notification: "someone just enrolled" ────────────────────────────
+// Sent to the program's host so they know a participant signed up (free or paid)
+// and can follow up. Carries the participant's contact details; replies route
+// back to the participant.
+export interface CreatorNotificationParams {
+  hostName: string; // creator first name (already defaulted to "there")
+  participantName: string;
+  participantEmail: string;
+  participantContact: string; // may be blank — the Contact row is omitted then
+  programTitle: string;
+  amountCents: number; // 0 for free trial, > 0 for paid
+  appUrl?: string;
+}
+
+export function newEnrollmentCreatorEmail(p: CreatorNotificationParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const host = p.hostName.trim() || 'there';
+  const participant = p.participantName.trim() || 'Someone';
+  const isFree = p.amountCents <= 0;
+  const type = isFree ? 'Free first session' : `Paid — ${formatUsd(p.amountCents)}`;
+  const contact = p.participantContact.trim();
+  const subject = `New enrollment in ${p.programTitle} 🎉`;
+
+  const details = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;padding:16px 18px;background:${CREAM};border-radius:12px;">
+    ${detailRow('Participant', participant)}
+    ${detailRow('Type', type)}
+    ${detailRow('Email', p.participantEmail)}
+    ${contact ? detailRow('Contact', contact) : ''}
+  </table>`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Hi ${esc(host)},</p>
+    <p style="margin:0 0 16px;">Good news — <strong>${esc(participant)}</strong> just enrolled in <strong>${esc(p.programTitle)}</strong>${isFree ? ' with a free first session' : ''}.</p>
+    ${details}
+    <p style="margin:0 0 16px;"><strong>What happens next:</strong> reach out to welcome them and share the schedule and how to join. They're expecting to hear from you — just reply to this email to reach ${esc(participant)} directly.</p>
+    <p style="margin:24px 0 0;">Congrats,<br>The AbundanceAI team</p>`;
+
+  const text = `Hi ${host},
+
+Good news — ${participant} just enrolled in ${p.programTitle}${isFree ? ' with a free first session' : ''}.
+
+  Participant: ${participant}
+  Type: ${type}
+  Email: ${p.participantEmail}${contact ? `\n  Contact: ${contact}` : ''}
+
+What happens next: reach out to welcome them and share the schedule and how to join. They're expecting to hear from you — just reply to this email to reach ${participant} directly.
+
+Congrats,
+The AbundanceAI team`;
+
+  return { subject, html: shell({ preheader: `${participant} just enrolled in ${p.programTitle}.`, heading: 'New enrollment 🎉', bodyHtml }), text };
+}
+
+// Sends the creator notification. Never throws — mirrors sendEnrollmentConfirmation.
+// Returns true only when an email was actually accepted for delivery.
+export async function sendCreatorEnrollmentNotification(
+  params: CreatorNotificationParams & { to: string; replyToParticipant?: string },
+): Promise<boolean> {
+  if (!emailConfigured()) return false;
+  const built = newEnrollmentCreatorEmail(params);
+  return sendEmail({
+    to: params.to,
+    subject: built.subject,
+    html: built.html,
+    text: built.text,
+    replyTo: params.replyToParticipant,
+  });
+}
+
 // Picks the right version by amount and sends it. Never throws — a failed send is
 // logged and swallowed so it can't roll back a completed enrollment. Returns true
 // only when an email was actually accepted for delivery.
