@@ -21,6 +21,7 @@ const ASSET = {
   testiProgramsDivider: '/landing/wave-divider-testi-programs.png',
   sunrise: '/landing/founder-wave.png',
   star: '/landing/star.png',
+  heroVideo: '/landing/hero-intro.mp4',
 };
 
 const GOLD_GRAD = 'linear-gradient(799deg, #F59C30, #F8BF39)';
@@ -51,7 +52,7 @@ const NAV_LINKS = [
   { label: 'How It Works', href: '#how', section: 'how' },
   { label: 'What You Get', href: '#pillars', section: 'pillars' },
   { label: 'Pricing', href: '#start-today', section: 'start-today' },
-  { label: 'Community', href: 'https://t.me/AbundanceAI' },
+  { label: 'Community', href: 'https://t.me/AbundanceAI', section: null },
 ] as const;
 
 const WHO_CARDS = [
@@ -535,8 +536,35 @@ const CSS = `
      phones — trim all three so the sections sit close. */
   .lp17 .lp17-who-grid { padding-top: 24px !important; padding-bottom: 16px !important; }
   .lp17 .lp17-who-band { padding-bottom: 24px !important; }
-  .lp17 #how { padding-top: 32px !important; }
-  .lp17 #start-today { padding-bottom: 60px !important; }
+
+  /* ---- Mobile gutters + vertical rhythm ----------------------------------
+     Every section carries the desktop design's fixed 44px side padding; on a
+     390px phone that's 88px (22% of the viewport) lost to gutters before any
+     text renders. Pull the gutters to 20px and tighten each section's
+     vertical padding, which was tuned for full-height desktop viewports. */
+  .lp17 #home,
+  .lp17 #who-is-this-for,
+  .lp17 #how,
+  .lp17 #why-now,
+  .lp17 #pillars,
+  .lp17 #start-today,
+  .lp17 #join-community,
+  .lp17 #pricing,
+  .lp17 #footer,
+  .lp17 .lp17-who-header,
+  .lp17 .lp17-who-grid {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .lp17 #home { padding-top: 16px !important; padding-bottom: 28px !important; }
+  .lp17 #how { padding-top: 32px !important; padding-bottom: 20px !important; }
+  .lp17 #pillars { padding-bottom: 32px !important; }
+  .lp17 #start-today { padding-top: 40px !important; padding-bottom: 44px !important; }
+  /* Desktop pushes this down onto the wave art with a ~115px top pad; on
+     phones the wave sits in normal flow below, so that's just dead space. */
+  .lp17 #join-community { padding-top: 56px !important; padding-bottom: 32px !important; }
+  .lp17 #pricing { padding-bottom: 24px !important; }
+  .lp17 #footer { padding-top: 32px !important; }
   .lp17 .lp17-start-cta { font-size: 17px !important; padding: 16px 32px !important; }
   .lp17 .lp17-why-h2, .lp17 .lp17-why-p { height: auto !important; }
   .lp17 .lp17-pillars-h2 { width: auto !important; }
@@ -607,6 +635,16 @@ export function LandingPage() {
   const [programIdx, setProgramIdx] = useState(0);
   const progTouchX = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const playHeroVideo = () => {
+    setHeroVideoPlaying(true);
+    // Kick playback synchronously inside the click handler (real user
+    // gesture) — the video element stays mounted the whole time so this
+    // ref is always valid, which is what keeps autoplay reliable across
+    // browsers instead of racing a state update.
+    heroVideoRef.current?.play().catch(() => {});
+  };
   const start = () => navigate('/auth');
 
   useEffect(() => {
@@ -624,8 +662,9 @@ export function LandingPage() {
     // (last section whose top has passed under the sticky nav wins).
     const onScroll = () => {
       setScrolled(window.scrollY > 12);
-      let current: string = NAV_LINKS[0].section;
+      let current: string = NAV_LINKS[0].section ?? 'home';
       for (const { section } of NAV_LINKS) {
+        if (!section) continue; // external links (e.g. Community/Telegram) aren't scroll targets
         const el = document.getElementById(section);
         if (el && el.getBoundingClientRect().top <= 140) current = section;
       }
@@ -858,10 +897,10 @@ export function LandingPage() {
           </a>
           <div className="lp17-navlinks" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
             {NAV_LINKS.map((link) => {
-              const active = activeSection === link.section;
+              const active = link.section != null && activeSection === link.section;
               return (
                 <a
-                  key={link.section}
+                  key={link.label}
                   href={link.href}
                   className="navlink"
                   aria-current={active ? 'true' : undefined}
@@ -1007,11 +1046,11 @@ export function LandingPage() {
                   fontSize: 14.5,
                   fontWeight: 600,
                   color: '#1A1A1A',
-                  margin: '0 0 10px',
-                  lineHeight: 1.45,
+                  margin: '0 0 20px',
+                  lineHeight: 1.55,
                 }}
               >
-                You already have the knowledge. <br /><br />
+                You already have the knowledge. <br />
                 AbundanceAI gives you the tools to build a real online program.
               </p>
               <div
@@ -1058,7 +1097,7 @@ export function LandingPage() {
                   See how it Works →
                 </a> */}
               </div>
-              <p style={{ fontSize: 14.5, fontWeight: 600, color: '#1A1A1A', margin: '0 0 7px' }}>
+              <p style={{ fontSize: 14.5, fontWeight: 600, color: '#1A1A1A', margin: '0 0 0' }}>
                 Introductory price. Regularly $88
               </p>
               <p style={{ fontSize: 14.5, color: '#1A1A1A59', margin: 0 }}>
@@ -1087,8 +1126,29 @@ export function LandingPage() {
                   overflow: 'hidden',
                   border: '3px solid rgba(255,255,255,0.9)',
                   boxShadow: '0 30px 70px rgba(34,41,61,0.16)',
+                  // Backdrop for the video's letterbox bars — it's 16:9 inside
+                  // a near-square frame, so `contain` leaves bars top/bottom.
+                  background: 'linear-gradient(168deg, rgba(150,208,214,0.82), rgba(199,231,233,0.82))',
                 }}
               >
+                <video
+                  ref={heroVideoRef}
+                  src={ASSET.heroVideo}
+                  playsInline
+                  controls={heroVideoPlaying}
+                  onEnded={() => setHeroVideoPlaying(false)}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                    opacity: heroVideoPlaying ? 1 : 0,
+                    pointerEvents: heroVideoPlaying ? 'auto' : 'none',
+                    transition: 'opacity 300ms ease',
+                  }}
+                />
                 <img
                   src={ASSET.heroPanel}
                   alt="A sunlit path winding through hills at sunrise — Turn What You Know Into Abundance"
@@ -1099,11 +1159,19 @@ export function LandingPage() {
                     height: '100%',
                     objectFit: 'cover',
                     objectPosition: 'center top',
+                    opacity: heroVideoPlaying ? 0 : 1,
+                    // Without this, the invisible img still sits above the
+                    // video in stacking order (later in the DOM) and eats
+                    // every click meant for the native video controls —
+                    // including pause.
+                    pointerEvents: heroVideoPlaying ? 'none' : 'auto',
+                    transition: 'opacity 300ms ease',
                   }}
                 />
-                <button
+                {/* <button
                   aria-label="Play video"
                   className="lp17-play-btn"
+                  onClick={playHeroVideo}
                   style={{
                     position: 'absolute',
                     left: '50%',
@@ -1120,6 +1188,9 @@ export function LandingPage() {
                     justifyContent: 'center',
                     boxShadow: '0 10px 30px rgba(34,41,61,0.28)',
                     zIndex: 3,
+                    opacity: heroVideoPlaying ? 0 : 1,
+                    pointerEvents: heroVideoPlaying ? 'none' : 'auto',
+                    transition: 'opacity 300ms ease',
                   }}
                 >
                   <span
@@ -1132,7 +1203,7 @@ export function LandingPage() {
                       marginLeft: 5,
                     }}
                   />
-                </button>
+                </button> */}
                 {/* <div
                   style={{
                     position: 'absolute',
@@ -1249,7 +1320,7 @@ export function LandingPage() {
                   fontFamily: 'var(--display)',
                   fontWeight: 600,
                   fontSize: 'clamp(30px,4.4vw,50px)',
-                  lineHeight: 1.33,
+                  lineHeight: 1.22,
                   letterSpacing: '-0.01em',
                   color: '#303841',
                   margin: 0,
@@ -1657,7 +1728,7 @@ export function LandingPage() {
               className="lp17-why-p"
             style={{
               display: 'table',
-              margin: '7px auto 0',
+              margin: '32px auto 0',
               fontFamily: 'var(--display)',
               fontSize: 22,
               fontWeight: 700,
@@ -1968,7 +2039,7 @@ export function LandingPage() {
                 lineHeight: 1.02,
                 letterSpacing: '-0.01em',
                 color: '#1A1A1A',
-                margin: '0 0 22px',
+                margin: '0 0 35px',
               }}
             >
               All of it for{' '}
@@ -2271,7 +2342,7 @@ export function LandingPage() {
                     fontSize: 'clamp(38px,5vw,58px)',
                     lineHeight: 1.08,
                     color: '#1A1A1A',
-                    margin: '0 0 22px',
+                    margin: '0 0 35px',
                     position: 'relative',
                     zIndex: 1,
                   }}
@@ -2794,7 +2865,7 @@ export function LandingPage() {
             position: 'absolute',
             left: 0,
             right: 0,
-            top: -42.61,
+            top: -34.61,
             width: '100%',
             height: 'clamp(48px,6vw,96px)',
             display: 'block',
