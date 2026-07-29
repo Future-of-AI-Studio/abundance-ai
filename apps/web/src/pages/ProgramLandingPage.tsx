@@ -266,8 +266,15 @@ export function LandingView({ data, onEnroll }: { data: ProgramPublicResponse; o
       </section>
 
       <footer className="border-t" style={{ borderColor: t.line }}>
-        <div className="mx-auto flex max-w-[1200px] items-center justify-center px-6 lg:px-8 py-6 text-body" style={{ color: t.inkSoft }}>
-          <span className="inline-flex items-center gap-2"><SparkleIcon width={18} height={18} style={{ color: t.accent }} /> Powered by AbundanceAI</span>
+        <div className="mx-auto flex max-w-[1200px] items-center justify-center px-6 lg:px-8 py-6 text-h2" style={{ color: t.inkSoft }}>
+          <a
+            href="https://www.abundanceai.net"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
+          >
+            <SparkleIcon width={24} height={24} style={{ color: t.accent }} /> Powered by AbundanceAI
+          </a>
         </div>
       </footer>
     </div>

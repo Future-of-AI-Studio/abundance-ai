@@ -2670,6 +2670,18 @@ export function LandingPage() {
                 })}
               </div>
 
+              {/* Clickability hint for the active card */}
+              <p
+                style={{
+                  textAlign: 'center',
+                  marginTop: 22,
+                  fontSize: 14,
+                  color: 'var(--ink-2)',
+                }}
+              >
+                Explore these programs
+              </p>
+
               {/* carousel dots */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 28 }}>
                 {PROGRAMS.map((prog, i) => (
