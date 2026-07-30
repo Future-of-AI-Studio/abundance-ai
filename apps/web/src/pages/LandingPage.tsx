@@ -222,7 +222,7 @@ const TESTIMONIALS = [
       </>
     ),
     name: 'Christy',
-    role: ' Feminine Empowerment Guid',
+    role: ' Feminine Empowerment Guide',
   },
 ] as const;
 
