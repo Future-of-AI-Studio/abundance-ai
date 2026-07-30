@@ -426,6 +426,7 @@ const VIDEOS: VideoGuide[] = [
   {
     title: 'Launch: your Program Page, payments & invitations',
     blurb: 'Personalize your Program Page, connect Stripe, and use your marketing content to invite your first group.',
+    src: guideVideo('guidance-3.mp4'),
   },
 ];
 
