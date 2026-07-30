@@ -180,6 +180,17 @@ const PILLARS = [
 
 const TESTIMONIALS = [
   {
+    color: '#7bd1e0',
+    quote: (
+      <>
+        I had this idea for years, but kept overthinking how to do it. 
+        This easy, amazing process turned it into a real program, with structure, titles, and more, and helped me effortlessly bring it to life.
+      </>
+    ),
+    name: 'Karen',
+    role: 'Physician',
+  },
+  {
     color: '#E8932C',
     quote: (
       <>
@@ -188,7 +199,7 @@ const TESTIMONIALS = [
       </>
     ),
     name: 'Victoria',
-    role: 'Wellness Coach',
+    role: 'Transformational Guide',
   },
   {
     color: '#88C4E0',
@@ -199,7 +210,7 @@ const TESTIMONIALS = [
       </>
     ),
     name: 'Mary',
-    role: 'Elementary Teacher',
+    role: 'Elementary School Teacher',
   },
   {
     color: '#FFA0AA',
@@ -211,7 +222,7 @@ const TESTIMONIALS = [
       </>
     ),
     name: 'Christy',
-    role: 'Creativity Guide',
+    role: ' Feminine Empowerment Guid',
   },
 ] as const;
 
@@ -981,6 +992,7 @@ export function LandingPage() {
               position: 'absolute',
               right: 0,
               top: 74,
+              // top: -12,
               width: 1350,
               height: 763,
               objectFit: 'contain',
@@ -1235,9 +1247,11 @@ export function LandingPage() {
                 </div> */}
               </div>
             </div>
+
           </div>
         </header>
       </div>
+      
 
       {/* ===================== WHO IS THIS FOR ===================== */}
       <section
