@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/p/:programId", "has": [{ "type": "query", "key": "raw" }], "destination": "/index.html" },
+    { "source": "/p/:programId", "destination": "/api/p?id=:programId" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
