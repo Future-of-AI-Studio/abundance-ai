@@ -58,6 +58,18 @@ export default function App() {
           <Route path="/cookies" element={<CookiePolicyPage />} />
           <Route path="/delivery" element={<DeliveryPolicyPage />} />
           <Route path="/refunds" element={<RefundPolicyPage />} />
+          {/*
+            The mentor's short URL — abundanceai.net/laquelle. Declared last for
+            readability only: React Router ranks static segments above dynamic
+            ones, so every path above still wins regardless of order. Any new
+            top-level public route must also be added to reserved_slug() in
+            supabase/migrations/0037_profile_slug.sql and to the passthrough
+            rule in vercel.json, or it will be shadowed in production.
+
+            This also makes ProgramLandingPage the 404 for unknown one-segment
+            paths, which is why its not-found state offers a way home.
+          */}
+          <Route path="/:slug" element={<ProgramLandingPage />} />
         </Route>
 
         {/* APP — auth required, app shell + bottom tab bar */}

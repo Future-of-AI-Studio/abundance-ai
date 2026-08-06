@@ -8,7 +8,7 @@
 
 import { ImageResponse } from '@vercel/og';
 import { LANDING_THEMES, type LandingPalette } from '../src/lib/landingPalettes';
-import { UUID_RE, clamp, fetchProgram, previewEyebrow, str } from './_lib/program';
+import { SLUG_RE, UUID_RE, clamp, fetchProgram, previewEyebrow, str } from './_lib/program';
 
 export const config = { runtime: 'edge' };
 
@@ -101,8 +101,16 @@ export default async function handler(req: Request): Promise<Response> {
   let palette = FALLBACK;
 
   try {
-    const id = new URL(req.url).searchParams.get('id') ?? '';
-    const data = UUID_RE.test(id) ? await fetchProgram(id) : null;
+    const params = new URL(req.url).searchParams;
+    const slug = (params.get('slug') ?? '').toLowerCase();
+    const id = params.get('id') ?? '';
+    // slug is the current form; id is kept for image URLs already cached by
+    // WhatsApp/iMessage against pre-slug shares, which can never be purged.
+    const data = SLUG_RE.test(slug)
+      ? await fetchProgram({ slug })
+      : UUID_RE.test(id)
+        ? await fetchProgram({ id })
+        : null;
     if (data) {
       const themeId = str(data.creator?.landing_page?.theme);
       palette = LANDING_THEMES[themeId as keyof typeof LANDING_THEMES] ?? FALLBACK;

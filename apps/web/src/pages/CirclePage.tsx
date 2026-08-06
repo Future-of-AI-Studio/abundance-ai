@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CircleGetResponse } from '@abundance/shared';
 import { Button, Skeleton, Eyebrow, EmptyState } from '@/components/ui';
 import { CircleTabIcon, CalendarIcon, VideoIcon, ChatIcon, UsersIcon } from '@/components/ui/icons';
+import { programShareUrl } from '@/components/ShareProgramLink';
 import { cn } from '@/lib/cn';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
@@ -167,7 +168,7 @@ export function CirclePage() {
             return linkable ? (
               <a
                 key={m.user_id}
-                href={`/p/${m.program_id}`}
+                href={programShareUrl(m.program_slug, m.program_id!)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(rowClass, 'transition-colors hover:bg-surface')}

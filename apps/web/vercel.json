@@ -3,6 +3,12 @@
   "rewrites": [
     { "source": "/p/:programId", "has": [{ "type": "query", "key": "raw" }], "destination": "/index.html" },
     { "source": "/p/:programId", "destination": "/api/p?id=:programId" },
+
+    { "source": "/:slug", "has": [{ "type": "query", "key": "raw" }], "destination": "/index.html" },
+    { "source": "/app/:path*", "destination": "/index.html" },
+    { "source": "/(auth|checkout|welcome|gallery|faq|privacy|terms|cookies|delivery|refunds|reset-password)", "destination": "/index.html" },
+    { "source": "/:slug([a-z0-9][a-z0-9-]{0,38})", "destination": "/api/p?slug=:slug" },
+
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

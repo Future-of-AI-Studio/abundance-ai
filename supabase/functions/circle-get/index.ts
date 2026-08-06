@@ -18,6 +18,7 @@ interface RosterMember {
   category: string;
   is_you?: boolean;
   program_id?: string | null;
+  program_slug?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -98,19 +99,34 @@ Deno.serve(async (req) => {
     // through to it. A member's program is hidden from the user client by RLS, so
     // read with the service role; only a published ('ready'), active build is
     // linkable. Members without one are left with program_id: null (not clickable).
+    //
+    // The slug rides along so the roster links to /laquelle rather than a UUID —
+    // a peer's raw program id was the last place a creator saw the old URL shape.
     const peerIds = members.filter((m) => !m.is_you).map((m) => m.user_id);
     if (peerIds.length) {
-      const { data: progs } = await adminClient()
-        .from('programs')
-        .select('id, user_id')
-        .in('user_id', peerIds)
-        .eq('status', 'ready')
-        .eq('is_active', true);
+      const admin = adminClient();
+      const [{ data: progs }, { data: slugs }] = await Promise.all([
+        admin
+          .from('programs')
+          .select('id, user_id')
+          .in('user_id', peerIds)
+          .eq('status', 'ready')
+          .eq('is_active', true),
+        admin.from('profiles').select('id, slug').in('id', peerIds),
+      ]);
       const programByUser = new Map<string, string>();
       for (const p of progs ?? []) {
         if (!programByUser.has(p.user_id as string)) programByUser.set(p.user_id as string, p.id as string);
       }
-      members = members.map((m) => ({ ...m, program_id: m.is_you ? null : programByUser.get(m.user_id) ?? null }));
+      const slugByUser = new Map<string, string>();
+      for (const s of slugs ?? []) {
+        if (s.slug) slugByUser.set(s.id as string, s.slug as string);
+      }
+      members = members.map((m) => ({
+        ...m,
+        program_id: m.is_you ? null : programByUser.get(m.user_id) ?? null,
+        program_slug: m.is_you ? null : slugByUser.get(m.user_id) ?? null,
+      }));
     }
 
     // Next expert talk: soonest upcoming, else most recent past (for recording).
