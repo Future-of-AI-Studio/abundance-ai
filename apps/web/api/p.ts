@@ -47,9 +47,26 @@ function originOf(req: Request): string {
 }
 
 /**
- * The built shell, fetched from this deployment's own origin. It can't be bundled
- * with the function: dist/ is produced by the static build, isn't in the function's
- * traced files, and asset filenames are content-hashed so nothing can be hardcoded.
+ * Is this our built SPA shell, or something standing in front of it?
+ *
+ * Vercel's Deployment Protection login page is served with HTTP 200 and valid
+ * HTML, so status and `</head>` prove nothing. Only the shell has both the mount
+ * point and a hashed asset reference, and serving anything else in its place turns
+ * every program link into someone else's page — so this is checked, not assumed.
+ */
+function looksLikeShell(html: string): boolean {
+  return html.includes('</head>') && html.includes('id="root"') && html.includes('/assets/');
+}
+
+/**
+ * The built shell. It can't be bundled with the function: dist/ is produced by the
+ * static build, isn't in the function's traced files, and asset filenames are
+ * content-hashed so nothing can be hardcoded.
+ *
+ * Fetched from the origin the visitor used, NOT from VERCEL_URL. The deployment
+ * URL is covered by Deployment Protection even when the custom domain isn't, so
+ * pinning to it made the self-fetch return Vercel's login page. The request origin
+ * is reachable by definition — the visitor just came through it.
  */
 async function fetchShell(req: Request): Promise<string | null> {
   // VERCEL_URL is unset outside Vercel (scripts/dev-preview.mjs), where there's no
@@ -57,20 +74,19 @@ async function fetchShell(req: Request): Promise<string | null> {
   const onVercel = Boolean(env('VERCEL_URL'));
   if (onVercel && shellCache) return shellCache;
 
-  // VERCEL_URL pins the fetch to *this* deployment: using the request host on a
-  // preview could pull production's shell and its mismatched asset hashes.
-  const base = onVercel ? `https://${env('VERCEL_URL')}` : originOf(req);
+  const base = originOf(req);
   if (!base) return null;
   try {
     const res = await fetch(`${base}/index.html`, {
       signal: AbortSignal.timeout(1500),
-      // Preview deployments sit behind Deployment Protection, which would 401 this
-      // self-fetch. Requires "Protection Bypass for Automation" in project settings.
+      // Lets the self-fetch through on a protected preview. Requires "Protection
+      // Bypass for Automation" in project settings; without it a protected preview
+      // simply falls back to the plain SPA.
       headers: BYPASS_SECRET ? { 'x-vercel-protection-bypass': BYPASS_SECRET } : {},
     });
     if (!res.ok) return null;
     const html = await res.text();
-    if (!html.includes('</head>')) return null; // an error page, not the shell
+    if (!looksLikeShell(html)) return null;
     if (onVercel) shellCache = html;
     return html;
   } catch {
