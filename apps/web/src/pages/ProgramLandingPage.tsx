@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { Category, ProgramPublicResponse, EnrollResponse } from '@abundance/shared';
@@ -15,9 +15,13 @@ import { resolveLanding, landingBackground, landingRadii, externalHref, heroGrad
 import { LegalLink } from '@/components/LegalLink';
 import { PaymentResultOverlay, type PayResult } from '@/components/PaymentResultOverlay';
 
-// [Public] Program landing page (/p/:programId) — the page a creator shares so
-// prospective students can preview the program, learn about the guide, and enroll.
-// Fully public (no auth): data comes from the program-public Edge Function.
+// [Public] Program landing page (/:slug, and the legacy /p/:programId) — the page
+// a creator shares so prospective students can preview the program, learn about
+// the guide, and enroll. Fully public (no auth): data comes from the
+// program-public Edge Function.
+//
+// Because /:slug is a catch-all for one-segment paths, this component is also the
+// site's public 404 — see the not-found state below.
 
 // Currently unused (the role line under the guide's name is commented out) but
 // kept exported so it can be restored without rebuilding the mapping.
@@ -35,31 +39,43 @@ function firstNameOf(full: string): string {
 }
 
 export function ProgramLandingPage() {
-  const { programId } = useParams<{ programId: string }>();
+  // Two ways in: /laquelle (the slug — resolves to the creator's active build) and
+  // /p/:uuid (the legacy link, pinned to one build). Only one is ever set.
+  const { programId, slug } = useParams<{ programId?: string; slug?: string }>();
+  const navigate = useNavigate();
   const backend = useApp((s) => s.backend);
   const [data, setData] = useState<ProgramPublicResponse | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading');
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [done, setDone] = useState<{ name: string; res: EnrollResponse } | null>(null);
   // Guard so a view is counted once per program per mount (React 18 double-invokes
-  // effects in dev; a shared /p link shouldn't inflate the creator's view count).
+  // effects in dev; a shared link shouldn't inflate the creator's view count).
+  // Keyed off the resolved program id, since a slug load doesn't know it upfront.
   const trackedId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!backend || !programId) return;
+    if (!backend || !(slug || programId)) return;
     let active = true;
     setStatus('loading');
     backend.api
-      .programPublic({ program_id: programId })
-      .then((d) => { if (active) { setData(d); setStatus('ready'); } })
+      .programPublic(slug ? { slug } : { program_id: programId })
+      .then((d) => {
+        if (!active) return;
+        setData(d);
+        setStatus('ready');
+        // Record the visit (non-blocking, best-effort — never affects the page).
+        if (trackedId.current !== d.program.id) {
+          trackedId.current = d.program.id;
+          void backend.api.programViewTrack({ program_id: d.program.id }).catch(() => { /* non-blocking */ });
+        }
+        // A legacy /p/:uuid link whose owner has a slug: swap the address bar for
+        // the short URL. api/p.ts already redirects at the edge, so this only
+        // fires where that function isn't in play — ?raw=1 fallbacks and local dev.
+        if (programId && d.creator.slug) navigate(`/${d.creator.slug}`, { replace: true });
+      })
       .catch(() => { if (active) setStatus('notfound'); });
-    // Record the visit (non-blocking, best-effort — never affects the page).
-    if (trackedId.current !== programId) {
-      trackedId.current = programId;
-      void backend.api.programViewTrack({ program_id: programId }).catch(() => { /* non-blocking */ });
-    }
     return () => { active = false; };
-  }, [backend, programId]);
+  }, [backend, programId, slug, navigate]);
 
   if (status === 'loading') {
     return (
@@ -69,12 +85,17 @@ export function ProgramLandingPage() {
     );
   }
 
+  // Also the public 404: /:slug matches any unknown one-segment path, so a typo'd
+  // mentor URL lands here rather than on a bare redirect. Offer a way onward.
   if (status === 'notfound' || !data) {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-narrow flex-col items-center justify-center gap-3 px-6 text-center">
         <Logo />
         <h1 className="mt-4 text-h2 font-semibold text-ink">This program isn't available</h1>
         <p className="text-body-sm text-ink-secondary">The link may be mistyped, or the program isn't published yet.</p>
+        <Link to="/" className="mt-2 text-body-sm font-medium text-primary hover:underline">
+          Go to AbundanceAI
+        </Link>
       </div>
     );
   }

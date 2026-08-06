@@ -381,7 +381,18 @@ export type RefundRequestResponse = z.infer<typeof refundRequestResponseSchema>;
 // Served by a service-role Edge Function so a program can be viewed and sold
 // without exposing the owner's private rows via RLS. Only learner-safe fields are
 // returned — session_flow/notes (creator delivery guidance) are deliberately omitted.
-export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });
+// Addressable two ways: by the creator's short slug (/laquelle — resolves to
+// whichever build they currently have active) or by a program UUID (/p/:id —
+// the legacy share link, pinned to that one build). Exactly one of the two.
+export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/;
+export const programPublicRequestSchema = z
+  .object({
+    program_id: z.string().uuid().optional(),
+    slug: z.string().regex(SLUG_RE).optional(),
+  })
+  .refine((v) => Boolean(v.program_id) !== Boolean(v.slug), {
+    message: 'Provide exactly one of program_id or slug.',
+  });
 export type ProgramPublicRequest = z.infer<typeof programPublicRequestSchema>;
 
 export const publicModuleSchema = z.object({
@@ -407,6 +418,9 @@ export const programPublicResponseSchema = z.object({
   modules: z.array(publicModuleSchema),
   creator: z.object({
     first_name: z.string(),
+    // The creator's short URL. Returned on BOTH lookup paths so a /p/:uuid
+    // request can be redirected to, and canonicalised as, /<slug>.
+    slug: z.string().nullable(),
     category: categorySchema,
     avatar_url: z.string().url().nullable(),
     email: z.string().email(),

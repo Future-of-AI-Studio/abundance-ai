@@ -1,21 +1,29 @@
-// /p/:programId — serves the SPA shell with the mentor's program in the meta
-// tags, so a link texted or WhatsApp'd unfurls as *their* program instead of the
-// generic "AbundanceAI" blurb. vercel.json rewrites /p/:programId here; the
-// browser URL never changes, so react-router still matches /p/:programId and
-// ProgramLandingPage mounts exactly as before.
+// /:slug and /p/:programId — serves the SPA shell with the mentor's program in
+// the meta tags, so a link texted or WhatsApp'd unfurls as *their* program
+// instead of the generic "AbundanceAI" blurb. vercel.json rewrites both forms
+// here; for /:slug the browser URL never changes, so react-router still matches
+// and ProgramLandingPage mounts exactly as before.
+//
+// /p/:programId is the legacy share link. It stays alive forever — those URLs are
+// in Instagram bios, WhatsApp threads and printed material we can't edit — but
+// when its owner has a slug it redirects, so the ugly form decays out of
+// circulation on its own and the mentor only ever sees one URL.
 //
 // EVERY sales link in the product now passes through this function, so every
 // branch must end in working HTML. On any failure we redirect to ?raw=1, which
 // vercel.json sends straight to the untouched index.html.
 
 import {
+  SLUG_RE,
   UUID_RE,
   clamp,
   contentHash,
+  creatorSlug,
   env,
   fetchProgram,
   previewDescription,
   str,
+  type ProgramRef,
   type PublicProgram,
 } from './_lib/program';
 
@@ -26,6 +34,12 @@ const PUBLIC_SITE_URL = env('PUBLIC_SITE_URL').replace(/\/+$/, '');
 
 const CACHE_OK = 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400';
 const CACHE_NONE = 'no-store';
+
+// Deliberately 302, not 301/308. A permanent redirect is cached by browsers and
+// crawlers effectively forever with no purge tool, so a mistake here would be
+// unfixable for anyone who hit it. Flip to 301 once this is proven in production
+// — 301 is understood by every link-unfurl crawler, where 308 support is spotty.
+const LEGACY_REDIRECT_STATUS = 302;
 
 // index.html for the *current* deployment. Function instances never outlive a
 // deployment, so this can't serve stale content-hashed asset names.
@@ -94,7 +108,7 @@ async function fetchShell(req: Request): Promise<string | null> {
   }
 }
 
-function metaTags(data: PublicProgram, id: string, origin: string): string {
+function metaTags(data: PublicProgram, path: string, origin: string): string {
   const title = clamp(data.program.title, 90);
   const description = clamp(previewDescription(data), 200);
   const theme = str(data.creator?.landing_page?.theme) || 'warm';
@@ -102,8 +116,12 @@ function metaTags(data: PublicProgram, id: string, origin: string): string {
   // preview images per-URL with no purge tool, so renaming a program has to change
   // the URL or the old thumbnail sticks forever.
   const version = contentHash(`${title}|${theme}`);
-  const image = `${origin}/api/og?id=${id}&v=${version}`;
-  const pageUrl = `${origin}/p/${id}`;
+  const slug = creatorSlug(data);
+  const imageRef = slug ? `slug=${slug}` : `id=${data.program.id}`;
+  const image = `${origin}/api/og?${imageRef}&v=${version}`;
+  // Always the short URL when one exists, even on a legacy request — a UUID must
+  // never advertise itself as canonical or crawlers will keep indexing it.
+  const pageUrl = `${origin}${slug ? `/${slug}` : path}`;
 
   const t = escapeHtml(title);
   const d = escapeHtml(description);
@@ -135,12 +153,12 @@ function metaTags(data: PublicProgram, id: string, origin: string): string {
  * Replace the shell's title and description rather than appending: index.html
  * already ships both, and crawlers read whichever comes first.
  */
-function injectMeta(shell: string, data: PublicProgram, id: string, origin: string): string {
+function injectMeta(shell: string, data: PublicProgram, path: string, origin: string): string {
   const title = escapeHtml(clamp(data.program.title, 90));
   return shell
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`)
     .replace(/[ \t]*<meta\s+name=["']description["'][^>]*>\s*\n?/i, '')
-    .replace('</head>', `  ${metaTags(data, id, origin)}\n  </head>`);
+    .replace('</head>', `  ${metaTags(data, path, origin)}\n  </head>`);
 }
 
 const html = (body: string, cacheControl: string, status = 200): Response =>
@@ -150,11 +168,11 @@ const html = (body: string, cacheControl: string, status = 200): Response =>
   });
 
 /**
- * Hand the request back to the plain SPA. ?raw=1 is matched by the first rewrite
- * rule in vercel.json, which serves index.html directly. `isRetry` means that rule
- * didn't fire (misordered config) — degrade to an error page rather than loop.
+ * Hand the request back to the plain SPA. ?raw=1 is matched by the ?raw rewrite
+ * rules in vercel.json, which serve index.html directly. `isRetry` means those
+ * rules didn't fire (misordered config) — degrade to an error page rather than loop.
  */
-function bail(id: string, isRetry: boolean): Response {
+function bail(path: string, isRetry: boolean): Response {
   if (isRetry) {
     return html(
       '<!doctype html><meta charset="utf-8"><title>AbundanceAI</title>' +
@@ -165,31 +183,53 @@ function bail(id: string, isRetry: boolean): Response {
   }
   return new Response(null, {
     status: 307,
-    headers: {
-      location: `/p/${encodeURIComponent(id)}?raw=1`,
-      'cache-control': CACHE_NONE,
-    },
+    headers: { location: `${path}?raw=1`, 'cache-control': CACHE_NONE },
   });
 }
 
+/** The public path a request came in on, used for ?raw=1 fallbacks and canonical. */
+const pathOf = (ref: ProgramRef): string =>
+  ref.slug ? `/${ref.slug}` : `/p/${encodeURIComponent(ref.id ?? '')}`;
+
 export default async function handler(req: Request): Promise<Response> {
-  let id = '';
+  let path = '/';
   let isRetry = false;
   try {
     const url = new URL(req.url);
-    id = url.searchParams.get('id') ?? '';
+    const slug = (url.searchParams.get('slug') ?? '').toLowerCase();
+    const id = url.searchParams.get('id') ?? '';
     isRetry = url.searchParams.has('raw');
 
-    if (!UUID_RE.test(id)) return bail(id, isRetry);
+    const ref: ProgramRef | null = slug
+      ? SLUG_RE.test(slug) ? { slug } : null
+      : UUID_RE.test(id) ? { id } : null;
+    // Nothing routable — hand back the SPA on the path the visitor actually used.
+    if (!ref) return bail(slug ? `/${encodeURIComponent(slug)}` : `/p/${encodeURIComponent(id)}`, isRetry);
+    path = pathOf(ref);
 
-    const [shell, data] = await Promise.all([fetchShell(req), fetchProgram(id)]);
-    if (!shell) return bail(id, isRetry);
+    // Fetched together even on the branch that ends in a redirect: the shell is
+    // memoized per deployment (shellCache), so the second request onward pays
+    // nothing for it, and keeping one code path avoids a serial hop on the
+    // common case.
+    const [shell, data] = await Promise.all([fetchShell(req), fetchProgram(ref)]);
+    if (!shell) return bail(path, isRetry);
     // No program (unpublished, deleted, upstream down) — the SPA still renders its
     // own "not available" state, so serve it unmodified rather than guessing.
     if (!data) return html(shell, CACHE_NONE);
 
-    return html(injectMeta(shell, data, id, originOf(req)), CACHE_OK);
+    // A legacy /p/:uuid link whose owner has a slug: send the visitor to the short
+    // URL so their address bar shows the branded form. Never redirects a slug
+    // request, so this cannot loop.
+    const short = creatorSlug(data);
+    if (ref.id && short) {
+      return new Response(null, {
+        status: LEGACY_REDIRECT_STATUS,
+        headers: { location: `/${short}`, 'cache-control': CACHE_NONE },
+      });
+    }
+
+    return html(injectMeta(shell, data, path, originOf(req)), CACHE_OK);
   } catch {
-    return bail(id, isRetry);
+    return bail(path, isRetry);
   }
 }

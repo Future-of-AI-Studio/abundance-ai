@@ -13,6 +13,14 @@
 /** Only a well-formed UUID is ever echoed into markup or forwarded upstream. */
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * A creator's short URL segment (abundanceai.net/laquelle). Same rule as the
+ * profiles_slug_format check in supabase/migrations/0037_profile_slug.sql and the
+ * rewrite regex in vercel.json — if the three drift, a valid slug stops routing.
+ * Also the reason a slug is safe to interpolate into markup: no dots, no slashes.
+ */
+export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/;
+
 // VITE_-prefixed vars are readable in the function runtime — the prefix only
 // governs what Vite inlines into the client bundle — so the existing project env
 // works with no dashboard change. Unprefixed names win when they're set.
@@ -28,6 +36,9 @@ export interface PublicProgram {
   modules: Array<{ outcome?: string | null }>;
   creator: {
     first_name?: string | null;
+    // The canonical short URL segment. Drives both the /p/:uuid → /:slug redirect
+    // and og:url/canonical, so a UUID share never advertises itself as canonical.
+    slug?: string | null;
     landing_page?: { theme?: string | null; tagline?: string | null; eyebrow?: string | null } | null;
   };
 }
@@ -49,15 +60,21 @@ export function clamp(value: unknown, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
+/** How a page was addressed: by the creator's slug, or by a legacy program UUID. */
+export type ProgramRef = { slug: string; id?: undefined } | { id: string; slug?: undefined };
+
 /**
- * Fetch the buyer-facing program payload. program-public is verify_jwt=false and
- * already returns 404 for anything that isn't status='ready', so an unpublished
- * program simply gets no preview.
+ * Fetch the buyer-facing program payload, by slug or by program UUID.
+ * program-public is verify_jwt=false and already returns 404 for anything that
+ * isn't status='ready', so an unpublished program simply gets no preview.
  *
  * Returns null on every failure — callers must degrade, never throw.
  */
-export async function fetchProgram(id: string, timeoutMs = 1500): Promise<PublicProgram | null> {
-  if (!UUID_RE.test(id) || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+export async function fetchProgram(ref: ProgramRef, timeoutMs = 1500): Promise<PublicProgram | null> {
+  const body = ref.slug
+    ? SLUG_RE.test(ref.slug) && { slug: ref.slug }
+    : UUID_RE.test(ref.id ?? '') && { program_id: ref.id };
+  if (!body || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/program-public`, {
       method: 'POST',
@@ -66,7 +83,7 @@ export async function fetchProgram(id: string, timeoutMs = 1500): Promise<Public
         apikey: SUPABASE_ANON_KEY,
         authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ program_id: id }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
@@ -75,6 +92,16 @@ export async function fetchProgram(id: string, timeoutMs = 1500): Promise<Public
   } catch {
     return null;
   }
+}
+
+/**
+ * The creator's slug, or '' when they don't have a usable one. Re-validated here
+ * rather than trusted: it comes back over the network and ends up in a Location
+ * header and in markup.
+ */
+export function creatorSlug(data: PublicProgram): string {
+  const slug = str(data.creator?.slug).toLowerCase();
+  return SLUG_RE.test(slug) ? slug : '';
 }
 
 /**

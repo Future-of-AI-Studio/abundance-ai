@@ -1,18 +1,38 @@
 import { useState } from 'react';
 import { CopyIcon, CheckIcon, EyeIcon } from '@/components/ui/icons';
+import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 
-/** The public, shareable URL for a program's landing page. */
-export function programShareUrl(programId: string): string {
+/**
+ * The public, shareable URL for a creator's landing page.
+ *
+ * The slug form (abundanceai.net/laquelle) is the only one a creator should ever
+ * see — short enough to say out loud, and it follows them across rebuilds because
+ * it resolves to whichever program they have active. The /p/:uuid form is a
+ * safety net for a profile with no slug yet; it still works, but it's the legacy
+ * shape and redirects to the slug when one exists.
+ */
+export function programShareUrl(slug: string | null | undefined, programId: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}/p/${programId}`;
+  return slug ? `${origin}/${slug}` : `${origin}/p/${programId}`;
+}
+
+/**
+ * The signed-in creator's share URL. Reads the slug from the store rather than
+ * taking it as a prop so every surface in the app is guaranteed to show the same
+ * link — a creator seeing two different URLs for one page is the thing this
+ * whole feature exists to avoid.
+ */
+export function useProgramShareUrl(programId: string): string {
+  const slug = useApp((s) => s.profile?.slug);
+  return programShareUrl(slug, programId);
 }
 
 // The link a creator posts online so people can view + enroll in their program.
 // Copy-to-clipboard + a preview link that opens the buyer-facing page.
 export function ShareProgramLink({ programId, className }: { programId: string; className?: string }) {
-  const url = programShareUrl(programId);
+  const url = useProgramShareUrl(programId);
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
