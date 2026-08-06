@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Card, EmptyState, Select, Skeleton, TextInput } from '@/components/ui';
-import { UsersIcon, ArrowRight } from '@/components/ui/icons';
+import { UsersIcon, ArrowRight, CopyIcon, CheckIcon, DownloadIcon } from '@/components/ui/icons';
 import { PageHeader } from '@/components/PageHeader';
 import { ShareProgramLink } from '@/components/ShareProgramLink';
 import { useApp } from '@/store';
 import { env } from '@/lib/env';
 import { formatPrice } from '@/lib/money';
+import { toCsv, downloadCsv } from '@/lib/csv';
+import { toast } from '@/store/toast';
+import type { Enrollment } from '@abundance/shared';
 
 type SortKey = 'latest' | 'oldest' | 'az' | 'za';
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -16,6 +19,45 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'za', label: 'Name Z–A' },
 ];
 const PAGE_SIZE = 8;
+
+// Bulk export — mentors running group programs need the whole cohort at once, to
+// paste into a Zoom/Meet invite or import into wherever the group actually meets.
+// Columns mirror what the list shows on screen.
+const CSV_HEADERS = ['Name', 'Email', 'Phone', 'Amount (USD)', 'Type', 'Joined'];
+
+// Local calendar date as YYYY-MM-DD: matches the dates the list shows (which use
+// toLocaleDateString) rather than UTC, and still sorts chronologically in a
+// spreadsheet.
+function isoDate(value: Date | string): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function csvRow(e: Enrollment): string[] {
+  return [
+    e.name,
+    e.email,
+    e.contact ?? '',
+    // Plain number, not formatPrice - so the column sums in a spreadsheet.
+    (e.amount_cents / 100).toFixed(2),
+    e.amount_cents === 0 ? 'Free' : 'Paid',
+    isoDate(e.created_at),
+  ];
+}
+
+// The same person can enroll in more than one build; an invite list wants them once.
+function uniqueEmails(list: Enrollment[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const e of list) {
+    const email = e.email.trim();
+    const key = email.toLowerCase();
+    if (!email || seen.has(key)) continue;
+    seen.add(key);
+    out.push(email);
+  }
+  return out;
+}
 
 // [Students] The creator's list of buyers who enrolled through their program's
 // public landing page — plus the shareable link. The program price is set on the
@@ -27,6 +69,7 @@ export function StudentsPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('latest');
   const [page, setPage] = useState(1);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -59,6 +102,8 @@ export function StudentsPage() {
     });
   }, [enrollments, search, sort]);
 
+  const emails = useMemo(() => uniqueEmails(filtered), [filtered]);
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
   const pageItems = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
@@ -88,6 +133,24 @@ export function StudentsPage() {
   // (0 = joined free, via the program's free-enrollment offer).
   const freeCount = enrollments.filter((e) => e.amount_cents === 0).length;
   const paidCount = enrollments.length - freeCount;
+
+  // Both bulk actions run over `filtered` - everything the current search + sort
+  // shows, not just the visible page.
+  const copyEmails = async () => {
+    try {
+      await navigator.clipboard.writeText(emails.join(', '));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+      toast.success(`${emails.length} ${emails.length === 1 ? 'email' : 'emails'} copied - paste them into your invite.`);
+    } catch {
+      toast.error('Copy didn\'t work - select the emails and copy them.');
+    }
+  };
+
+  const downloadParticipants = () => {
+    downloadCsv(`participants-${isoDate(new Date())}.csv`, toCsv(CSV_HEADERS, filtered.map(csvRow)));
+    toast.success(`Downloaded ${filtered.length} ${filtered.length === 1 ? 'participant' : 'participants'}.`);
+  };
 
   return (
     <div>
@@ -164,6 +227,28 @@ export function StudentsPage() {
         </Card>
       ) : (
         <>
+          {/* Take the whole list somewhere else - an invite, a spreadsheet, a group platform. */}
+          <div className="mb-3 flex flex-wrap justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              fullWidth={false}
+              onClick={copyEmails}
+              iconLeft={copied ? <CheckIcon width={16} height={16} /> : <CopyIcon width={16} height={16} />}
+            >
+              {copied ? 'Copied' : `Copy emails (${emails.length})`}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              fullWidth={false}
+              onClick={downloadParticipants}
+              iconLeft={<DownloadIcon width={16} height={16} />}
+            >
+              Download CSV ({filtered.length})
+            </Button>
+          </div>
+
           <div className="mb-1.5 flex items-center gap-4 px-5 font-mono text-eyebrow uppercase tracking-[0.12em] text-ink-secondary">
             <span className="flex-1">Participant</span>
             <span className="w-24 text-right">Paid</span>
