@@ -92,6 +92,10 @@ export const profileSchema = z.object({
   id: uuid, // = auth.uid()
   first_name: z.string().min(1),
   email: z.string().email(),
+  // The creator's short public URL: abundanceai.net/<slug>. Generated from their
+  // name at sign-up and never regenerated — a link already shared must keep
+  // working after they rename themselves. Null only before the 0037 backfill.
+  slug: z.string().nullable(),
   avatar_url: z.string().url().nullable(),
   category: categorySchema,
   // Free-text label when category === 'other'; null otherwise. Keeps the enum
@@ -315,9 +319,12 @@ export const circleRosterMemberSchema = z.object({
   name: z.string(),
   category: categorySchema, // kept for the matcher/analytics, not shown as a label
   is_you: z.boolean().optional(), // marks the current user in the roster
-  // The member's public program landing page (/p/:program_id), when they have a
-  // published ('ready') program — lets the roster link through to their program.
+  // The member's public program landing page, when they have a published
+  // ('ready') program — lets the roster link through to their program.
   program_id: uuid.nullable().optional(),
+  // Their short URL segment. Preferred over program_id for the link, so the
+  // roster shows /laquelle rather than a UUID; null falls back to /p/:program_id.
+  program_slug: z.string().nullable().optional(),
 });
 export type CircleRosterMember = z.infer<typeof circleRosterMemberSchema>;
 

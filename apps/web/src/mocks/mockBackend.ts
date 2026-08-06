@@ -121,7 +121,10 @@ export function createMockBackend(): Backend {
   function bootstrapUser(email: string, firstName: string, category: Category = 'other', categoryOther: string | null = null) {
     const id = uid();
     state.user = { id, email };
-    state.profile = { id, first_name: firstName, email, avatar_url: null, category, category_other: category === 'other' ? categoryOther : null, bio: null, landing_page: null, paid_at: nowIso(), created_at: nowIso() };
+    // Slug generated the same way the handle_new_user trigger does (0037), minus
+    // the uniqueness loop — mock mode only ever has the one profile.
+    const slug = firstName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
+    state.profile = { id, first_name: firstName, slug, email, avatar_url: null, category, category_other: category === 'other' ? categoryOther : null, bio: null, landing_page: null, paid_at: nowIso(), created_at: nowIso() };
     state.journey = { user_id: id, path: null, current_step: null, completed_steps: [], updated_at: nowIso() };
     state.session = { user_id: id, platform: 'google_meet', meet_link: null, updated_at: nowIso() };
     state.stripe = { user_id: id, connected: false, account_id: null, checklist: { bank: false, id: false, email: true }, updated_at: nowIso() };
@@ -234,8 +237,11 @@ export function createMockBackend(): Backend {
     async programPublic(req) {
       await delay(300);
       // Demo runs in one browser, so the "buyer" reads the creator's local build.
-      // Each build has its own public URL, so look it up by id (not just the active one).
-      const build = findBuild(req.program_id);
+      // A slug is the creator's identity → their ACTIVE build; a program id names
+      // one specific build. Mirrors the split in the program-public function.
+      const build = req.slug
+        ? (req.slug === state.profile?.slug ? activeBuild() : undefined)
+        : findBuild(req.program_id!);
       const p = build?.program;
       if (!p || p.status !== 'ready') {
         throw new AbundanceApiError('not_found', "This program isn't available.");
@@ -252,6 +258,7 @@ export function createMockBackend(): Backend {
           .map((m) => ({ idx: m.idx, title: m.title, description: m.description ?? '', outcome: m.outcome, detail: m.detail })),
         creator: {
           first_name: state.profile?.first_name ?? 'Your host',
+          slug: state.profile?.slug ?? null,
           category: state.profile?.category ?? 'other',
           avatar_url: state.profile?.avatar_url ?? null,
           email: state.profile?.email ?? 'hello@abundance.ai',

@@ -4,6 +4,7 @@ import type { Module, Program } from '@abundance/shared';
 import { Button, Badge, Card, Eyebrow, EmptyState, Sheet, Skeleton } from '@/components/ui';
 import { ProgramIcon, DragIcon, TrashIcon, PlusIcon, PencilIcon, CheckIcon, ArrowRight, ArrowLeft, SparkleIcon, ChevronDown, EyeIcon, CloseIcon } from '@/components/ui/icons';
 import { JourneyStepper } from '@/components/JourneyStepper';
+import { useProgramShareUrl } from '@/components/ShareProgramLink';
 import { useApp } from '@/store';
 import { useUnsaved } from '@/store/unsaved';
 import type { Backend } from '@/lib/backend';
@@ -54,6 +55,9 @@ export function ProgramPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const { guard, setDirty } = useUnsaved();
+  // Hook, so it has to sit above the early returns below — program.program is
+  // still null while loading, and the id is only a fallback for a missing slug.
+  const shareUrl = useProgramShareUrl(program.program?.id ?? '');
 
   // Refreshes may land while the title input is open (e.g. after a module save);
   // read the flag through a ref so they don't clobber the in-progress title.
@@ -334,7 +338,7 @@ export function ProgramPage() {
             moduleCount={modules.length}
             readMinutes={totalRead}
             noteCount={noteCount}
-            onViewLive={() => window.open(`/p/${programId}`, '_blank', 'noopener,noreferrer')}
+            onViewLive={() => window.open(shareUrl, '_blank', 'noopener,noreferrer')}
           />
         </aside>
       </div>

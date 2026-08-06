@@ -95,7 +95,18 @@ export const programActivateRequestSchema = z.object({ program_id: z.string().uu
 export const programDeleteRequestSchema = z.object({ program_id: z.string().uuid() });
 
 // ── program-public + view-track + enroll (buyer-facing, public) ───────────────
-export const programPublicRequestSchema = z.object({ program_id: z.string().uuid() });
+// Addressable by the creator's short slug (/laquelle — resolves to whichever
+// build they currently have active) or by a program UUID (/p/:id — the legacy
+// share link, pinned to that one build). Exactly one of the two.
+export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/;
+export const programPublicRequestSchema = z
+  .object({
+    program_id: z.string().uuid().optional(),
+    slug: z.string().regex(SLUG_RE).optional(),
+  })
+  .refine((v) => Boolean(v.program_id) !== Boolean(v.slug), {
+    message: 'Provide exactly one of program_id or slug.',
+  });
 export const programViewTrackRequestSchema = z.object({ program_id: z.string().uuid() });
 export const enrollSessionRequestSchema = z.object({
   program_id: z.string().uuid(),

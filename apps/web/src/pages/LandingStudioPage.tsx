@@ -10,8 +10,9 @@ import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { LANDING_THEMES, LANDING_THEME_IDS, resolveLanding } from '@/lib/landingTheme';
 import { LandingView } from '@/pages/ProgramLandingPage';
+import { programShareUrl } from '@/components/ShareProgramLink';
 
-// Landing Studio — creators style their public /p/:id page: pick a color theme,
+// Landing Studio — creators style their public page: pick a color theme,
 // background style, and heading font, and rewrite the hero copy. The right-hand
 // pane is a live, scaled-down render of the real landing page (same component).
 
@@ -136,7 +137,7 @@ export function LandingStudioPage() {
   };
 
   // The live page can only be shared once the creator can actually be paid — until
-  // Stripe is connected, exposing the /p/:id link would let someone enroll on a
+  // Stripe is connected, exposing the link would let someone enroll on a
   // program whose payment can't go through. We enforce this in PRODUCTION only:
   // the test/beta site keeps links open so existing beta testers (who have program
   // pages but haven't connected Stripe yet) aren't suddenly locked out.
@@ -144,7 +145,10 @@ export function LandingStudioPage() {
   const requireStripeToShare = env.environment === 'production';
   const canShare = payoutsConnected || !requireStripeToShare;
   const liveReady = program.program?.status === 'ready';
-  const liveUrl = liveReady && canShare ? `/p/${program.program!.id}` : null;
+  // Same short URL the creator sees everywhere else — never the /p/:uuid form.
+  const liveUrl = liveReady && canShare
+    ? programShareUrl(profile?.slug, program.program!.id)
+    : null;
 
   // The exact data shape the public page renders, with the draft injected.
   const previewData: ProgramPublicResponse = {
@@ -160,6 +164,7 @@ export function LandingStudioPage() {
       : SAMPLE_MODULES,
     creator: {
       first_name: profile?.first_name ?? 'You',
+      slug: profile?.slug ?? null,
       category: profile?.category ?? 'other',
       avatar_url: profile?.avatar_url ?? null,
       email: profile?.email ?? 'you@example.com',
