@@ -14,6 +14,7 @@
     "build:shared": "npm run build --workspace @abundance/shared",
     "dev:web": "npm run dev --workspace @abundance/web",
     "build:web": "npm run build --workspace @abundance/web",
+    "dev:preview": "node scripts/dev-preview.mjs",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:start": "supabase start",

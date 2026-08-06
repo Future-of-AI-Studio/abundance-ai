@@ -1,0 +1,13 @@
+// The api/ folder is compiled by Vercel with esbuild, which strips types without
+// checking them — a type error would deploy silently. The main tsconfig only
+// includes src/, so this project adds api/ to `npm run typecheck`.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["api", "src/lib/landingPalettes.ts"]
+}

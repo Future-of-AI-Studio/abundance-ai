@@ -40,6 +40,9 @@ npm-debug.log*
 # Test / coverage
 coverage/
 
+# Vercel CLI (vercel link / vercel dev write project + org ids here)
+.vercel/
+
 # Vite / web
 apps/web/.vite/
 apps/web/stats.html
