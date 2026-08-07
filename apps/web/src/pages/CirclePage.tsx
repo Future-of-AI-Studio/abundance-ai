@@ -66,7 +66,7 @@ export function CirclePage() {
   return (
     <div>
       <img
-        src="/community-banner.webp"
+        src="/community-banner-2.webp"
         alt="AbundanceAI Community &amp; Peer Support Circles"
         className="mb-6 w-full rounded-xl border border-line shadow-sm"
       />
