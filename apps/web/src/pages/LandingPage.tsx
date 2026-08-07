@@ -2078,6 +2078,7 @@ export function LandingPage() {
                 maxWidth: '44ch',
               }}
             >
+              6 months included. Then $88/year<br />
               Backed by a 90-day money-back guarantee. 
               <br/>Build something you’re proud of.
             </p>
