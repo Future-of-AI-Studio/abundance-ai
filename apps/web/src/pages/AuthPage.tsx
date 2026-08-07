@@ -24,9 +24,10 @@ import { LegalLink } from '@/components/LegalLink';
 type Mode = 'signup' | 'signin';
 
 const BRAND_BULLETS = [
-  'It\'s your time to share your knowledge with the world',
-  'Mindset Coaching & Peer Circles to Support You',
-  'No tech or writing skills required',
+  '6 months of full access',
+  'Program, sessions, and marketing copy',
+  'Mindset coaching and peer community support',
+  '90-day money-back guarantee',
 ];
 
 const signupSchema = z
@@ -198,8 +199,15 @@ export function AuthPage() {
             <p className="mt-4 font-serif text-[clamp(26px,3.5vw,34px)] font-medium leading-[1.12] tracking-[-0.01em]">
               It&rsquo;s your time to share your knowledge with the world.
             </p>
+            <p className="mt-4 text-body-sm leading-relaxed text-white/90">
+              AbundanceAI helps you create your launch-ready online program, guided group
+              sessions, and marketing copy &mdash; without tech, writing, or curriculum stress.
+            </p>
 
             <div className="mb-8 mt-7 hidden flex-col gap-3.5 md:flex">
+              <p className="text-body-sm font-semibold text-white">
+                Your $25 introductory price includes:
+              </p>
               {BRAND_BULLETS.map((line) => (
                 <div key={line} className="flex items-start gap-3">
                   <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-white" />
@@ -211,9 +219,9 @@ export function AuthPage() {
             <div className="mt-7 flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-4 py-3.5 md:mt-0">
               <ShieldIcon width={24} height={24} className="shrink-0 text-white" />
               <div>
-                <p className="text-body-sm font-semibold text-white">$25 to begin</p>
+                <p className="text-body-sm font-semibold text-white">Then $88/year.</p>
                 <p className="mt-0.5 text-caption text-white/80">
-                  Build something you&rsquo;re proud of.
+                  Create a program you&rsquo;re proud to share.
                 </p>
               </div>
             </div>
