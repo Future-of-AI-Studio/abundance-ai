@@ -15,10 +15,10 @@ import { PaymentResultOverlay, type PayResult } from '@/components/PaymentResult
 // submit (no double-charge). On a real Stripe success (or mock success) → /welcome.
 
 const INCLUDED = [
-  'Your program, built for you by AI',
-  'Marketing posts written and ready',
-  'Mindset coaching + a peer circle',
-  'Guided setup to get paid',
+  'Your program, sessions, and marketing copy',
+  'Mindset coaching and peer community support',
+  'Guidance to launch and invite participants',
+  '90-day money-back guarantee',
 ];
 
 function ValuePanel() {
@@ -32,13 +32,17 @@ function ValuePanel() {
 
         <div className="mt-8 flex items-baseline justify-between border-b border-white/20 pb-5">
           <div>
-            <p className="text-h3 font-semibold text-white">AbundanceAI</p>
-            <p className="text-body-sm text-white/80">Everything below, today</p>
+            <p className="text-h3 font-semibold text-white">Your introductory price</p>
+            <p className="text-body-sm text-white/80">
+              6 months of full access. Then $88/year.
+            </p>
           </div>
           <span className="font-serif text-display text-white">$25</span>
         </div>
 
-        <ul className="mt-5 space-y-3">
+        <p className="mt-5 text-body-sm font-semibold text-white">Included:</p>
+
+        <ul className="mt-3 space-y-3">
           {INCLUDED.map((i) => (
             <li key={i} className="flex items-start gap-3 text-body-sm text-white/90">
               <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-white" />
@@ -47,6 +51,9 @@ function ValuePanel() {
           ))}
         </ul>
 
+        <p className="mt-6 text-body-sm text-white/90">
+          Your program starts here. Let&rsquo;s bring it to life.
+        </p>
       </div>
 
       <figure className="border-t border-white/20 pt-6">

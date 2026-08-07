@@ -251,6 +251,9 @@ export function AccountPage() {
   };
 
   const displayName = profile?.first_name?.trim() || 'Friend';
+  // Host only — the full link with its Copy button lives on Home/Participants/Get
+  // paid; here it's just so they recognise their address when they see it.
+  const shareHost = typeof window !== 'undefined' ? window.location.host : 'abundanceai.net';
   const pathLabel = journey?.path === 'A' ? 'Live group coaching' : journey?.path === 'B' ? 'Self-paced program' : 'Path not chosen yet';
   const pathSub = journey?.path ? `Type ${journey.path} · your chosen path` : 'Pick a path to begin';
   const moduleCount = program.modules.length;
@@ -313,6 +316,18 @@ export function AccountPage() {
             <span className="hidden sm:inline">Edit profile</span>
           </Button>
         </div>
+
+        {/* Their public URL. Read-only: it's generated from their name at sign-up
+            and fixed for life, because a link already printed on a flyer or sitting
+            in someone's Instagram bio must never stop working. */}
+        {profile?.slug && (
+          <div className="mt-4 border-t border-line pt-4">
+            <Eyebrow className="mb-1.5">Your page address</Eyebrow>
+            <p className="truncate font-mono text-body-sm text-ink-secondary">
+              {shareHost}/{profile.slug}
+            </p>
+          </div>
+        )}
 
         {/* Bio — shown publicly as "Meet your guide" on your program landing page. */}
         <div className="mt-4 border-t border-line pt-4">

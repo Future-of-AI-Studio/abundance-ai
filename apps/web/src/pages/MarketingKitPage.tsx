@@ -5,6 +5,7 @@ import { PLATFORM_LABELS, PHASE_LABELS, postsPerTarget, MARKETING_ROUNDS_PER_MON
 import { Button, Card, SegmentedControl, Skeleton, Badge, EmptyState, Sheet } from '@/components/ui';
 import { CopyIcon, CheckIcon, SparkleIcon, StarIcon, ArrowRight, ShareIcon, XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, MailIcon } from '@/components/ui/icons';
 import { StepLayout } from '@/components/StepLayout';
+import { useProgramShareUrl } from '@/components/ShareProgramLink';
 import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
@@ -274,7 +275,10 @@ export function MarketingKitPage() {
 }
 
 function PostCard({ post }: { post: MarketingPost }) {
-  const { updatePost } = useApp();
+  const { updatePost, program } = useApp();
+  // Facebook and LinkedIn share a URL, not text. That URL has to be the creator's
+  // program page — sharing the AbundanceAI homepage sells them nothing.
+  const shareUrl = useProgramShareUrl(program.program?.id ?? '');
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState(post.caption);
   const [copied, setCopied] = useState(false);
@@ -321,7 +325,7 @@ function PostCard({ post }: { post: MarketingPost }) {
 
   const shareTo = async (platform: SharePlatform) => {
     setShareOpen(false);
-    const url = intentUrl(platform, shareText, window.location.origin);
+    const url = intentUrl(platform, shareText, shareUrl);
     if (url) {
       // FB & LinkedIn can't prefill the caption — copy it so the user can paste.
       if (platform === 'facebook' || platform === 'linkedin') {
