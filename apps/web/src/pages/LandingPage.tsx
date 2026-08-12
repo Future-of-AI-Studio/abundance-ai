@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useApp } from '@/store';
 import { LEGAL_PAGES } from '@/pages/legal/LegalLayout';
+import { subscribeEmail, isValidEmail } from '@/lib/subscribe';
 
 // [01] Landing — port of "AbundanceAI Landing v17.dc.html" (claude.ai/design
 // project 5affb7dc-41b7-49bc-a3d4-70c30615697f). The design is styled inline,
@@ -417,6 +419,8 @@ const CSS = `
 .lp17 .pillar-item.pillar-in .pillar-text { opacity:1 !important; transform:translateY(0) !important; }
 
 @keyframes lp17Rise { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+@keyframes lp17Fade { from { opacity:0; } to { opacity:1; } }
+@keyframes lp17ModalIn { from { opacity:0; transform:translateY(14px) scale(0.97); } to { opacity:1; transform:none; } }
 .lp17 .reveal { animation:lp17Rise 0.8s cubic-bezier(.22,.61,.36,1) both; }
 .lp17 .scroll-fade { opacity:0; transform:translateY(24px); transition:opacity 1s ease-out, transform 1s ease-out; animation:none; }
 .lp17 .scroll-fade.in-view { opacity:1; transform:none; }
@@ -636,6 +640,421 @@ const CSS = `
 }
 `;
 
+/**
+ * Why the email check lives here and not just on <input type="email">: the
+ * browser's native validity check accepts addresses with no dot in the domain
+ * (a@b), and its bubble styling can't be brought in line with the page. We
+ * validate on submit and render the message ourselves.
+ */
+function emailError(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return 'Please enter your email address.';
+  if (value.length > 254) return 'That email address is too long.';
+  if (!value.includes('@')) return "Please include an '@' in the email address.";
+  if (!isValidEmail(value)) return "That doesn't look like a valid email address.";
+  return null;
+}
+
+/**
+ * Confirmation + success dialog for the footer capture. Portaled to <body> so
+ * no transformed ancestor in the footer can capture its position: fixed, and
+ * wrapped in .lp17 so the landing palette (--gold-1, --display, .btn-gold)
+ * still resolves outside the page subtree.
+ */
+function SubscribeModal({
+  email,
+  phase,
+  error,
+  onConfirm,
+  onClose,
+}: {
+  email: string;
+  phase: 'confirm' | 'sending' | 'success';
+  error: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus the primary action on open, and hand focus back to whatever opened
+  // the dialog on close, so keyboard users aren't dropped at the top of the page.
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    confirmRef.current?.focus();
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = overflow;
+      opener?.focus?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && phase !== 'sending') onClose();
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      // Minimal focus trap: the dialog only ever holds two or three controls.
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled])',
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [phase, onClose]);
+
+  const sending = phase === 'sending';
+  const success = phase === 'success';
+
+  return createPortal(
+    <div
+      className="lp17"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="subscribe-modal-title"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !sending) onClose();
+      }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        background: 'rgba(34,41,61,0.55)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        animation: 'lp17Fade 200ms ease both',
+      }}
+    >
+      <div
+        ref={dialogRef}
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          background: '#FFFFFF',
+          borderRadius: 28,
+          padding: 'clamp(26px,4vw,38px)',
+          textAlign: 'center',
+          boxShadow: '0 30px 70px rgba(34,41,61,0.28)',
+          border: '1px solid rgba(255,255,255,0.9)',
+          animation: 'lp17ModalIn 260ms cubic-bezier(0.32,0.72,0,1) both',
+        }}
+      >
+        <img
+          src={ASSET.star}
+          alt=""
+          aria-hidden="true"
+          style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 14px', display: 'block' }}
+        />
+
+        <p className="eyebrow" style={{ color: '#65ADCF', margin: '0 0 10px' }}>
+          {success ? 'Welcome aboard' : 'Stay Updated'}
+        </p>
+
+        <h2
+          id="subscribe-modal-title"
+          style={{
+            fontFamily: 'var(--display)',
+            fontSize: 'clamp(22px,3.4vw,27px)',
+            lineHeight: 1.2,
+            color: 'var(--ink)',
+            margin: '0 0 12px',
+          }}
+        >
+          {success ? "You're on the list" : 'Confirm your email'}
+        </h2>
+
+        <p
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: 14.5,
+            lineHeight: 1.6,
+            color: 'var(--ink-2)',
+            margin: '0 0 6px',
+          }}
+        >
+          {success
+            ? "Thank you for joining. We'll send tips, stories, and updates to grow your impact. No noise."
+            : "We'll send updates to this address:"}
+        </p>
+
+        {!success && (
+          <p
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: 15,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              // Long addresses must wrap rather than widen the dialog; `anywhere`
+              // still prefers natural break points where the address offers them.
+              overflowWrap: 'anywhere',
+              margin: '0 0 22px',
+            }}
+          >
+            {email}
+          </p>
+        )}
+
+        {/*
+          Google Apps Script takes 3-5s warm and ~9s cold, so the confirm click
+          is followed by a long, silent wait. Say so, or it reads as broken.
+        */}
+        {sending && (
+          <p
+            aria-live="polite"
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: 'var(--ink-3)',
+              margin: '0 0 18px',
+            }}
+          >
+            This can take a few seconds. Please keep this open.
+          </p>
+        )}
+
+        {error ? (
+          <p
+            role="alert"
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              color: '#C0392B',
+              background: '#FBE9E7',
+              border: '1px solid #F3C9C4',
+              borderRadius: 12,
+              padding: '10px 12px',
+              margin: '0 0 18px',
+            }}
+          >
+            {error}
+          </p>
+        ) : null}
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginTop: success ? 22 : 0,
+          }}
+        >
+          {!success && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={sending}
+              style={{
+                border: '1px solid var(--hair)',
+                background: '#FFFFFF',
+                color: 'var(--ink-2)',
+                borderRadius: 999,
+                padding: '13px 24px',
+                fontFamily: 'var(--body)',
+                fontSize: 14.5,
+                fontWeight: 600,
+                cursor: sending ? 'default' : 'pointer',
+                opacity: sending ? 0.5 : 1,
+              }}
+            >
+              Go back
+            </button>
+          )}
+          <button
+            ref={confirmRef}
+            type="button"
+            className="btn-gold"
+            onClick={success ? onClose : onConfirm}
+            disabled={sending}
+            style={{
+              border: 'none',
+              color: '#FFFFFF',
+              borderRadius: 999,
+              padding: '13px 28px',
+              fontFamily: 'var(--body)',
+              fontSize: 14.5,
+              fontWeight: 700,
+              cursor: sending ? 'default' : 'pointer',
+              opacity: sending ? 0.7 : 1,
+            }}
+          >
+            {success ? 'Done' : sending ? 'Subscribing…' : 'Yes, subscribe me'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * Footer email capture. Appends to a monitoring Google Sheet via Apps Script
+ * (apps/web/src/lib/subscribe.ts). Kept local to this file because it carries
+ * the landing page's inline-style language, not the app's semantic tokens.
+ */
+function StayUpdatedForm() {
+  const [email, setEmail] = useState('');
+  const [trap, setTrap] = useState(''); // honeypot — hidden from humans
+  const [inlineError, setInlineError] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [phase, setPhase] = useState<'closed' | 'confirm' | 'sending' | 'success'>('closed');
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const problem = emailError(email);
+    if (problem) {
+      setInlineError(problem);
+      return;
+    }
+    // Validation passed — ask for confirmation before writing anything.
+    setInlineError('');
+    setModalError('');
+    setPhase('confirm');
+  }
+
+  async function onConfirm() {
+    setPhase('sending');
+    setModalError('');
+    const result = await subscribeEmail({ email, trap });
+
+    // A duplicate is a success from the visitor's point of view — they are on
+    // the list either way, and "you already signed up" is noise, not news.
+    if (result === 'ok' || result === 'duplicate') {
+      setPhase('success');
+      setEmail('');
+      return;
+    }
+
+    setPhase('confirm');
+    setModalError(
+      result === 'invalid'
+        ? "That doesn't look like a valid email address."
+        : "That didn't go through. Please check your connection and try again.",
+    );
+  }
+
+  return (
+    <>
+      <form onSubmit={onSubmit} noValidate style={{ display: 'flex', gap: 8 }}>
+        <input
+          type="email"
+          placeholder="Enter your email"
+          aria-label="Email address"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (inlineError) setInlineError('');
+          }}
+          aria-invalid={inlineError ? true : undefined}
+          aria-describedby={inlineError ? 'subscribe-error' : undefined}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: inlineError
+              ? '1px solid rgba(192,57,43,0.55)'
+              : '1px solid rgba(74,74,82,0.22)',
+            borderRadius: 10,
+            padding: '11px 14px',
+            fontFamily: 'var(--body)',
+            fontSize: 14,
+            color: '#4A4A52',
+            background: '#FFFFFF',
+          }}
+        />
+        {/*
+          Honeypot: visually hidden and untabbable, so only bots ever fill it.
+          Clipped in place rather than pushed off-screen with a negative offset —
+          this page is swept for elements painting outside the viewport by
+          scripts/check-landing.mjs, and an off-screen input trips that check.
+        */}
+        <input
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={trap}
+          onChange={(e) => setTrap(e.target.value)}
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            padding: 0,
+            border: 0,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            clipPath: 'inset(50%)',
+            whiteSpace: 'nowrap',
+          }}
+        />
+        <button
+          type="submit"
+          className="btn-gold"
+          aria-label="Subscribe"
+          style={{
+            border: 'none',
+            cursor: 'pointer',
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: '0 0 auto',
+            background: 'linear-gradient(100deg, #F59C30, #F8BF39)',
+            boxShadow: '0px 12px 28px 0px #F8BF3952',
+          }}
+        >
+          <span style={{ fontSize: 17 }}>→</span>
+        </button>
+      </form>
+
+      {inlineError ? (
+        <p
+          id="subscribe-error"
+          role="alert"
+          style={{
+            margin: '10px 0 0',
+            fontFamily: 'var(--body)',
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: '#C0392B',
+          }}
+        >
+          {inlineError}
+        </p>
+      ) : null}
+
+      {phase !== 'closed' && (
+        <SubscribeModal
+          email={email}
+          phase={phase}
+          error={modalError}
+          onConfirm={onConfirm}
+          onClose={() => setPhase('closed')}
+        />
+      )}
+    </>
+  );
+}
+
 export function LandingPage() {
   const navigate = useNavigate();
   const ready = useApp((s) => s.ready);
@@ -648,14 +1067,6 @@ export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
-  const playHeroVideo = () => {
-    setHeroVideoPlaying(true);
-    // Kick playback synchronously inside the click handler (real user
-    // gesture) — the video element stays mounted the whole time so this
-    // ref is always valid, which is what keeps autoplay reliable across
-    // browsers instead of racing a state update.
-    heroVideoRef.current?.play().catch(() => {});
-  };
   const start = () => navigate('/auth');
 
   useEffect(() => {
@@ -2974,45 +3385,7 @@ export function LandingPage() {
               {/* <p style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A52', margin: '0 0 14px' }}>
                 Get tips, stories, and updates to grow your impact.
               </p> */}
-              <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  aria-label="Email address"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    border: '1px solid rgba(74,74,82,0.22)',
-                    borderRadius: 10,
-                    padding: '11px 14px',
-                    fontFamily: 'var(--body)',
-                    fontSize: 14,
-                    color: '#4A4A52',
-                    background: '#FFFFFF',
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn-gold"
-                  aria-label="Subscribe"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    width: 44,
-                    height: 44,
-                    borderRadius: 10,
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flex: '0 0 auto',
-                    background: 'linear-gradient(100deg, #F59C30, #F8BF39)',
-                    boxShadow: '0px 12px 28px 0px #F8BF3952',
-                  }}
-                >
-                  <span style={{ fontSize: 17 }}>→</span>
-                </button>
-              </form>
+              <StayUpdatedForm />
             </div>
           </div>
           <div
