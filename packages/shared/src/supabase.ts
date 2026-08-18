@@ -52,6 +52,14 @@ export const TABLES = {
 
 export const CONTENT_BUCKET = 'content';
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+/**
+ * How many uploaded documents (PDF / image) a single build reads. Mirrored by
+ * MAX_INLINE_DOCS in supabase/functions/program-build/index.ts — the cap is what
+ * bounds the work a build does, so a large library can't run the request past the
+ * Edge Runtime limit. Keep the two in sync; this copy exists so the UI can say the
+ * number out loud before anyone hits it.
+ */
+export const MAX_BUILD_DOCUMENTS = 12;
 // Document uploads are restricted to what Gemini can actually read inline: PDFs,
 // images, and plain text (typed/pasted notes are stored as .txt). Word docs
 // aren't analyzable; speech goes through the recorder, which stores WAV. Keep

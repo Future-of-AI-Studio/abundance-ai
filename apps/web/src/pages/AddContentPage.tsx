@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
+import { MAX_UPLOAD_BYTES, MAX_BUILD_DOCUMENTS, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
 import type { ContentSource } from '@abundance/shared';
 import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
 import { StepLayout, RailLabel } from '@/components/StepLayout';
@@ -9,6 +9,7 @@ import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 import { blobToWav } from '@/lib/audio';
+import { compressImage } from '@/lib/image';
 
 // [06] Add Your Content — upload files or record speech to feed the AI. ≥1 source
 // to enable Build. 50 MB + type allowlist enforced inline.
@@ -151,18 +152,22 @@ export function AddContentPage() {
   const addFiles = async (files: FileList | null) => {
     if (!files || !backend) return;
     setError(null);
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        setError("That file's a bit big (max 50 MB). Try a smaller one - or just record instead.");
-        continue;
-      }
-      if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
-        setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
-        continue;
-      }
+    for (const picked of Array.from(files)) {
       setBusy(true);
       setSavingLabel('Saving your file…');
       try {
+        // Shrink big images before the size check: a print-resolution photo is
+        // worth no more to the model than a 1600px one, and full-size originals
+        // crowd out other material in the build's inline-media budget.
+        const file = await compressImage(picked);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError("That file's a bit big (max 50 MB). Try a smaller one - or just record instead.");
+          continue;
+        }
+        if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
+          setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
+          continue;
+        }
         await backend.storage.upload(file, 'file');
         await refreshContent();
       } catch {
@@ -249,6 +254,10 @@ export function AddContentPage() {
   const [seconds, setSeconds] = useState(0);
   const secondsRef = useRef(0); // authoritative duration for the save (state is stale in onstop)
   const timerRef = useRef<number | null>(null);
+
+  // Documents a build will actually read. The extensions mirror inlineDocMime() in
+  // program-build, which keys strictly off the filename extension.
+  const documentCount = contentSources.filter((s) => /\.(pdf|png|jpe?g|webp)$/i.test(s.filename)).length;
 
   // Total voice already recorded across saved sources — drives the 30-min cap.
   const recordedSeconds = contentSources.reduce(
@@ -491,6 +500,15 @@ export function AddContentPage() {
             </p>
             <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
           </div>
+          {/* Say the document cap out loud rather than letting material go quietly
+              unused: a build reads MAX_BUILD_DOCUMENTS files and names the rest as
+              not analyzed. Mirrors MAX_INLINE_DOCS in program-build. */}
+          {documentCount > MAX_BUILD_DOCUMENTS && (
+            <p className="mt-2 text-caption text-ink-secondary">
+              A build reads your first {MAX_BUILD_DOCUMENTS} documents, so {documentCount - MAX_BUILD_DOCUMENTS}{' '}
+              of these won't be included. Remove the ones you don't need, or keep them for a later build.
+            </p>
+          )}
           <Card className="mt-2 divide-y divide-line p-0">
             {contentSources.map((s) => {
               const { name, meta } = sourceMeta(s);

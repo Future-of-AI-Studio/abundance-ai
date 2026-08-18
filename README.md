@@ -15,6 +15,23 @@ evidence.
 
 ---
 
+## 🔑 Judges start here
+
+The deployed app is login-gated. A judge account is already provisioned on
+production — no sign-up, no payment, nothing to install:
+
+| | |
+|---|---|
+| **URL** | **https://www.abundanceai.net/auth** |
+| **Email** | `judge@demo.abundance.ai` |
+| **Password** | `AbundanceAIDemo!2026` |
+
+Sign in and you land straight on the dashboard. The account is intentionally
+**empty** so you build a program yourself and watch Gemini do the work live.
+Full walkthrough: [Judge test instructions](#judge-test-instructions).
+
+---
+
 ## Monorepo layout
 
 ```
@@ -26,7 +43,8 @@ abundance-ai/
 │   ├── functions/       # Deno Edge Functions (all server logic + AI)
 │   └── seed.sql         # shared seed data (expert talks)
 ├── scripts/
-│   ├── seed-demo.mjs        # creates the populated JUDGE DEMO ACCOUNT
+│   ├── seed-demo.mjs        # local: the populated JUDGE DEMO ACCOUNT
+│   ├── seed-judge.mjs       # production: one empty judge login (dry run by default)
 │   └── export-ai-usage.mjs  # exports ai_usage_logs to CSV (submission evidence)
 └── README.md
 ```
@@ -155,31 +173,43 @@ arms-length revenue can be reported separately.
 
 ## Judge test instructions
 
-The deployed build is **login-gated**. Use the seeded demo account (created by
-`scripts/seed-demo.mjs`):
+The deployed build is **login-gated**. Your credentials (provisioned on
+production by `scripts/seed-judge.mjs`):
 
-- **URL:** _<your deployed frontend URL>_
-- **Email:** `judge@demo.abundance.ai`
-- **Password:** `AbundanceDemo!2025`
+| | |
+|---|---|
+| **URL** | **https://www.abundanceai.net/auth** |
+| **Email** | `judge@demo.abundance.ai` |
+| **Password** | `AbundanceAIDemo!2026` |
 
-The demo account is fully populated: a built program (4 modules), 3 marketing
-posts, a saved Google Meet link, a **matched** circle of 3, and a mindset
-check-in. New visitors can also run the full **Flow A** (create account → $25
-Stripe test checkout → home; onboarding is account-first, unpaid accounts are
-routed to checkout) and **Flow B** (choose path → add content → AI builds the
-program → marketing kit) live.
+The account is deliberately **empty** — no program, no marketing, no mindset
+history. It exists so you can log straight in past the $25 gate and run the real
+product end to end: **Flow B** (choose path → add content → Gemini builds the
+program → marketing kit → mindset) executes live against production, with every
+Gemini call going through Vertex AI and landing in `ai_usage_logs`. **Flow A**
+(create account → checkout → home; onboarding is account-first, so unpaid
+accounts are routed to checkout) can be seen separately with a fresh sign-up
+from the landing page.
 
-> Stripe is in **test mode** — use card `4242 4242 4242 4242`, any future expiry, any CVC.
+> Nothing about this account is faked: the paywall is cleared by stamping
+> `profiles.paid_at`, with no order created, so no synthetic revenue appears in
+> the evidence tables. Everything you generate in the app is a real Gemini call.
 
 ### < 3-minute demo plan
-1. Land on `/`, tap **Start for $25** → **Create Account** → pay with the test card → **Home**.
+1. Log in at [`/auth`](https://www.abundanceai.net/auth) with the credentials
+   above → **Home**. (To see the purchase path instead, sign up fresh from `/`
+   and go through **Start for $25**.)
 2. From Home, **Build your program** → choose a path → add a note/recording →
    watch the narrated loader → see the **AI-built program** (WOW).
 3. Continue to **Marketing Kit** (AI-written posts, copy one).
 4. Open **Mindset**, run a check-in (Gemini reflection; try it twice to see a
    cache-instant response), then hit the 3/week limit → warm redirect to **Circle**.
-5. Open **Circle** (matched peers + weekly expert talk). Export `ai_usage_logs.csv`
-   to show the logged Gemini calls.
+5. Open **Circle** — a fresh account has no confirmed circle yet, so you see the
+   rule engine's live recommendation (peers matched by category) rather than a
+   settled group. Export `ai_usage_logs.csv` to show the logged Gemini calls.
+6. Open your program's public page at
+   [`/judge`](https://www.abundanceai.net/judge) once step 2 has finished — the
+   short branded URL every creator gets, ready to share and sell.
 
 ---
 
@@ -227,7 +257,7 @@ the Supabase client. (Service-role scripts bypass RLS by design.)
 | `npm run build:web` | typecheck + production build of the frontend |
 | `npm run db:reset` | apply all migrations + seed (needs Docker) |
 | `npm run functions:serve` | serve Edge Functions locally |
-| `node scripts/seed-demo.mjs` | create the populated judge demo account |
+| `node scripts/seed-demo.mjs` | create the populated judge demo account (**local**) |
 | `node scripts/export-ai-usage.mjs` | export AI usage evidence to CSV |
 | `node scripts/rls-smoke-test.mjs` | assert cross-user RLS isolation (needs `SUPABASE_URL` + `SUPABASE_ANON_KEY`) |
 
