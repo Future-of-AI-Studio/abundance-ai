@@ -11,29 +11,19 @@ import { encodeBase64 } from '@std/encoding/base64';
 import { callGemini } from '../_shared/gemini.ts';
 import { audioMime, transcribeSource } from '../_shared/transcribe.ts';
 import { programBuildPrompt } from '../_shared/prompts.ts';
-
-// PDFs and images are still analyzed inline — they're small and weren't the CPU
-// problem that large audio was. Audio is fed in as transcript TEXT instead (see the
-// assembly loop). We key strictly off the extension so we never mislabel bytes.
-function inlineDocMime(ext: string): string | null {
-  const byExt: Record<string, string> = {
-    pdf: 'application/pdf',
-    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
-  };
-  return byExt[ext] ?? null;
-}
+// The document caps live in _shared/limits.ts because content-upload-url enforces
+// the same numbers at upload time. If the two drifted, a user could upload a file
+// this build would then silently ignore.
+import {
+  MAX_BUILD_DOCS, MEDIA_CAP_ENCODED, encodedSize, inlineDocMime, objectSizes,
+} from '../_shared/limits.ts';
 
 // Bound the WORK a build does, not just the payload it sends. Every source that
 // needs a storage read costs a round trip, and a sequential pass over a large
 // library (42 files / 31 MB in the wild) ran the request past the platform limit:
 // the isolate was killed *after* the Gemini call had already succeeded, so the
-// catch below never ran and the program sat at 'building' forever. Two guards —
-// a hard cap on how many documents we fetch, so the worst case is fixed no matter
-// what the files look like, and concurrent fetching so wall clock scales with
-// batches rather than with file count.
-// Mirrored by MAX_BUILD_DOCUMENTS in packages/shared/src/supabase.ts, which the
-// upload screen uses to warn before anyone hits it. Keep the two in sync.
-const MAX_INLINE_DOCS = 12;
+// catch below never ran and the program sat at 'building' forever. Fetching runs
+// concurrently so wall clock scales with batches rather than with file count.
 const DOWNLOAD_CONCURRENCY = 5;
 
 /** Run `fn` over `items` in fixed-size concurrent batches, preserving input order. */
@@ -62,7 +52,7 @@ Deno.serve(async (req) => {
       .from('content_sources')
       .select('id, kind, filename, storage_path, duration_sec, transcript')
       .eq('user_id', user.id)
-      // Upload order, so "the first MAX_INLINE_DOCS documents" means the same set
+      // Upload order, so "the first MAX_BUILD_DOCS documents" means the same set
       // on every build instead of whatever Postgres happened to return.
       .order('created_at', { ascending: true });
 
@@ -105,12 +95,9 @@ Deno.serve(async (req) => {
     // as inline media. Large audio stays OUT of the build request as text — its base64
     // + inline was what tripped the Edge Runtime CPU limit for heavy users.
     const mediaParts: { mimeType: string; dataBase64: string }[] = [];
-    // Vertex caps the whole generateContent request at ~20 MB, and inlineData is
-    // base64 (×4/3 inflation) — so the budget must count ENCODED bytes, with
-    // headroom for the prompt text and JSON overhead. 18 MB encoded ≈ 13.5 MB raw.
+    // MEDIA_CAP_ENCODED / encodedSize come from _shared/limits.ts, which explains
+    // why the budget counts ENCODED bytes rather than raw file size.
     let mediaEncodedBytes = 0;
-    const MEDIA_CAP_ENCODED = 18 * 1024 * 1024;
-    const encodedSize = (rawBytes: number) => Math.ceil(rawBytes / 3) * 4;
 
     // Classify first, fetch in bounded concurrent batches, then reassemble in
     // upload order — so the prompt is identical no matter which download won.
@@ -146,17 +133,45 @@ Deno.serve(async (req) => {
       if (text !== null) fragment.set(p.s.id, `\n\n=== ${p.s.filename} ===\n` + text);
     }
 
-    // PDFs / images → inline media. Only the first MAX_INLINE_DOCS are fetched AT
-    // ALL: the old loop downloaded every document and then discarded the ones past
-    // the byte budget, which is what made a large library so expensive. Documents
-    // past the cap are still named in the prompt, so the omission is explicit to
-    // the model instead of silent.
+    // PDFs / images → inline media, chosen by KNOWN size so no download is wasted.
+    // The old loop fetched every document and then discarded whatever exceeded the
+    // byte budget, so a large library paid the full cost of files that never reached
+    // the model — that wasted work is what ran the request past the platform limit.
+    // Now the selection happens first, against sizes from the object listing, and
+    // only the chosen files are read. Selection walks upload order, so a build is
+    // reproducible and an oversized file doesn't block the smaller ones behind it.
+    const sizes = await objectSizes(admin, user.id);
+    const picked: Planned[] = [];
+    const notPicked: { p: Planned; why: 'budget' | 'cap' }[] = [];
+    let plannedEncoded = 0;
+    for (const p of docs) {
+      if (picked.length >= MAX_BUILD_DOCS) {
+        notPicked.push({ p, why: 'cap' });
+        continue;
+      }
+      const known = sizes.get(p.s.storage_path);
+      if (known === undefined) {
+        // No size in the listing — keep it a candidate and let the real size, read
+        // below, make the call. Same behavior builds had before sizes existed.
+        picked.push(p);
+        continue;
+      }
+      const encoded = encodedSize(known);
+      if (plannedEncoded + encoded > MEDIA_CAP_ENCODED) {
+        notPicked.push({ p, why: 'budget' });
+        continue;
+      }
+      plannedEncoded += encoded;
+      picked.push(p);
+    }
+
     const docBlobs = await inBatches(
-      docs.slice(0, MAX_INLINE_DOCS),
+      picked,
       DOWNLOAD_CONCURRENCY,
       async (p: Planned) => ({ p, blob: (await download(p.s.storage_path)).data }),
     );
-    // Budget applied after the fetch, in upload order, so it stays deterministic.
+    // Real sizes are authoritative: an unknown-size file or a stale listing is
+    // caught here rather than overflowing the request Vertex will accept.
     for (const { p, blob } of docBlobs) {
       const mime = p.docMime;
       if (blob && mime && mediaEncodedBytes + encodedSize(blob.size) <= MEDIA_CAP_ENCODED) {
@@ -168,14 +183,22 @@ Deno.serve(async (req) => {
       console.warn(`program-build: ${p.s.filename} skipped — over the inline media budget`);
       fragment.set(p.s.id, `\n\n[${p.label} — too large to analyze directly; not included]`);
     }
-    if (docs.length > MAX_INLINE_DOCS) {
-      console.warn(`program-build: ${docs.length} documents, reading the first ${MAX_INLINE_DOCS}`);
-      for (const p of docs.slice(MAX_INLINE_DOCS)) {
-        fragment.set(
-          p.s.id,
-          `\n\n[${p.label} — not analyzed; a build reads the first ${MAX_INLINE_DOCS} documents]`,
-        );
-      }
+    // Files we never read are still named, so the omission is explicit to the model
+    // instead of silent.
+    for (const { p, why } of notPicked) {
+      fragment.set(
+        p.s.id,
+        why === 'cap'
+          ? `\n\n[${p.label} — not analyzed; a build reads up to ${MAX_BUILD_DOCS} documents]`
+          : `\n\n[${p.label} — not analyzed; the build's document budget was already full]`,
+      );
+    }
+    if (notPicked.length) {
+      const overBudget = notPicked.filter((n) => n.why === 'budget').length;
+      console.warn(
+        `program-build: ${docs.length} documents, reading ${picked.length} ` +
+          `(${overBudget} over the byte budget, ${notPicked.length - overBudget} over the ${MAX_BUILD_DOCS} cap)`,
+      );
     }
 
     // Audio → transcript TEXT. Prefer the stored transcript; transcribe on demand
