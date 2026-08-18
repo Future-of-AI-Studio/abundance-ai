@@ -23,6 +23,32 @@ function inlineDocMime(ext: string): string | null {
   return byExt[ext] ?? null;
 }
 
+// Bound the WORK a build does, not just the payload it sends. Every source that
+// needs a storage read costs a round trip, and a sequential pass over a large
+// library (42 files / 31 MB in the wild) ran the request past the platform limit:
+// the isolate was killed *after* the Gemini call had already succeeded, so the
+// catch below never ran and the program sat at 'building' forever. Two guards —
+// a hard cap on how many documents we fetch, so the worst case is fixed no matter
+// what the files look like, and concurrent fetching so wall clock scales with
+// batches rather than with file count.
+// Mirrored by MAX_BUILD_DOCUMENTS in packages/shared/src/supabase.ts, which the
+// upload screen uses to warn before anyone hits it. Keep the two in sync.
+const MAX_INLINE_DOCS = 12;
+const DOWNLOAD_CONCURRENCY = 5;
+
+/** Run `fn` over `items` in fixed-size concurrent batches, preserving input order. */
+async function inBatches<T, R>(
+  items: readonly T[],
+  size: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleOptions();
   let programId: string | null = null;
@@ -35,7 +61,10 @@ Deno.serve(async (req) => {
     const { data: sources } = await db
       .from('content_sources')
       .select('id, kind, filename, storage_path, duration_sec, transcript')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      // Upload order, so "the first MAX_INLINE_DOCS documents" means the same set
+      // on every build instead of whatever Postgres happened to return.
+      .order('created_at', { ascending: true });
 
     if (!sources || sources.length === 0) {
       return errorResponse('no_content', 'Add at least one file or recording first.', 400);
@@ -75,7 +104,6 @@ Deno.serve(async (req) => {
     // or one whose upload-time transcription didn't finish), and attach PDFs / images
     // as inline media. Large audio stays OUT of the build request as text — its base64
     // + inline was what tripped the Edge Runtime CPU limit for heavy users.
-    let raw = '';
     const mediaParts: { mimeType: string; dataBase64: string }[] = [];
     // Vertex caps the whole generateContent request at ~20 MB, and inlineData is
     // base64 (×4/3 inflation) — so the budget must count ENCODED bytes, with
@@ -84,48 +112,91 @@ Deno.serve(async (req) => {
     const MEDIA_CAP_ENCODED = 18 * 1024 * 1024;
     const encodedSize = (rawBytes: number) => Math.ceil(rawBytes / 3) * 4;
 
-    for (const s of sources) {
+    // Classify first, fetch in bounded concurrent batches, then reassemble in
+    // upload order — so the prompt is identical no matter which download won.
+    const plan = sources.map((s) => {
       const ext = (s.filename.split('.').pop() ?? '').toLowerCase();
-      const label = `${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}`;
+      return {
+        s,
+        label: `${s.kind}: ${s.filename}${s.duration_sec ? ` (${s.duration_sec}s)` : ''}`,
+        isText: /^(txt|md|csv)$/.test(ext),
+        isAudio: audioMime(s) !== null,
+        docMime: inlineDocMime(ext),
+      };
+    });
+    type Planned = (typeof plan)[number];
 
-      // Text notes → inline text (tiny).
-      if (/^(txt|md|csv)$/.test(ext)) {
-        const { data: blob } = await admin.storage.from('content').download(s.storage_path);
-        if (blob) raw += `\n\n=== ${s.filename} ===\n` + (await blob.text()).slice(0, 6000);
-        continue;
-      }
+    // Same precedence as before: text, then audio, then inline documents.
+    const texts = plan.filter((p) => p.isText);
+    const audios = plan.filter((p) => !p.isText && p.isAudio);
+    const docs = plan.filter((p) => !p.isText && !p.isAudio && p.docMime);
+    const others = plan.filter((p) => !p.isText && !p.isAudio && !p.docMime);
 
-      // Audio → transcript TEXT. Prefer the stored transcript; transcribe on demand
-      // (sequentially, to avoid CPU spikes) when it's missing, and persist it.
-      if (audioMime(s)) {
-        let transcript = s.transcript ?? '';
-        if (!transcript.trim()) {
-          const res = await transcribeSource(admin, user.id, s);
-          transcript = res?.transcript ?? '';
-        }
-        raw += transcript.trim()
-          ? `\n\n=== Transcript of ${label} ===\n` + transcript.slice(0, 24000)
-          : `\n\n[${label} — could not be transcribed]`;
-        continue;
-      }
+    // Each source's slice of the prompt, keyed by id so assembly can follow upload
+    // order rather than completion order.
+    const fragment = new Map<string, string>();
+    const download = (path: string) => admin.storage.from('content').download(path);
 
-      // PDFs / images → inline media, subject to the shared encoded-byte budget.
-      const docMime = inlineDocMime(ext);
-      if (docMime) {
-        const { data: blob } = await admin.storage.from('content').download(s.storage_path);
-        if (blob && mediaEncodedBytes + encodedSize(blob.size) <= MEDIA_CAP_ENCODED) {
-          mediaParts.push({ mimeType: docMime, dataBase64: encodeBase64(await blob.arrayBuffer()) });
-          mediaEncodedBytes += encodedSize(blob.size);
-          raw += `\n\n[attached ${label}]`;
-          continue;
-        }
-        console.warn(`program-build: ${s.filename} skipped — over the inline media budget`);
-        raw += `\n\n[${label} — too large to analyze directly; not included]`;
-        continue;
-      }
-
-      raw += `\n\n[${label}]`;
+    // Text notes → inline text (tiny, but still a round trip each).
+    const textBlobs = await inBatches(texts, DOWNLOAD_CONCURRENCY, async (p: Planned) => {
+      const { data: blob } = await download(p.s.storage_path);
+      return { p, text: blob ? (await blob.text()).slice(0, 6000) : null };
+    });
+    for (const { p, text } of textBlobs) {
+      if (text !== null) fragment.set(p.s.id, `\n\n=== ${p.s.filename} ===\n` + text);
     }
+
+    // PDFs / images → inline media. Only the first MAX_INLINE_DOCS are fetched AT
+    // ALL: the old loop downloaded every document and then discarded the ones past
+    // the byte budget, which is what made a large library so expensive. Documents
+    // past the cap are still named in the prompt, so the omission is explicit to
+    // the model instead of silent.
+    const docBlobs = await inBatches(
+      docs.slice(0, MAX_INLINE_DOCS),
+      DOWNLOAD_CONCURRENCY,
+      async (p: Planned) => ({ p, blob: (await download(p.s.storage_path)).data }),
+    );
+    // Budget applied after the fetch, in upload order, so it stays deterministic.
+    for (const { p, blob } of docBlobs) {
+      const mime = p.docMime;
+      if (blob && mime && mediaEncodedBytes + encodedSize(blob.size) <= MEDIA_CAP_ENCODED) {
+        mediaParts.push({ mimeType: mime, dataBase64: encodeBase64(await blob.arrayBuffer()) });
+        mediaEncodedBytes += encodedSize(blob.size);
+        fragment.set(p.s.id, `\n\n[attached ${p.label}]`);
+        continue;
+      }
+      console.warn(`program-build: ${p.s.filename} skipped — over the inline media budget`);
+      fragment.set(p.s.id, `\n\n[${p.label} — too large to analyze directly; not included]`);
+    }
+    if (docs.length > MAX_INLINE_DOCS) {
+      console.warn(`program-build: ${docs.length} documents, reading the first ${MAX_INLINE_DOCS}`);
+      for (const p of docs.slice(MAX_INLINE_DOCS)) {
+        fragment.set(
+          p.s.id,
+          `\n\n[${p.label} — not analyzed; a build reads the first ${MAX_INLINE_DOCS} documents]`,
+        );
+      }
+    }
+
+    // Audio → transcript TEXT. Prefer the stored transcript; transcribe on demand
+    // (sequentially, to avoid CPU spikes) when it's missing, and persist it.
+    for (const p of audios) {
+      let transcript = p.s.transcript ?? '';
+      if (!transcript.trim()) {
+        const res = await transcribeSource(admin, user.id, p.s);
+        transcript = res?.transcript ?? '';
+      }
+      fragment.set(
+        p.s.id,
+        transcript.trim()
+          ? `\n\n=== Transcript of ${p.label} ===\n` + transcript.slice(0, 24000)
+          : `\n\n[${p.label} — could not be transcribed]`,
+      );
+    }
+
+    for (const p of others) fragment.set(p.s.id, `\n\n[${p.label}]`);
+
+    let raw = plan.map((p) => fragment.get(p.s.id) ?? '').join('');
 
     if (raw.trim().length < 20 && mediaParts.length === 0) {
       raw = 'The expert provided material about their area of expertise; infer a sensible foundational program.';
