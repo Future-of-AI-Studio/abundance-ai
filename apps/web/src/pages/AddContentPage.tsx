@@ -152,15 +152,24 @@ export function AddContentPage() {
   // Documents a build will actually read. The extensions mirror inlineDocMime() in
   // _shared/limits.ts, which keys strictly off the filename extension.
   const isDocumentName = (name: string) => /\.(pdf|png|jpe?g|webp)$/i.test(name);
-  const documentCount = contentSources.filter((s) => isDocumentName(s.filename)).length;
+  const documents = contentSources.filter((s) => isDocumentName(s.filename));
+  const documentCount = documents.length;
+  // Sizes recorded at upload (content_sources.bytes). Rows predating that column
+  // read as unknown, so this can understate an older library - content-upload-url
+  // stays the authority and its rejection names the real remaining room.
+  const documentBytes = documents.reduce((n, s) => n + (s.bytes ?? 0), 0);
+  const documentsCapped =
+    documentCount >= MAX_BUILD_DOCUMENTS || documentBytes >= MAX_BUILD_DOCUMENT_BYTES;
+  const asMb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 
   const addFiles = async (files: FileList | null) => {
     if (!files || !backend) return;
     setError(null);
-    // content-upload-url is the authority on the document cap; checking here too
+    // content-upload-url is the authority on both document caps; checking here too
     // means the picker says no before spending an upload. Counted locally because
     // refreshContent() can't update this closure mid-batch.
     let documentsHeld = documentCount;
+    let documentBytesHeld = documentBytes;
     for (const picked of Array.from(files)) {
       setBusy(true);
       setSavingLabel('Saving your file…');
@@ -182,8 +191,21 @@ export function AddContentPage() {
           setError(`A build reads up to ${MAX_BUILD_DOCUMENTS} documents and you've already added that many. Remove one to make room for this file.`);
           continue;
         }
+        // Name the room that's actually left rather than the 50 MB per-file limit,
+        // which a document can never reach. The server re-checks against real stored
+        // sizes, so a library with unrecorded sizes still gets caught there.
+        if (isDoc && documentBytesHeld + file.size > MAX_BUILD_DOCUMENT_BYTES) {
+          const free = asMb(Math.max(0, MAX_BUILD_DOCUMENT_BYTES - documentBytesHeld));
+          setError(
+            `That file is ${asMb(file.size)} MB and only ${free} MB of document room is left. Remove one, or add a smaller file.`,
+          );
+          continue;
+        }
         await backend.storage.upload(file, 'file');
-        if (isDoc) documentsHeld++;
+        if (isDoc) {
+          documentsHeld++;
+          documentBytesHeld += file.size;
+        }
         await refreshContent();
       } catch (e) {
         // Surface the server's reason - the document or byte limit arrives as a
@@ -344,6 +366,10 @@ export function AddContentPage() {
   const remove = async (id: string) => {
     if (!backend) return;
     setRemovingId(id);
+    // Any standing complaint (a limit, a rejected upload) describes the OLD set, so
+    // clear it here - otherwise the message outlives the condition that caused it,
+    // and removing a file to make room appears to change nothing.
+    setError(null);
     try {
       await backend.storage.remove(id);
       await refreshContent();
@@ -449,7 +475,16 @@ export function AddContentPage() {
         >
           <UploadIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">Upload a file</span>
-          <span className="text-caption text-ink-secondary">PDF, image or .txt · max 50 MB</span>
+          {/* The 50 MB per-file schema limit is unreachable for PDFs and images: they
+              share one MAX_BUILD_DOCUMENT_BYTES budget, so quote the limit people
+              actually meet - and once some is spent, the room that's left, which is
+              the number that decides whether the next file is accepted. */}
+          <span className="text-caption text-ink-secondary">
+            PDF, image or .txt ·{' '}
+            {documentBytes > 0
+              ? `${asMb(Math.max(0, MAX_BUILD_DOCUMENT_BYTES - documentBytes))} MB of document room left`
+              : `${asMb(MAX_BUILD_DOCUMENT_BYTES)} MB of documents in total`}
+          </span>
           <input ref={fileInput} type="file" accept={ACCEPTED_UPLOAD_ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
         </button>
 
@@ -513,15 +548,17 @@ export function AddContentPage() {
             </p>
             <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
           </div>
-          {/* Say the limits out loud. New uploads past the cap are refused outright,
-              so the "won't be included" case only arises for libraries built before
-              the cap existed. Mirrors MAX_BUILD_DOCS / MEDIA_CAP_ENCODED in
-              supabase/functions/_shared/limits.ts. */}
-          {documentCount >= MAX_BUILD_DOCUMENTS && (
-            <p className="mt-2 text-caption text-ink-secondary">
+          {/* Always show where they stand against BOTH limits, so being full is
+              visible before an upload is refused rather than only after. Mirrors
+              MAX_BUILD_DOCS / MEDIA_CAP_ENCODED in _shared/limits.ts. */}
+          {documentCount > 0 && (
+            <p className={cn('mt-2 text-caption', documentsCapped ? 'text-error' : 'text-ink-secondary')}>
               {documentCount > MAX_BUILD_DOCUMENTS
-                ? `A build reads up to ${MAX_BUILD_DOCUMENTS} documents, and about ${Math.floor(MAX_BUILD_DOCUMENT_BYTES / (1024 * 1024))} MB of them in total, so some of these ${documentCount} won't be included. Remove the ones you don't need.`
-                : `You've added the ${MAX_BUILD_DOCUMENTS} documents a build can read. Remove one to make room for another.`}
+                ? `A build reads ${MAX_BUILD_DOCUMENTS} of your ${documentCount} documents`
+                : `${documentCount} of ${MAX_BUILD_DOCUMENTS} documents`}
+              {' · '}
+              {asMb(documentBytes)} of {asMb(MAX_BUILD_DOCUMENT_BYTES)} MB used
+              {documentsCapped && ' · remove one to make room for another'}
             </p>
           )}
           <Card className="mt-2 divide-y divide-line p-0">
