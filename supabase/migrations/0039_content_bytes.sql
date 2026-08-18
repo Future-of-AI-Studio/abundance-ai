@@ -1,0 +1,14 @@
+-- content_sources.bytes — the uploaded file's size.
+--
+-- content-upload-url already receives this as size_bytes (it's what enforces the
+-- 50 MB per-file limit) and previously discarded it. Storage still knows the real
+-- size, and the server keeps reading it from the object listing when it enforces a
+-- build's media budget, so this column is not the authority.
+--
+-- It exists so the UPLOAD SCREEN can show how much of that budget is used BEFORE a
+-- user runs into it: the browser has no other way to learn the size of a file that
+-- was uploaded earlier in a previous session.
+--
+-- Nullable on purpose. Rows created before this migration have no size recorded,
+-- and callers must treat null as "unknown" rather than as zero.
+alter table content_sources add column if not exists bytes bigint;

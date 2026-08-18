@@ -197,6 +197,10 @@ export const contentSourceSchema = z.object({
   // Stored transcript for audio sources (null until transcribed). Lets program-build
   // feed the model plain text instead of inlining the raw recording.
   transcript: z.string().nullable().optional(),
+  // Uploaded size in bytes; null for rows created before it was recorded, so treat
+  // it as unknown rather than zero. Lets the upload screen show how much of a
+  // build's media budget is used before anyone hits the limit.
+  bytes: z.number().int().nullable().optional(),
   created_at: timestamp,
 });
 export type ContentSource = z.infer<typeof contentSourceSchema>;
