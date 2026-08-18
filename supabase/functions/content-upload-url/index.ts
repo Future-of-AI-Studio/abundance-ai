@@ -102,6 +102,9 @@ Deno.serve(async (req) => {
         storage_path: objectPath,
         filename: body.filename,
         duration_sec: body.duration_sec ?? null,
+        // Recorded so the upload screen can show budget usage without asking
+        // Storage for every file's size. The build still trusts the object listing.
+        bytes: body.size_bytes,
       })
       .select('id')
       .single();
