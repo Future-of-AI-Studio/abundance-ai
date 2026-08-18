@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MAX_UPLOAD_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
+import { MAX_UPLOAD_BYTES, MAX_BUILD_DOCUMENTS, MAX_BUILD_DOCUMENT_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete, AbundanceApiError } from '@abundance/shared';
 import type { ContentSource } from '@abundance/shared';
 import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
 import { StepLayout, RailLabel } from '@/components/StepLayout';
@@ -9,6 +9,7 @@ import { useApp } from '@/store';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/cn';
 import { blobToWav } from '@/lib/audio';
+import { compressImage } from '@/lib/image';
 
 // [06] Add Your Content — upload files or record speech to feed the AI. ≥1 source
 // to enable Build. 50 MB + type allowlist enforced inline.
@@ -148,25 +149,68 @@ export function AddContentPage() {
     return () => { active = false; };
   }, [refreshContent]);
 
+  // Documents a build will actually read. The extensions mirror inlineDocMime() in
+  // _shared/limits.ts, which keys strictly off the filename extension.
+  const isDocumentName = (name: string) => /\.(pdf|png|jpe?g|webp)$/i.test(name);
+  const documents = contentSources.filter((s) => isDocumentName(s.filename));
+  const documentCount = documents.length;
+  // Sizes recorded at upload (content_sources.bytes). Rows predating that column
+  // read as unknown, so this can understate an older library - content-upload-url
+  // stays the authority and its rejection names the real remaining room.
+  const documentBytes = documents.reduce((n, s) => n + (s.bytes ?? 0), 0);
+  const documentsCapped =
+    documentCount >= MAX_BUILD_DOCUMENTS || documentBytes >= MAX_BUILD_DOCUMENT_BYTES;
+  const asMb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
+
   const addFiles = async (files: FileList | null) => {
     if (!files || !backend) return;
     setError(null);
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        setError("That file's a bit big (max 50 MB). Try a smaller one - or just record instead.");
-        continue;
-      }
-      if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
-        setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
-        continue;
-      }
+    // content-upload-url is the authority on both document caps; checking here too
+    // means the picker says no before spending an upload. Counted locally because
+    // refreshContent() can't update this closure mid-batch.
+    let documentsHeld = documentCount;
+    let documentBytesHeld = documentBytes;
+    for (const picked of Array.from(files)) {
       setBusy(true);
       setSavingLabel('Saving your file…');
       try {
+        // Shrink big images before the size check: a print-resolution photo is
+        // worth no more to the model than a 1600px one, and full-size originals
+        // crowd out other material in the build's inline-media budget.
+        const file = await compressImage(picked);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError("That file's a bit big (max 50 MB). Try a smaller one - or just record instead.");
+          continue;
+        }
+        if (!ACCEPTED_UPLOAD_TYPES.includes(file.type)) {
+          setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
+          continue;
+        }
+        const isDoc = isDocumentName(file.name);
+        if (isDoc && documentsHeld >= MAX_BUILD_DOCUMENTS) {
+          setError(`A build reads up to ${MAX_BUILD_DOCUMENTS} documents and you've already added that many. Remove one to make room for this file.`);
+          continue;
+        }
+        // Name the room that's actually left rather than the 50 MB per-file limit,
+        // which a document can never reach. The server re-checks against real stored
+        // sizes, so a library with unrecorded sizes still gets caught there.
+        if (isDoc && documentBytesHeld + file.size > MAX_BUILD_DOCUMENT_BYTES) {
+          const free = asMb(Math.max(0, MAX_BUILD_DOCUMENT_BYTES - documentBytesHeld));
+          setError(
+            `That file is ${asMb(file.size)} MB and only ${free} MB of document room is left. Remove one, or add a smaller file.`,
+          );
+          continue;
+        }
         await backend.storage.upload(file, 'file');
+        if (isDoc) {
+          documentsHeld++;
+          documentBytesHeld += file.size;
+        }
         await refreshContent();
-      } catch {
-        setError('Upload failed - give it another try.');
+      } catch (e) {
+        // Surface the server's reason - the document or byte limit arrives as a
+        // typed envelope message, which is more useful than a generic failure.
+        setError(e instanceof AbundanceApiError ? e.message : 'Upload failed - give it another try.');
       } finally {
         setBusy(false);
         setSavingLabel(null);
@@ -322,6 +366,10 @@ export function AddContentPage() {
   const remove = async (id: string) => {
     if (!backend) return;
     setRemovingId(id);
+    // Any standing complaint (a limit, a rejected upload) describes the OLD set, so
+    // clear it here - otherwise the message outlives the condition that caused it,
+    // and removing a file to make room appears to change nothing.
+    setError(null);
     try {
       await backend.storage.remove(id);
       await refreshContent();
@@ -427,7 +475,16 @@ export function AddContentPage() {
         >
           <UploadIcon width={28} height={28} className="text-primary" />
           <span className="text-body font-medium text-ink">Upload a file</span>
-          <span className="text-caption text-ink-secondary">PDF, image or .txt · max 50 MB</span>
+          {/* The 50 MB per-file schema limit is unreachable for PDFs and images: they
+              share one MAX_BUILD_DOCUMENT_BYTES budget, so quote the limit people
+              actually meet - and once some is spent, the room that's left, which is
+              the number that decides whether the next file is accepted. */}
+          <span className="text-caption text-ink-secondary">
+            PDF, image or .txt ·{' '}
+            {documentBytes > 0
+              ? `${asMb(Math.max(0, MAX_BUILD_DOCUMENT_BYTES - documentBytes))} MB of document room left`
+              : `${asMb(MAX_BUILD_DOCUMENT_BYTES)} MB of documents in total`}
+          </span>
           <input ref={fileInput} type="file" accept={ACCEPTED_UPLOAD_ACCEPT} multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
         </button>
 
@@ -491,6 +548,19 @@ export function AddContentPage() {
             </p>
             <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
           </div>
+          {/* Always show where they stand against BOTH limits, so being full is
+              visible before an upload is refused rather than only after. Mirrors
+              MAX_BUILD_DOCS / MEDIA_CAP_ENCODED in _shared/limits.ts. */}
+          {documentCount > 0 && (
+            <p className={cn('mt-2 text-caption', documentsCapped ? 'text-error' : 'text-ink-secondary')}>
+              {documentCount > MAX_BUILD_DOCUMENTS
+                ? `A build reads ${MAX_BUILD_DOCUMENTS} of your ${documentCount} documents`
+                : `${documentCount} of ${MAX_BUILD_DOCUMENTS} documents`}
+              {' · '}
+              {asMb(documentBytes)} of {asMb(MAX_BUILD_DOCUMENT_BYTES)} MB used
+              {documentsCapped && ' · remove one to make room for another'}
+            </p>
+          )}
           <Card className="mt-2 divide-y divide-line p-0">
             {contentSources.map((s) => {
               const { name, meta } = sourceMeta(s);
