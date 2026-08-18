@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MAX_UPLOAD_BYTES, MAX_BUILD_DOCUMENTS, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete } from '@abundance/shared';
+import { MAX_UPLOAD_BYTES, MAX_BUILD_DOCUMENTS, MAX_BUILD_DOCUMENT_BYTES, ACCEPTED_UPLOAD_TYPES, ACCEPTED_UPLOAD_ACCEPT, isStepComplete, AbundanceApiError } from '@abundance/shared';
 import type { ContentSource } from '@abundance/shared';
 import { Button, Card, Sheet, Skeleton, Spinner } from '@/components/ui';
 import { StepLayout, RailLabel } from '@/components/StepLayout';
@@ -149,9 +149,18 @@ export function AddContentPage() {
     return () => { active = false; };
   }, [refreshContent]);
 
+  // Documents a build will actually read. The extensions mirror inlineDocMime() in
+  // _shared/limits.ts, which keys strictly off the filename extension.
+  const isDocumentName = (name: string) => /\.(pdf|png|jpe?g|webp)$/i.test(name);
+  const documentCount = contentSources.filter((s) => isDocumentName(s.filename)).length;
+
   const addFiles = async (files: FileList | null) => {
     if (!files || !backend) return;
     setError(null);
+    // content-upload-url is the authority on the document cap; checking here too
+    // means the picker says no before spending an upload. Counted locally because
+    // refreshContent() can't update this closure mid-batch.
+    let documentsHeld = documentCount;
     for (const picked of Array.from(files)) {
       setBusy(true);
       setSavingLabel('Saving your file…');
@@ -168,10 +177,18 @@ export function AddContentPage() {
           setError('Only PDF, image, or plain text files can be uploaded. You can also write it out or record yourself instead.');
           continue;
         }
+        const isDoc = isDocumentName(file.name);
+        if (isDoc && documentsHeld >= MAX_BUILD_DOCUMENTS) {
+          setError(`A build reads up to ${MAX_BUILD_DOCUMENTS} documents and you've already added that many. Remove one to make room for this file.`);
+          continue;
+        }
         await backend.storage.upload(file, 'file');
+        if (isDoc) documentsHeld++;
         await refreshContent();
-      } catch {
-        setError('Upload failed - give it another try.');
+      } catch (e) {
+        // Surface the server's reason - the document or byte limit arrives as a
+        // typed envelope message, which is more useful than a generic failure.
+        setError(e instanceof AbundanceApiError ? e.message : 'Upload failed - give it another try.');
       } finally {
         setBusy(false);
         setSavingLabel(null);
@@ -254,10 +271,6 @@ export function AddContentPage() {
   const [seconds, setSeconds] = useState(0);
   const secondsRef = useRef(0); // authoritative duration for the save (state is stale in onstop)
   const timerRef = useRef<number | null>(null);
-
-  // Documents a build will actually read. The extensions mirror inlineDocMime() in
-  // program-build, which keys strictly off the filename extension.
-  const documentCount = contentSources.filter((s) => /\.(pdf|png|jpe?g|webp)$/i.test(s.filename)).length;
 
   // Total voice already recorded across saved sources — drives the 30-min cap.
   const recordedSeconds = contentSources.reduce(
@@ -500,13 +513,15 @@ export function AddContentPage() {
             </p>
             <span className="text-caption text-ink-secondary">{contentSources.length} {contentSources.length === 1 ? 'item' : 'items'}</span>
           </div>
-          {/* Say the document cap out loud rather than letting material go quietly
-              unused: a build reads MAX_BUILD_DOCUMENTS files and names the rest as
-              not analyzed. Mirrors MAX_INLINE_DOCS in program-build. */}
-          {documentCount > MAX_BUILD_DOCUMENTS && (
+          {/* Say the limits out loud. New uploads past the cap are refused outright,
+              so the "won't be included" case only arises for libraries built before
+              the cap existed. Mirrors MAX_BUILD_DOCS / MEDIA_CAP_ENCODED in
+              supabase/functions/_shared/limits.ts. */}
+          {documentCount >= MAX_BUILD_DOCUMENTS && (
             <p className="mt-2 text-caption text-ink-secondary">
-              A build reads your first {MAX_BUILD_DOCUMENTS} documents, so {documentCount - MAX_BUILD_DOCUMENTS}{' '}
-              of these won't be included. Remove the ones you don't need, or keep them for a later build.
+              {documentCount > MAX_BUILD_DOCUMENTS
+                ? `A build reads up to ${MAX_BUILD_DOCUMENTS} documents, and about ${Math.floor(MAX_BUILD_DOCUMENT_BYTES / (1024 * 1024))} MB of them in total, so some of these ${documentCount} won't be included. Remove the ones you don't need.`
+                : `You've added the ${MAX_BUILD_DOCUMENTS} documents a build can read. Remove one to make room for another.`}
             </p>
           )}
           <Card className="mt-2 divide-y divide-line p-0">
